@@ -87,37 +87,113 @@ class _AiTestScreenState extends State<AiScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("AI支援テスト (Groq版)")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _textController,
-              decoration: const InputDecoration(
-                hintText: "AIに勉強の悩みを相談しよう...",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _isLoading ? null : askGroq,
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text("AIに質問する"),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Text(_aiResponse, style: const TextStyle(fontSize: 16)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+@override
+Widget build(BuildContext context) {
+return Scaffold(
+backgroundColor: const Color(0xFFF5F7FA),
+
+appBar: AppBar(
+title: const Text("AIサポート"),
+centerTitle: true,
+backgroundColor: Colors.white,
+elevation: 0,
+),
+
+body: Padding(
+padding: const EdgeInsets.all(16),
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+
+const Text(
+"勉強についてAIに相談しましょう",
+style: TextStyle(
+fontSize: 22,
+fontWeight: FontWeight.bold,
+),
+),
+
+const SizedBox(height: 8),
+
+Text(
+"勉強方法・問題解説・学習計画などを相談できます。",
+style: TextStyle(
+color: Colors.grey.shade600,
+),
+),
+
+const SizedBox(height: 20),
+
+Card(
+elevation: 2,
+shape: RoundedRectangleBorder(
+borderRadius: BorderRadius.circular(15),
+),
+child: Padding(
+padding: const EdgeInsets.all(15),
+child: TextField(
+controller: _textController,
+maxLines: 4,
+decoration: const InputDecoration(
+border: InputBorder.none,
+hintText: "例）数学の勉強方法を教えて",
+),
+),
+),
+),
+
+const SizedBox(height: 15),
+
+SizedBox(
+width: double.infinity,
+height: 50,
+child: ElevatedButton.icon(
+onPressed: _isLoading ? null : askGroq,
+icon: const Icon(Icons.auto_awesome),
+label: const Text(
+"AIに質問する",
+style: TextStyle(fontSize: 18),
+),
+),
+),
+
+const SizedBox(height: 25),
+
+const Text(
+"AIの回答",
+style: TextStyle(
+fontWeight: FontWeight.bold,
+fontSize: 20,
+),
+),
+
+const SizedBox(height: 10),
+
+Expanded(
+child: Card(
+elevation: 2,
+shape: RoundedRectangleBorder(
+borderRadius: BorderRadius.circular(15),
+),
+child: Padding(
+padding: const EdgeInsets.all(16),
+child: _isLoading
+? const Center(
+child: CircularProgressIndicator(),
+)
+: SingleChildScrollView(
+child: Text(
+_aiResponse,
+style: const TextStyle(fontSize: 16),
+),
+),
+),
+),
+),
+],
+),
+),
+);
+}
+
 }
