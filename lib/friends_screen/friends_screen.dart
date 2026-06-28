@@ -32,7 +32,7 @@ class FriendsScreen extends StatelessWidget {
               icon: Icons.question_answer,
               title: 'Q&A',
               subtitle: '質問・回答で学習をサポート',
-              screen: const QandaScreen(),
+              screen: QnAListPage(),
             ),
             const SizedBox(height: 16),
 
