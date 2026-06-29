@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'user_search_screen.dart';
 import 'qanda_screen.dart';
-import 'room_screen.dart';
+import 'room_screen_folder/room_screen.dart';
 
-class FriendsScreen extends StatelessWidget {
-  const FriendsScreen({super.key});
+class LinkScreen extends StatelessWidget {
+  const LinkScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
