@@ -57,7 +57,7 @@ class _QnAListPageState extends State<QnAListPage> {
   List<Question> questions = [
     Question(content: "Flutterとは？", userName: "Taro"),
     Question(content: "Dartとは？", userName: "Hanako"),
-    Question(content: "Firebaseの使い方", userName: "Jiro"),
+    Question(content: "Javaとは？", userName: "Jiro"),
   ];
 
   String keyword = "";
