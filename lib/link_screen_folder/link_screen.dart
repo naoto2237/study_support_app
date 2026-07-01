@@ -66,7 +66,7 @@ class LinkScreen extends StatelessWidget {
         leading: Icon(
           icon,
           size: 36,
-          color: Colors.blue,
+          color: const Color(0xFF3D96E8)
         ),
         title: Text(
           title,

@@ -35,7 +35,7 @@ class SearchRoomTab extends StatelessWidget {
             label: const Text("絞り込み"),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: Colors.blue,
+              foregroundColor: const Color(0xFF3D96E8),
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
@@ -150,7 +150,7 @@ class PublicRoomCard extends StatelessWidget {
             ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: const Color(0xFF3D96E8),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'room_making.dart';
 
 class CreateRoomTab extends StatelessWidget {
   const CreateRoomTab({super.key});
@@ -12,12 +13,17 @@ class CreateRoomTab extends StatelessWidget {
         InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {
-            // TODO: ルーム作成画面へ
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const RoomMakingScreen(),
+              ),
+            );
           },
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF4A90E2),
+              color: const Color(0xFF3D96E8),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -136,7 +142,7 @@ class RoomCard extends StatelessWidget {
           backgroundColor: Colors.blue.shade100,
           child: const Icon(
             Icons.groups,
-            color: Colors.blue,
+            color: const Color(0xFF3D96E8)
           ),
         ),
 

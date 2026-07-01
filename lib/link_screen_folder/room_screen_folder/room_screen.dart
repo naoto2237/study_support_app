@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'room_make.dart';
-import 'room_search.dart';
+import 'room_makeTab_folder/room_make.dart';
+import 'room_searchTab_folder/room_search.dart';
 
 class RoomScreen extends StatelessWidget {
   const RoomScreen({super.key});
@@ -48,9 +48,9 @@ class RoomScreen extends StatelessWidget {
           ],
 
           bottom: TabBar(
-            indicatorColor: Colors.blue,
+            indicatorColor: const Color(0xFF3D96E8),
             indicatorWeight: 3,
-            labelColor: Colors.blue,
+            labelColor: const Color(0xFF3D96E8),
             unselectedLabelColor: Colors.grey,
 
             tabs: const [
