@@ -289,11 +289,6 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen>
                   ),
                 ],
               ),
-
-              const Text(
-                "4人中3人が勉強中🔥",
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
             ],
           ),
         ),
