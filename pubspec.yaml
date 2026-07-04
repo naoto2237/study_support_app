@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  firebase_core: ^4.0.0
   cloud_firestore: ^6.6.0
   google_fonts: ^6.2.1
   sliding_up_panel: ^2.0.0+1
@@ -38,6 +39,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_dotenv: ^6.0.1
   http: ^1.6.0
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:

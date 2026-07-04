@@ -8,9 +8,14 @@ import 'link_screen_folder/link_screen.dart';
 import 'record_screen_folder/record_screen.dart';
 import 'mypage_screen_folder/mypage_screen.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const MyApp());
 }
@@ -37,13 +42,11 @@ class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
   @override
-  State<MainNavigationScreen> createState() =>
-      _MainNavigationScreenState();
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen>
     with SingleTickerProviderStateMixin {
-
   int _selectedIndex = 0;
 
   late AnimationController _controller;
@@ -70,12 +73,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _animation = Tween<double>(
       begin: 1.0,
       end: 1.12,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -155,46 +153,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_selectedIndex],
-        bottomNavigationBar: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-          ),
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              height: 60,
-              child: Row(
-                children: [
-                  navItem(
-                    icon: Icons.home,
-                    label: "ホーム",
-                    index: 0,
-                  ),
-                  navItem(
-                    icon: Icons.auto_awesome,
-                    label: "AIサポート",
-                    index: 1,
-                  ),
-                  navItem(
-                    icon: Icons.diversity_3,
-                    label: "Link",
-                    index: 2,
-                  ),
-                  navItem(
-                    icon: Icons.bar_chart,
-                    label: "学習記録",
-                    index: 3,
-                  ),
-                  navItem(
-                    icon: Icons.person,
-                    label: "マイページ",
-                    index: 4,
-                  ),
-                ],
-              ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(color: Colors.white),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              children: [
+                navItem(icon: Icons.home, label: "ホーム", index: 0),
+                navItem(icon: Icons.auto_awesome, label: "AIサポート", index: 1),
+                navItem(icon: Icons.diversity_3, label: "Link", index: 2),
+                navItem(icon: Icons.bar_chart, label: "学習記録", index: 3),
+                navItem(icon: Icons.person, label: "マイページ", index: 4),
+              ],
             ),
           ),
         ),
+      ),
     );
   }
 }

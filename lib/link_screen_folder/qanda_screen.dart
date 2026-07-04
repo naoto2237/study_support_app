@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -9,24 +11,46 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: QnAListPage(),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF4A90E2),
+        ),
+      ),
+      home: const QnAListPage(),
     );
   }
 }
 
-class Answer {
-  final String userName;
-  final String text;
+// =========================
+// モデル
+// =========================
 
-  Answer({required this.userName, required this.text});
+class Reply {
+  String userName;
+  String text;
+
+  Reply({required this.userName, required this.text});
+}
+
+class Answer {
+  String userName;
+  String text;
+  List<Reply> replies;
+
+  Answer({
+    required this.userName,
+    required this.text,
+    List<Reply>? replies,
+  }) : replies = replies ?? [];
 }
 
 class Question {
-  final String content;
-  final String userName;
-  final List<Answer> answers;
+  String content;
+  String userName;
+  List<Answer> answers;
 
   Question({
     required this.content,
@@ -34,6 +58,10 @@ class Question {
     List<Answer>? answers,
   }) : answers = answers ?? [];
 }
+
+// =========================
+// 一覧
+// =========================
 
 class QnAListPage extends StatefulWidget {
   const QnAListPage({super.key});
@@ -44,70 +72,78 @@ class QnAListPage extends StatefulWidget {
 
 class _QnAListPageState extends State<QnAListPage> {
   final Color primaryColor = const Color(0xFF4A90E2);
-
   final TextEditingController searchController = TextEditingController();
 
-  final Map<String, String> kanaToEnglish = {
-    "ふらった": "flutter",
-    "ふらったー": "flutter",
-    "だーと": "dart",
-    "ふぁいやーべーす": "firebase",
-  };
-
-  List<Question> questions = [
-    Question(content: "Flutterとは？", userName: "Taro"),
-    Question(content: "Dartとは？", userName: "Hanako"),
-    Question(content: "Firebaseの使い方", userName: "Jiro"),
-  ];
-
+  List<Question> questions = [];
   String keyword = "";
 
-  String normalize(String text) {
-    return text
-        .toLowerCase()
-        .trim()
-        .replaceAll('ー', '')
-        .replaceAll('ぁ', 'あ')
-        .replaceAll('ぃ', 'い')
-        .replaceAll('ぅ', 'う')
-        .replaceAll('ぇ', 'え')
-        .replaceAll('ぉ', 'お')
-        .replaceAll('ゃ', 'や')
-        .replaceAll('ゅ', 'ゆ')
-        .replaceAll('ょ', 'よ')
-        .replaceAll('っ', 'つ')
-        .replaceAll('ァ', 'あ')
-        .replaceAll('ィ', 'い')
-        .replaceAll('ゥ', 'う')
-        .replaceAll('ェ', 'え')
-        .replaceAll('ォ', 'お')
-        .replaceAll('ャ', 'や')
-        .replaceAll('ュ', 'ゆ')
-        .replaceAll('ョ', 'よ')
-        .replaceAll('ッ', 'つ');
+  @override
+  void initState() {
+    super.initState();
+    loadData();
   }
 
-  String convert(String text) {
-    String result = text;
+  Future<void> saveData() async {
+    final prefs = await SharedPreferences.getInstance();
 
-    kanaToEnglish.forEach((key, value) {
-      if (result.contains(key)) {
-        result = result.replaceAll(key, value);
-      }
+    final data = questions.map((q) {
+      return {
+        "content": q.content,
+        "userName": q.userName,
+        "answers": q.answers.map((a) {
+          return {
+            "userName": a.userName,
+            "text": a.text,
+            "replies": a.replies
+                .map((r) => {
+              "userName": r.userName,
+              "text": r.text,
+            })
+                .toList(),
+          };
+        }).toList(),
+      };
+    }).toList();
+
+    await prefs.setString("qna_data", jsonEncode(data));
+  }
+
+  Future<void> loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString("qna_data");
+    if (data == null) return;
+
+    final List decoded = jsonDecode(data);
+
+    setState(() {
+      questions = decoded.map((q) {
+        return Question(
+          content: q["content"],
+          userName: q["userName"],
+          answers: (q["answers"] as List).map((a) {
+            return Answer(
+              userName: a["userName"],
+              text: a["text"],
+              replies: (a["replies"] as List? ?? [])
+                  .map((r) => Reply(
+                userName: r["userName"],
+                text: r["text"],
+              ))
+                  .toList(),
+            );
+          }).toList(),
+        );
+      }).toList();
     });
-
-    return result;
   }
 
   List<Question> get filteredQuestions {
     if (keyword.isEmpty) return questions;
 
-    final k = normalize(convert(keyword));
-
-    return questions.where((q) {
-      final target = normalize(q.content + q.userName);
-      return target.contains(k);
-    }).toList();
+    return questions
+        .where((q) =>
+    q.content.contains(keyword) || q.userName.contains(keyword))
+        .toList();
   }
 
   Future<void> goPost() async {
@@ -120,6 +156,7 @@ class _QnAListPageState extends State<QnAListPage> {
 
     if (result != null) {
       setState(() => questions.add(result));
+      saveData();
     }
   }
 
@@ -130,85 +167,83 @@ class _QnAListPageState extends State<QnAListPage> {
         builder: (_) => DetailPage(
           question: q,
           primaryColor: primaryColor,
+          onChanged: saveData,
+          onDeleteQuestion: () {
+            setState(() => questions.remove(q));
+            saveData();
+            Navigator.pop(context);
+          },
         ),
       ),
     ).then((_) => setState(() {}));
   }
 
+  void editQuestion(Question q) {
+    final c = TextEditingController(text: q.content);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("質問編集"),
+        content: TextField(controller: c),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("キャンセル")),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => q.content = c.text);
+              saveData();
+              Navigator.pop(context);
+            },
+            child: const Text("保存"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
-
       appBar: AppBar(
         backgroundColor: primaryColor,
-        title: const Text(
-          "Q&Aアプリ",
-          style: TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
+        title: const Text("Q&Aアプリ"),
       ),
-
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.search, color: primaryColor),
-                  hintText: "検索",
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(14),
+            child: TextField(
+              controller: searchController,
+              onChanged: (v) => setState(() => keyword = v),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: "検索",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                onChanged: (v) => setState(() => keyword = v),
               ),
             ),
           ),
-
           Expanded(
             child: ListView.builder(
               itemCount: filteredQuestions.length,
-              itemBuilder: (context, index) {
-                final q = filteredQuestions[index];
+              itemBuilder: (_, i) {
+                final q = filteredQuestions[i];
 
-                return Padding(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: primaryColor,
-                        child: Text(
-                          q.userName[0],
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: primaryColor,
+                      child: Text(
+                        q.userName.isNotEmpty ? q.userName[0] : "?",
+                        style: const TextStyle(color: Colors.white),
                       ),
-                      title: Text(
-                        q.content,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle:
-                      Text("${q.userName} ・ 回答 ${q.answers.length}件"),
-                      trailing: Icon(Icons.arrow_forward_ios,
-                          size: 16, color: primaryColor),
-                      onTap: () => goDetail(q),
                     ),
+                    title: Text(q.content),
+                    subtitle:
+                    Text("${q.userName} ・ 回答 ${q.answers.length}件"),
+                    onTap: () => goDetail(q),
                   ),
                 );
               },
@@ -216,7 +251,6 @@ class _QnAListPageState extends State<QnAListPage> {
           ),
         ],
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
@@ -225,6 +259,10 @@ class _QnAListPageState extends State<QnAListPage> {
     );
   }
 }
+
+// =========================
+// 投稿
+// =========================
 
 class PostPage extends StatefulWidget {
   final Color primaryColor;
@@ -253,36 +291,17 @@ class _PostPageState extends State<PostPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: widget.primaryColor,
-        title: const Text("質問投稿",
-            style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
+        title: const Text("質問投稿"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: "名前"),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: content,
-              decoration: const InputDecoration(labelText: "質問"),
-              maxLines: 4,
-            ),
+            TextField(controller: name, decoration: const InputDecoration(labelText: "名前")),
+            TextField(controller: content, decoration: const InputDecoration(labelText: "質問")),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.primaryColor,
-                ),
-                onPressed: submit,
-                child: const Text("投稿",
-                    style: TextStyle(color: Colors.white)),
-              ),
-            ),
+            ElevatedButton(onPressed: submit, child: const Text("投稿")),
           ],
         ),
       ),
@@ -290,14 +309,22 @@ class _PostPageState extends State<PostPage> {
   }
 }
 
+// =========================
+// 詳細（質問も⋯対応）
+// =========================
+
 class DetailPage extends StatefulWidget {
   final Question question;
   final Color primaryColor;
+  final VoidCallback onChanged;
+  final VoidCallback onDeleteQuestion;
 
   const DetailPage({
     super.key,
     required this.question,
     required this.primaryColor,
+    required this.onChanged,
+    required this.onDeleteQuestion,
   });
 
   @override
@@ -313,14 +340,96 @@ class _DetailPageState extends State<DetailPage> {
 
     setState(() {
       widget.question.answers.add(
-        Answer(
-          userName: answerName.text,
-          text: answerText.text,
-        ),
+        Answer(userName: answerName.text, text: answerText.text),
       );
     });
 
+    widget.onChanged();
     answerText.clear();
+  }
+
+  void editAnswer(Answer a) {
+    final c = TextEditingController(text: a.text);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("回答編集"),
+        content: TextField(controller: c),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("キャンセル")),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => a.text = c.text);
+              widget.onChanged();
+              Navigator.pop(context);
+            },
+            child: const Text("保存"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void deleteAnswer(Answer a) {
+    setState(() => widget.question.answers.remove(a));
+    widget.onChanged();
+  }
+
+  void addReply(Answer a) {
+    final name = TextEditingController();
+    final text = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("返信"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: name, decoration: const InputDecoration(labelText: "名前")),
+            TextField(controller: text, decoration: const InputDecoration(labelText: "返信")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("キャンセル")),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                a.replies.add(Reply(userName: name.text, text: text.text));
+              });
+
+              widget.onChanged();
+              Navigator.pop(context);
+            },
+            child: const Text("送信"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void editQuestion() {
+    final c = TextEditingController(text: widget.question.content);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("質問編集"),
+        content: TextField(controller: c),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("キャンセル")),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => widget.question.content = c.text);
+              widget.onChanged();
+              Navigator.pop(context);
+            },
+            child: const Text("保存"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -330,21 +439,34 @@ class _DetailPageState extends State<DetailPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: widget.primaryColor,
-        title: const Text("詳細",
-            style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
+        title: const Text("詳細"),
+        actions: [
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: "edit", child: Text("質問を編集")),
+              PopupMenuItem(value: "delete", child: Text("質問を削除")),
+            ],
+            onSelected: (v) {
+              if (v == "edit") editQuestion();
+              if (v == "delete") widget.onDeleteQuestion();
+            },
+          )
+        ],
       ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.orange,
-                  child: const Icon(Icons.person, color: Colors.white),
+                  backgroundColor: widget.primaryColor,
+                  child: Text(
+                    q.userName.isNotEmpty ? q.userName[0] : "?",
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Column(
@@ -353,73 +475,108 @@ class _DetailPageState extends State<DetailPage> {
                     Text(q.userName,
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                     const Text("質問者",
-                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        style: TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 ),
               ],
             ),
-
-            const SizedBox(height: 10),
-
-            Text(
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
               q.content,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+          ),
+          const Divider(),
 
-            const Divider(),
+          Expanded(
+            child: ListView.builder(
+              itemCount: q.answers.length,
+              itemBuilder: (_, i) {
+                final a = q.answers[i];
 
-            Expanded(
-              child: q.answers.isEmpty
-                  ? const Center(child: Text("まだ回答なし"))
-                  : ListView(
-                children: q.answers.map((a) {
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: widget.primaryColor,
-                        child: const Icon(Icons.person,
-                            color: Colors.white),
+                return Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: widget.primaryColor,
+                          child: Text(
+                            a.userName.isNotEmpty ? a.userName[0] : "?",
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(a.text),
+                        subtitle: Text(a.userName),
+                        trailing: PopupMenuButton(
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(value: "edit", child: Text("編集")),
+                            PopupMenuItem(value: "delete", child: Text("削除")),
+                          ],
+                          onSelected: (v) {
+                            if (v == "edit") editAnswer(a);
+                            if (v == "delete") deleteAnswer(a);
+                          },
+                        ),
                       ),
-                      title: Text(a.text),
-                      subtitle: Text(a.userName),
-                    ),
-                  );
-                }).toList(),
-              ),
+
+                      ...a.replies.map((r) => Padding(
+                        padding: const EdgeInsets.only(left: 40, bottom: 6),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 12,
+                              backgroundColor: widget.primaryColor,
+                              child: Text(
+                                r.userName.isNotEmpty ? r.userName[0] : "?",
+                                style: const TextStyle(
+                                    fontSize: 10, color: Colors.white),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text("${r.userName}: ${r.text}"),
+                            ),
+                          ],
+                        ),
+                      )),
+
+                      TextButton(
+                        onPressed: () => addReply(a),
+                        child: const Text("返信"),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
+          ),
 
-            TextField(
-              controller: answerName,
-              decoration: const InputDecoration(labelText: "名前"),
-            ),
-
-            const SizedBox(height: 10),
-
-            TextField(
-              controller: answerText,
-              decoration: const InputDecoration(labelText: "回答を書く"),
-            ),
-
-            const SizedBox(height: 10),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.primaryColor,
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                TextField(
+                  controller: answerName,
+                  decoration: const InputDecoration(labelText: "名前"),
                 ),
-                onPressed: addAnswer,
-                child: const Text("回答",
-                    style: TextStyle(color: Colors.white)),
-              ),
+                TextField(
+                  controller: answerText,
+                  decoration: const InputDecoration(labelText: "回答"),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: addAnswer,
+                    child: const Text("回答"),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
