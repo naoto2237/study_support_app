@@ -205,7 +205,7 @@ class _AddRecordScreenState
                   "科目",
 
                   hintText:
-                  "例：Java、Flutter",
+                  "例：数学、英語",
 
                   border:
                   OutlineInputBorder(),
