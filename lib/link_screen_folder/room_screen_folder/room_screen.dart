@@ -37,16 +37,6 @@ class RoomScreen extends StatelessWidget {
             ),
           ),
 
-          actions: [
-            IconButton(
-              icon: const Icon(
-                Icons.notifications_none,
-                color: Colors.black,
-              ),
-              onPressed: () {},
-            ),
-          ],
-
           bottom: TabBar(
             indicatorColor: const Color(0xFF3D96E8),
             indicatorWeight: 3,

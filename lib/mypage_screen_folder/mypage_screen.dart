@@ -8,16 +8,37 @@ class MypageScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: const Color(0xFFF8F8F8),
 
       appBar: AppBar(
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         backgroundColor: Colors.white,
         title: const Text(
           "マイページ",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(left: 9),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_none),
+              onPressed: () {},
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () {},
+            ),
+          ),
+        ],
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
 
       body: SingleChildScrollView(
@@ -42,6 +63,7 @@ class ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: Colors.white,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
@@ -201,6 +223,7 @@ class StudyTimeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: Colors.white,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(

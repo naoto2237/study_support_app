@@ -42,16 +42,14 @@ class _AiTestScreenState extends State<AiScreen> {
             // 💡 ここで「学習支援専用AI」としての役割（システムプロンプト）を設定しています
             {
               'role': 'system',
-              'content': 'あなたを受験生や学生を支える「AI学習支援アシスタント」です。'
+              'content':
+                  'あなたを受験生や学生を支える「AI学習支援アシスタント」です。'
                   'ユーザーから勉強の方法、計画、各科目の疑問、モチベーション維持などの「学習に関する相談」を受けた場合は、親身になって優しくアドバイスをしてください。'
                   'ただし、勉強や学習に全く関係のない雑談、エンタメ、ゲームなどの質問をされた場合は、'
-                  '「私は学習支援AIですので、勉強に関する質問や相談をしてくださいね！」という風に、学習に関係ないことは答えられない旨を優しく伝えて断ってください。'
+                  '「私は学習支援AIですので、勉強に関する質問や相談をしてくださいね！」という風に、学習に関係ないことは答えられない旨を優しく伝えて断ってください。',
             },
             // ユーザーがTextFieldに入力した文字を送ります
-            {
-              'role': 'user',
-              'content': _textController.text,
-            }
+            {'role': 'user', 'content': _textController.text},
           ],
         }),
       );
@@ -87,113 +85,122 @@ class _AiTestScreenState extends State<AiScreen> {
     super.dispose();
   }
 
-@override
-Widget build(BuildContext context) {
-return Scaffold(
-backgroundColor: const Color(0xFFF5F7FA),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F8F8),
 
-appBar: AppBar(
-title: const Text("AIサポート"),
-centerTitle: true,
-backgroundColor: Colors.white,
-elevation: 0,
-),
+      appBar: AppBar(
+        title: const Text(
+          "AIサポート",
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(left: 9),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_none),
+              onPressed: () {},
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () {},
+            ),
+          ),
+        ],
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
 
-body: Padding(
-padding: const EdgeInsets.all(16),
-child: Column(
-crossAxisAlignment: CrossAxisAlignment.start,
-children: [
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "勉強についてAIに相談しましょう",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
 
-const Text(
-"勉強についてAIに相談しましょう",
-style: TextStyle(
-fontSize: 22,
-fontWeight: FontWeight.bold,
-),
-),
+            const SizedBox(height: 8),
 
-const SizedBox(height: 8),
+            Text(
+              "勉強方法・問題解説・学習計画などを相談できます。",
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
 
-Text(
-"勉強方法・問題解説・学習計画などを相談できます。",
-style: TextStyle(
-color: Colors.grey.shade600,
-),
-),
+            const SizedBox(height: 20),
 
-const SizedBox(height: 20),
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: TextField(
+                  controller: _textController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: "例）数学の勉強方法を教えて",
+                  ),
+                ),
+              ),
+            ),
 
-Card(
-elevation: 2,
-shape: RoundedRectangleBorder(
-borderRadius: BorderRadius.circular(15),
-),
-child: Padding(
-padding: const EdgeInsets.all(15),
-child: TextField(
-controller: _textController,
-maxLines: 4,
-decoration: const InputDecoration(
-border: InputBorder.none,
-hintText: "例）数学の勉強方法を教えて",
-),
-),
-),
-),
+            const SizedBox(height: 15),
 
-const SizedBox(height: 15),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : askGroq,
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text("AIに質問する", style: TextStyle(fontSize: 18)),
+              ),
+            ),
 
-SizedBox(
-width: double.infinity,
-height: 50,
-child: ElevatedButton.icon(
-onPressed: _isLoading ? null : askGroq,
-icon: const Icon(Icons.auto_awesome),
-label: const Text(
-"AIに質問する",
-style: TextStyle(fontSize: 18),
-),
-),
-),
+            const SizedBox(height: 25),
 
-const SizedBox(height: 25),
+            const Text(
+              "AIの回答",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
 
-const Text(
-"AIの回答",
-style: TextStyle(
-fontWeight: FontWeight.bold,
-fontSize: 20,
-),
-),
+            const SizedBox(height: 10),
 
-const SizedBox(height: 10),
-
-Expanded(
-child: Card(
-elevation: 2,
-shape: RoundedRectangleBorder(
-borderRadius: BorderRadius.circular(15),
-),
-child: Padding(
-padding: const EdgeInsets.all(16),
-child: _isLoading
-? const Center(
-child: CircularProgressIndicator(),
-)
-: SingleChildScrollView(
-child: Text(
-_aiResponse,
-style: const TextStyle(fontSize: 16),
-),
-),
-),
-),
-),
-],
-),
-),
-);
-}
-
+            Expanded(
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : SingleChildScrollView(
+                          child: Text(
+                            _aiResponse,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

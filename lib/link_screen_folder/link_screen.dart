@@ -10,11 +10,35 @@ class LinkScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const Text('Link'),
-        centerTitle: true,
+        title: const Text(
+          'Link',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(left: 9),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_none),
+              onPressed: () {},
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () {},
+            ),
+          ),
+        ],
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -52,39 +76,33 @@ class LinkScreen extends StatelessWidget {
   }
 
   Widget _buildMenuCard(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String subtitle,
-        required Widget screen,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget screen,
+  }) {
     return Card(
-      elevation: 3,
+      color: Colors.white,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+
+        side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
-        leading: Icon(
-          icon,
-          size: 36,
-          color: const Color(0xFF3D96E8)
-        ),
+        leading: Icon(icon, size: 36, color: const Color(0xFF3D96E8)),
         title: Text(
           title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => screen,
-            ),
+            MaterialPageRoute(builder: (context) => screen),
           );
         },
       ),
