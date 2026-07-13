@@ -1,7 +1,5 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'add_record_screen.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class RecordScreen extends StatefulWidget {
   const RecordScreen({super.key});
@@ -11,431 +9,316 @@ class RecordScreen extends StatefulWidget {
 }
 
 class _RecordScreenState extends State<RecordScreen> {
+  bool isWeek = true;
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  BarChartGroupData makeBar(
-      int x,
-      double value,
-      ){
+  // 週表示用（日曜日スタート）
+  DateTime selectedWeekStart = DateTime(2026, 7, 12);
 
-    return BarChartGroupData(
+  // 日表示用
+  DateTime selectedDay = DateTime(2026, 7, 13);
 
-      x:x,
+  final List<double> weeklyHours = [8, 8.5, 11, 8.3, 4.2, 13.5, 7.8];
 
-      barRods:[
+  final List<double> dailyHours = [1, 2, 3, 2, 4, 5, 2, 1];
 
-        BarChartRodData(
+  final List<String> dayLabels = ["0", "3", "6", "9", "12", "15", "18", "21"];
 
-          toY:value,
-
-          width:20,
-
-          borderRadius:
-          BorderRadius.circular(5),
-
-        ),
-
-      ],
-
-    );
-
+  String formatDate(DateTime date) {
+    return "${date.year}/${date.month}/${date.day}";
   }
 
-  // 学習記録取得
-  Stream<QuerySnapshot> getRecords() {
-    return _firestore
-        .collection("records")
-        .orderBy("date", descending: true)
-        .snapshots();
+  List<String> getWeekLabels() {
+    const week = ["日", "月", "火", "水", "木", "金", "土"];
+
+    return List.generate(7, (index) {
+      DateTime date = selectedWeekStart.add(Duration(days: index));
+
+      return "${week[date.weekday % 7]}\n"
+          "${date.month}/${date.day}";
+    });
   }
-
-
-  // 学習時間合計
-  int calculateTotalHours(List<QueryDocumentSnapshot> docs) {
-
-    int totalMinutes = 0;
-
-    for (var doc in docs) {
-      totalMinutes += doc["studyTime"] as int;
-    }
-
-    return (totalMinutes / 60).floor();
-  }
-
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
+      appBar: AppBar(title: const Text("学習グラフ"), centerTitle: true),
 
-      appBar: AppBar(
-        title: const Text(
-          "学習記録",
-        ),
-        centerTitle: true,
-      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
 
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
 
-      body: StreamBuilder<QuerySnapshot>(
+              padding: const EdgeInsets.all(16),
 
-        stream: getRecords(),
+              decoration: BoxDecoration(
+                color: Colors.lightBlue.shade300,
 
-        builder: (context, snapshot) {
-
-
-          // 読み込み中
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-
-          // データなし
-          if (!snapshot.hasData ||
-              snapshot.data!.docs.isEmpty) {
-
-            return const Center(
-              child: Text(
-                "まだ学習記録がありません",
-                style: TextStyle(
-                  fontSize: 16,
-                ),
+                borderRadius: BorderRadius.circular(16),
               ),
-            );
-          }
 
+              child: Column(
+                children: [
+                  infoRow("今月学習時間", "156時間"),
 
-          final records =
-              snapshot.data!.docs;
+                  const SizedBox(height: 8),
 
+                  infoRow("前月比", "+4時間"),
 
-          final totalHours =
-          calculateTotalHours(records);
+                  const SizedBox(height: 8),
 
+                  infoRow("連続学習", "15日"),
+                ],
+              ),
+            ),
 
+            const SizedBox(height: 20),
 
-          return Column(
+            // 週・日切り替え
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue),
 
-            children: [
+                borderRadius: BorderRadius.circular(30),
+              ),
 
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          isWeek = true;
+                        });
+                      },
 
-              // 合計時間カード
-              Padding(
-                padding:
-                const EdgeInsets.all(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
 
-                child: Card(
+                        decoration: BoxDecoration(
+                          color: isWeek ? Colors.lightBlue : Colors.white,
 
-                  elevation: 3,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(30),
 
-                  child: Padding(
-
-                    padding:
-                    const EdgeInsets.all(20),
-
-                    child: Row(
-
-                      mainAxisAlignment:
-                      MainAxisAlignment.center,
-
-                      children: [
-
-                        const Icon(
-                          Icons.timer,
-                          size: 35,
-                          color: Colors.blue,
+                            bottomLeft: Radius.circular(30),
+                          ),
                         ),
 
+                        child: Center(
+                          child: Text(
+                            "週",
 
-                        const SizedBox(
-                          width: 15,
+                            style: TextStyle(
+                              color: isWeek ? Colors.white : Colors.black,
+                            ),
+                          ),
                         ),
-
-
-                        Column(
-
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
-
-                          children: [
-
-                            const Text(
-                              "累計学習時間",
-                              style: TextStyle(
-                                fontSize: 14,
-                              ),
-                            ),
-
-
-                            Text(
-                              "$totalHours時間",
-                              style:
-                              const TextStyle(
-                                fontSize: 28,
-                                fontWeight:
-                                FontWeight.bold,
-                              ),
-                            ),
-
-                          ],
-                        )
-
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-// 学習時間グラフ
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          isWeek = false;
 
-                child: Card(
-                  elevation: 3,
+                          selectedDay = DateTime.now();
+                        });
+                      },
 
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
 
-                    child: Column(
+                        decoration: BoxDecoration(
+                          color: isWeek ? Colors.white : Colors.lightBlue,
 
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(30),
 
-                      children: [
-
-                        const Text(
-                          "週間学習時間",
-                          style: TextStyle(
-                            fontSize:18,
-                            fontWeight:
-                            FontWeight.bold,
+                            bottomRight: Radius.circular(30),
                           ),
                         ),
 
+                        child: Center(
+                          child: Text(
+                            "日",
 
-                        const SizedBox(
-                          height:20,
-                        ),
-
-
-                        SizedBox(
-
-                          height:200,
-
-                          child: BarChart(
-
-                            BarChartData(
-
-                              alignment:
-                              BarChartAlignment.spaceAround,
-
-
-                              maxY: 5,
-
-
-                              barGroups: [
-
-                                makeBar(
-                                  0,
-                                  2,
-                                ),
-
-                                makeBar(
-                                  1,
-                                  1,
-                                ),
-
-                                makeBar(
-                                  2,
-                                  3,
-                                ),
-
-                                makeBar(
-                                  3,
-                                  2,
-                                ),
-
-                                makeBar(
-                                  4,
-                                  1,
-                                ),
-
-                                makeBar(
-                                  5,
-                                  4,
-                                ),
-
-                                makeBar(
-                                  6,
-                                  2,
-                                ),
-
-                              ],
-
-                              titlesData:
-                              FlTitlesData(
-
-                                bottomTitles:
-                                AxisTitles(
-
-                                  sideTitles:
-                                  SideTitles(
-
-                                    showTitles:true,
-
-                                    getTitlesWidget:
-                                        (value,title){
-
-                                      const days=[
-                                        "月",
-                                        "火",
-                                        "水",
-                                        "木",
-                                        "金",
-                                        "土",
-                                        "日",
-                                      ];
-
-
-                                      return Text(
-                                        days[value.toInt()],
-                                      );
-
-                                    },
-
-                                  ),
-
-                                ),
-
-                                leftTitles:
-                                const AxisTitles(
-
-                                  sideTitles:
-                                  SideTitles(
-                                    showTitles:true,
-                                  ),
-
-                                ),
-
-                              ),
-
+                            style: TextStyle(
+                              color: isWeek ? Colors.black : Colors.white,
                             ),
-
                           ),
-
                         ),
-
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
+            ),
 
-              // 記録一覧
-              Expanded(
+            const SizedBox(height: 20),
 
-                child: ListView.builder(
+            // 日付移動部分
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
-                  itemCount:
-                  records.length,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios),
 
-
-                  itemBuilder:
-                      (context,index){
-
-
-                    final data =
-                    records[index].data()
-                    as Map<String,dynamic>;
-
-
-
-                    return Card(
-
-                      margin:
-                      const EdgeInsets
-                          .symmetric(
-                        horizontal:16,
-                        vertical:6,
-                      ),
-
-
-                      child: ListTile(
-
-                        leading:
-                        const CircleAvatar(
-
-                          child:
-                          Icon(
-                            Icons.book,
-                          ),
-
-                        ),
-
-
-                        title:
-                        Text(
-                          data["subject"],
-                        ),
-
-
-                        subtitle:
-                        Text(
-                          data["memo"],
-                        ),
-
-
-                        trailing:
-                        Text(
-                          "${data["studyTime"]}分",
-                          style:
-                          const TextStyle(
-                            fontWeight:
-                            FontWeight.bold,
-                          ),
-                        ),
-
-                      ),
-                    );
-
+                  onPressed: () {
+                    setState(() {
+                      if (isWeek) {
+                        selectedWeekStart = selectedWeekStart.subtract(
+                          const Duration(days: 7),
+                        );
+                      } else {
+                        selectedDay = selectedDay.subtract(
+                          const Duration(days: 1),
+                        );
+                      }
+                    });
                   },
                 ),
-              ),
-            ],
-          );
 
-        },
-      ),
+                Text(
+                  isWeek
+                      ? "${formatDate(selectedWeekStart)} ～ "
+                      "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
+                      : formatDate(selectedDay),
 
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
 
+                IconButton(
+                  icon: const Icon(Icons.arrow_forward_ios),
 
-      floatingActionButton:
-      FloatingActionButton(
-
-        onPressed: () {
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:(context)=>
-              const AddRecordScreen(),
+                  onPressed: () {
+                    setState(() {
+                      if (isWeek) {
+                        selectedWeekStart = selectedWeekStart.add(
+                          const Duration(days: 7),
+                        );
+                      } else {
+                        selectedDay = selectedDay.add(const Duration(days: 1));
+                      }
+                    });
+                  },
+                ),
+              ],
             ),
-          );
-        },
 
-        child:
-        const Icon(
-          Icons.add,
+            const SizedBox(height: 20),
+
+            Expanded(child: BarChart(createChart())),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget infoRow(String title, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+      children: [
+        Text(title, style: const TextStyle(color: Colors.white, fontSize: 16)),
+
+        Text(
+          value,
+
+          style: const TextStyle(
+            color: Colors.white,
+
+            fontWeight: FontWeight.bold,
+
+            fontSize: 18,
+          ),
+        ),
+      ],
+    );
+  }
+
+  BarChartData createChart() {
+    final values = isWeek ? weeklyHours : dailyHours;
+
+    final labels = isWeek ? getWeekLabels() : dayLabels;
+
+    return BarChartData(
+      maxY: 16,
+
+      minY: 0,
+
+      gridData: FlGridData(show: true),
+
+      borderData: FlBorderData(show: false),
+
+      titlesData: FlTitlesData(
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+
+            reservedSize: 35,
+
+            interval: 2,
+          ),
         ),
 
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+
+            reservedSize: 45,
+
+            getTitlesWidget: (value, meta) {
+              int index = value.toInt();
+
+              if (index >= labels.length) {
+                return const SizedBox();
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+
+                child: Text(
+                  labels[index],
+
+                  textAlign: TextAlign.center,
+
+                  style: const TextStyle(fontSize: 11),
+                ),
+              );
+            },
+          ),
+        ),
+
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
 
-    );
+      barGroups: List.generate(values.length, (index) {
+        return BarChartGroupData(
+          x: index,
 
+          barRods: [
+            BarChartRodData(
+              toY: values[index],
+
+              width: 18,
+
+              borderRadius: BorderRadius.circular(6),
+
+              color: Colors.lightBlue,
+            ),
+          ],
+        );
+      }),
+    );
   }
 }
