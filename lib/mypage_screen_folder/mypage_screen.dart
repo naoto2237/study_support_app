@@ -115,7 +115,7 @@ class ProfileCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        "ゆうき",
+                        "たろう",
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

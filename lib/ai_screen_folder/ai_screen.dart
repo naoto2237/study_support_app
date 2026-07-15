@@ -142,6 +142,7 @@ class _AiTestScreenState extends State<AiScreen> {
 
             Card(
               elevation: 2,
+              color: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
@@ -164,6 +165,10 @@ class _AiTestScreenState extends State<AiScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
+                style:ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                ),
                 onPressed: _isLoading ? null : askGroq,
                 icon: const Icon(Icons.auto_awesome),
                 label: const Text("AIに質問する", style: TextStyle(fontSize: 18)),
@@ -181,6 +186,7 @@ class _AiTestScreenState extends State<AiScreen> {
 
             Expanded(
               child: Card(
+                color: Colors.white,
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),

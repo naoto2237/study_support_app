@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
 
@@ -10,7 +9,6 @@ class UserSearchScreen extends StatefulWidget {
 }
 
 class _UserSearchScreenState extends State<UserSearchScreen> {
-
   final TextEditingController searchController = TextEditingController();
 
   String searchText = "";
@@ -18,21 +16,22 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: const Text("ユーザー検索"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(15),
         child: Column(
           children: [
-
             TextField(
               controller: searchController,
               decoration: InputDecoration(
                 hintText: "ユーザー名を入力",
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.search),
-                  onPressed: (){
+                  onPressed: () {
                     setState(() {
                       searchText = searchController.text;
                     });
@@ -43,10 +42,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
 
             const SizedBox(height: 20),
 
-            Expanded(
-              child: UserList(searchText: searchText),
-            )
-
+            Expanded(child: UserList(searchText: searchText)),
           ],
         ),
       ),
@@ -54,25 +50,15 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
   }
 }
 
-
-
-
 class UserList extends StatelessWidget {
-
   final String searchText;
 
-  const UserList({
-    super.key,
-    required this.searchText,
-  });
+  const UserList({super.key, required this.searchText});
 
   @override
   Widget build(BuildContext context) {
-
-    if(searchText.isEmpty){
-      return const Center(
-        child: Text("検索してください"),
-      );
+    if (searchText.isEmpty) {
+      return const Center(child: Text("検索してください"));
     }
 
     return StreamBuilder<QuerySnapshot>(
@@ -83,33 +69,28 @@ class UserList extends StatelessWidget {
           .snapshots(),
 
       builder: (context, snapshot) {
-
-        if(snapshot.hasError){
+        if (snapshot.hasError) {
           return const Text("エラー");
         }
 
-        if(!snapshot.hasData){
+        if (!snapshot.hasData) {
           return const CircularProgressIndicator();
         }
 
         final users = snapshot.data!.docs;
 
-        if(users.isEmpty){
-          return const Center(
-            child: Text("ユーザーが見つかりません"),
-          );
+        if (users.isEmpty) {
+          return const Center(child: Text("ユーザーが見つかりません"));
         }
 
         return ListView.builder(
           itemCount: users.length,
-          itemBuilder: (context,index){
-
+          itemBuilder: (context, index) {
             final data = users[index];
 
             return ListTile(
               leading: CircleAvatar(
-                backgroundImage:
-                NetworkImage(data["icon"]),
+                backgroundImage: NetworkImage(data["icon"]),
               ),
               title: Text(data["name"]),
               subtitle: Text(data["email"]),
