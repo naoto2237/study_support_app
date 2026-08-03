@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  // ★ 親から関数を受け取る窓口を追加
+  final Function(int)? onStudyFinished;
+
+  const HomeScreen({super.key, this.onStudyFinished});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -91,6 +94,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       setState(() {
                         todayTotal += time;
                       });
+
+                      // ★ 追加：親（main.dart）へ測った秒数を教える
+                      if (widget.onStudyFinished != null) {
+                        widget.onStudyFinished!(time.inSeconds);
+                      }
                     },
                   ),
                 ),
@@ -286,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const Spacer(),
                                   Text(
                                     "${(goalTime - todayTotal).isNegative ? Duration.zero.inHours : (goalTime - todayTotal).inHours}時間"
-                                    "${(goalTime - todayTotal).isNegative ? 0 : (goalTime - todayTotal).inMinutes % 60}分",
+                                        "${(goalTime - todayTotal).isNegative ? 0 : (goalTime - todayTotal).inMinutes % 60}分",
                                     style: const TextStyle(
                                       fontSize: 16,
                                       color: Colors.black87,

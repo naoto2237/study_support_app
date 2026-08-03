@@ -49,17 +49,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
 
+  // ★ 1. 今日の総学習時間を保存する変数をここに追加します
+  int todayTotalSeconds = 0;
+
   late AnimationController _controller;
   late Animation<double> _animation;
   int _animatedIndex = -1;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
+  // ★ 2. _screens の部分を、以下のように書き換えます
+  List<Widget> get _screens => [
+    HomeScreen(
+      onStudyFinished: (seconds) {
+        setState(() {
+          todayTotalSeconds += seconds;
+        });
+      },
+    ),
     const AiScreen(),
     const LinkScreen(),
-    const RecordScreen(),
+    RecordScreen(
+      totalSeconds: todayTotalSeconds,
+    ),
     const MypageScreen(),
   ];
+
 
   @override
   void initState() {
