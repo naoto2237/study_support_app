@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:study_support_app/setting_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   // ★ 親から関数を受け取る窓口を追加
   final Function(int)? onStudyFinished;
@@ -50,7 +52,14 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
               icon: const Icon(Icons.settings_outlined),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsPage(),
+                  ),
+                );
+              },
             ),
           ),
         ],
