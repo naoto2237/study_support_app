@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:jumping_dot/jumping_dot.dart';
+import 'package:flutter/services.dart';
 
 class ChatMessage {
   final bool isUser;
@@ -39,39 +41,70 @@ class _AiTestScreenState extends State<AiScreen> {
       _hasStartedChat = true;
     });
 
+    final apiKey = dotenv.get('GEMINI_API_KEY');
+
+    final url = Uri.parse(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=$apiKey',
+    );
+
     try {
-      final model = GenerativeModel(
-        model: 'gemini-3.5-flash-lite',
-        apiKey: dotenv.get('GEMINI_API_KEY'),
-        systemInstruction: Content.text(
-          'あなたは学生向けのAI学習サポートアシスタントです。'
-          '漢数字は極力使わないでください。'
-          '学生が勉強を前向きに続けられるようにサポートしてください。'
-          '勉強方法、問題解説、学習計画、モチベーション維持など、学習に関する相談に答えてください。'
-          '学習に関係ない質問には、「私は学習支援AIです。勉強に関する質問や相談をしてください。」と答えてください。'
-          '回答は2〜4文を基本とし、長くても5文以内にしてください。'
-          '最初の1文で結論を伝え、その後に理由や具体例を1〜2文で説明してください。'
-          '最後は「まずは○○してみよう」「○○がおすすめだよ」のように、すぐ実践できる一言で締めてください。'
-          '日本人の先生や先輩が話しかけるような、自然で親しみやすい日本語を使ってください。'
-          '教科書のような説明や、機械的な文章、不自然な翻訳調の文章は避けてください。'
-          '専門用語はできるだけ使わず、中学生や高校生でも理解できる言葉で説明してください。'
-          '「*」「-」「①」などの箇条書きは使わないでください。'
-          'ユーザーを否定したり説教したりせず、前向きで優しい表現を使ってください。'
-          '根拠のないことは断定せず、「〜がおすすめだよ！」「〜してみよう！」のように提案する表現を使ってください。'
-          '回答を送信する前に、日本語として自然で読みやすい文章になっているか確認してください。',
-        ),
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "system_instruction": {
+            "parts": [
+              {
+                "text":
+                    'あなたは学生向けのAI学習サポートアシスタントです。'
+                    '漢数字は使わないで、1,2,3などのちゃんとした数字を使ってください。'
+                    '学生が勉強を前向きに続けられるようにサポートしてください。'
+                    '勉強方法、問題解説、学習計画、モチベーション維持など、学習に関する相談に答えてください。'
+                    '学習に関係ない質問には、「私は学習支援AIです。勉強に関する質問や相談をしてください。」と答えてください。'
+                    '回答は2〜4文を基本とし、長くても5文以内にしてください。'
+                    '最初の1文で結論を伝え、その後に理由や具体例を1〜2文で説明してください。'
+                    '最後は「まずは○○してみよう」「○○がおすすめだよ」のように、すぐ実践できる一言で締めてください。'
+                    '日本人の先生や先輩が話しかけるような、自然で親しみやすい日本語を使ってください。'
+                    '教科書のような説明や、機械的な文章、不自然な翻訳調の文章は避けてください。'
+                    '専門用語はできるだけ使わず、中学生や高校生でも理解できる言葉で説明してください。'
+                    '「*」「-」「①」などの箇条書きは使わないでください。'
+                    'ユーザーを否定したり説教したりせず、前向きで優しい表現を使ってください。'
+                    '根拠のないことは断定せず、「〜がおすすめだよ！」「〜してみよう！」のように提案する表現を使ってください。'
+                    '回答を送信する前に、日本語として自然で読みやすい文章になっているか確認してください。',
+              },
+            ],
+          },
+          "contents": [
+            {
+              "parts": [
+                {"text": question},
+              ],
+            },
+          ],
+        }),
       );
 
-      final response = await model.generateContent([Content.text(question)]);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
 
-      setState(() {
-        _messages.add(
-          ChatMessage(isUser: false, text: response.text ?? '回答を取得できませんでした。'),
-        );
-      });
+        final reply = data["candidates"][0]["content"]["parts"][0]["text"];
+
+        setState(() {
+          _messages.add(ChatMessage(isUser: false, text: reply));
+        });
+      } else {
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              isUser: false,
+              text: "エラー(${response.statusCode})\n${response.body}",
+            ),
+          );
+        });
+      }
     } catch (e) {
       setState(() {
-        _messages.add(ChatMessage(isUser: false, text: "エラー：$e"));
+        _messages.add(ChatMessage(isUser: false, text: "通信エラー：$e"));
       });
     } finally {
       setState(() {
@@ -125,7 +158,7 @@ class _AiTestScreenState extends State<AiScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
-                    vertical: 14,
+                    vertical: 16,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +187,7 @@ class _AiTestScreenState extends State<AiScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 13),
+                        const SizedBox(height: 23),
 
                         Card(
                           elevation: 0,
@@ -203,28 +236,28 @@ class _AiTestScreenState extends State<AiScreen> {
                                         const NeverScrollableScrollPhysics(),
                                     children: [
                                       _questionChip(
-                                        Icons.calculate_outlined,
-                                        "数学の勉強方法を教えて",
+                                        Icons.menu_book_outlined,
+                                        "効率的な勉強方法を教えて",
                                       ),
                                       _questionChip(
-                                        Icons.menu_book_outlined,
+                                        Icons.quiz_outlined,
                                         "この問題を解説して",
                                       ),
                                       _questionChip(
-                                        Icons.translate,
-                                        "英単語の覚え方は？",
-                                      ),
-                                      _questionChip(
                                         Icons.calendar_month_outlined,
-                                        "1週間の学習計画を作って",
+                                        "一週間の学習計画を立てて",
                                       ),
                                       _questionChip(
                                         Icons.psychology_alt_outlined,
+                                        "暗記のコツを教えて",
+                                      ),
+                                      _questionChip(
+                                        Icons.trending_up_outlined,
                                         "集中力を上げる方法は？",
                                       ),
                                       _questionChip(
-                                        Icons.assignment_outlined,
-                                        "レポートの構成を考えて",
+                                        Icons.local_fire_department_outlined,
+                                        "やる気を維持する方法は？",
                                       ),
                                     ],
                                   ),
@@ -290,18 +323,33 @@ class _AiTestScreenState extends State<AiScreen> {
   Widget _buildAnswerCard() {
     return Padding(
       padding: const EdgeInsets.only(top: 0, right: 0, left: 0, bottom: 15),
-      child: _isLoading
-          ? Column(
+      child: _messages.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(top: 67),
+              child: Center(
+                child: Text(
+                  "質問例をタップするか、\n下の入力欄から質問してみよう！",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.black54,
+                    height: 1.7,
+                  ),
+                ),
+              ),
+            )
+          : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ..._messages.map((message) {
                   if (message.isUser) {
+                    // ユーザーの質問
                     return Align(
                       alignment: Alignment.centerRight,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 277),
                         child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          margin: const EdgeInsets.only(top: 2, bottom: 16),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 10,
@@ -315,6 +363,7 @@ class _AiTestScreenState extends State<AiScreen> {
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 15,
+                              height: 1.5,
                             ),
                           ),
                         ),
@@ -322,87 +371,69 @@ class _AiTestScreenState extends State<AiScreen> {
                     );
                   }
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(message.text),
-                  );
-                }),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: JumpingDots(
-                    color: const Color(0xFF2196F3),
-                    radius: 5,
-                    numberOfDots: 3,
-                    animationDuration: const Duration(milliseconds: 250),
-                  ),
-                ),
-              ],
-            )
-          : _messages.isEmpty
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 3), // 好きな値に変更
-                  child: Text(
-                    "こんにちは！\n"
-                    "勉強方法・問題解説・学習計画など、\n"
-                    "学習に関することなら何でも相談してください。",
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.black87,
-                      height: 1.7,
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: _messages.map((message) {
-                if (message.isUser) {
-                  // ユーザーの質問
-                  return Align(
-                    alignment: Alignment.centerRight,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 277),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2196F3),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
+                  // AIの回答
+                  return SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
                           message.text,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.black87,
                             fontSize: 15,
-                            height: 1.5,
+                            height: 1.6,
                           ),
                         ),
-                      ),
+
+                        Row(
+                          children: [
+                            InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () async {
+                                await Clipboard.setData(
+                                  ClipboardData(text: message.text),
+                                );
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("コピーしました"),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 7),
+                                child: Icon(
+                                  Icons.content_copy_outlined,
+                                  size: 18,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   );
-                }
+                }).toList(),
 
-                // AIの回答
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    message.text,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 15,
-                      height: 1.6,
+                if (_isLoading)
+                  Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        JumpingDots(
+                          color: Color(0xFF2196F3),
+                          radius: 5,
+                          numberOfDots: 3,
+                          animationDuration: Duration(milliseconds: 250),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              }).toList(),
+              ],
             ),
     );
   }
@@ -454,16 +485,18 @@ class _AiTestScreenState extends State<AiScreen> {
                     GestureDetector(
                       onTap: _isLoading ? null : askGemini,
                       child: Container(
-                        width: 42,
-                        height: 42,
+                        width: 38,
+                        height: 38,
                         decoration: const BoxDecoration(
                           color: Color(0xFF2196F3),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.send_rounded,
-                          color: Colors.white,
-                          size: 20,
+                        child: const Center(
+                          child: Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ),
