@@ -41,8 +41,37 @@ class _RecordScreenState extends State<RecordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("学習グラフ"), centerTitle: true),
-
+      backgroundColor: const Color(0xFFF7F7F7),
+      appBar: AppBar(
+        title: const Text(
+          "学習グラフ",
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 19,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(left: 9),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_none),
+              onPressed: () {},
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () {},
+            ),
+          ),
+        ],
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
 
@@ -187,7 +216,7 @@ class _RecordScreenState extends State<RecordScreen> {
                 Text(
                   isWeek
                       ? "${formatDate(selectedWeekStart)} ～ "
-                      "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
+                            "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
                       : formatDate(selectedDay),
 
                   style: const TextStyle(fontWeight: FontWeight.bold),
