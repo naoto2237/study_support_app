@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:study_support_app/setting_screen.dart';
 
 class MypageScreen extends StatelessWidget {
   const MypageScreen({super.key});
@@ -34,7 +35,14 @@ class MypageScreen extends StatelessWidget {
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
               icon: const Icon(Icons.settings_outlined),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsPage(),
+                  ),
+                );
+              },
             ),
           ),
         ],
