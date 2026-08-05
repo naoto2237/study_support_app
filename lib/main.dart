@@ -32,6 +32,12 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: Colors.deepPurple,
         textTheme: GoogleFonts.notoSansJpTextTheme(),
+
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: Color(0xFF2196F3), // カーソル
+          selectionColor: Color(0x552196F3), // 選択範囲（水色）
+          selectionHandleColor: Color(0xFF2196F3), // ハンドル
+        ),
       ),
       home: const MainNavigationScreen(),
     );
@@ -67,12 +73,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     ),
     const AiScreen(),
     const LinkScreen(),
-    RecordScreen(
-      totalSeconds: todayTotalSeconds,
-    ),
+    RecordScreen(totalSeconds: todayTotalSeconds),
     const MypageScreen(),
   ];
-
 
   @override
   void initState() {
@@ -94,6 +97,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       }
     });
   }
+
 
   @override
   void dispose() {
