@@ -14,10 +14,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Duration goalTime = const Duration(hours: 3);
   Duration todayTotal = Duration.zero;
-
-  double get progress => todayTotal.inSeconds / goalTime.inSeconds;
 
   String getToday() {
     final now = DateTime.now();
@@ -68,7 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -115,211 +111,229 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 4),
 
-              Align(
-                alignment: Alignment.center,
-                child: SizedBox(
-                  width: double.infinity,
-                  child: Card(
-                    elevation: 0,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(
-                        color: Color(0xFFE5E7EB),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // タイトル
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 20,
-                            right: 20,
-                            top: 14,
-                            bottom: 12,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(
-                                Icons.flag_rounded,
-                                size: 19,
-                                color: Color(0xFFFF2D55),
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                "今日の目標",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+              // ★ 設定画面の目標時間とリアルタイム連動させるためのビルダー
+              ValueListenableBuilder<double>(
+                valueListenable: dailyTargetHours,
+                builder: (context, targetHoursValue, child) {
+                  // 設定された時間（例: 3.5時間）を Duration に変換
+                  Duration goalTime = Duration(
+                    hours: targetHoursValue.floor(),
+                    minutes: ((targetHoursValue - targetHoursValue.floor()) * 60).round(),
+                  );
+
+                  // 達成率の計算
+                  double progress = goalTime.inSeconds > 0
+                      ? todayTotal.inSeconds / goalTime.inSeconds
+                      : 0.0;
+
+                  // 残り時間の計算
+                  Duration remainingTime = goalTime - todayTotal;
+
+                  return Align(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Card(
+                        elevation: 0,
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                            width: 1,
                           ),
                         ),
-
-                        // この線は端まで
-                        Container(
-                          height: 1,
-                          width: double.infinity,
-                          color: const Color(0xFFB5BDC7),
-                        ),
-
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 9,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                "${goalTime.inHours}時間${goalTime.inMinutes % 60}分",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 19,
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // タイトル
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 20,
+                                right: 20,
+                                top: 14,
+                                bottom: 12,
                               ),
-
-                              const SizedBox(height: 6),
-
-                              Row(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
                                   Icon(
-                                    Icons.trending_up_rounded,
-                                    size: 17,
-                                    color: Color(0xFF2196F3),
+                                    Icons.flag_rounded,
+                                    size: 19,
+                                    color: Color(0xFFFF2D55),
                                   ),
                                   SizedBox(width: 6),
                                   Text(
-                                    "達成率",
+                                    "今日の目標",
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 15,
                                       color: Colors.black87,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
                               ),
+                            ),
 
-                              const SizedBox(height: 2),
+                            Container(
+                              height: 1,
+                              width: double.infinity,
+                              color: const Color(0xFFB5BDC7),
+                            ),
 
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: LinearProgressIndicator(
-                                      value: progress.clamp(0.0, 1.0),
-                                      minHeight: 10,
-                                      borderRadius: BorderRadius.circular(9),
-                                      color: const Color(0xFF42A5F5),
-                                      backgroundColor: const Color(0xFFBBDEFB),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    "${(progress * 100).toStringAsFixed(0)}%",
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 9,
                               ),
-
-                              // 区切り線（端まで）
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-
-                        Container(
-                          height: 1,
-                          width: double.infinity,
-                          color: const Color(0xFFE5E7EB),
-                        ),
-
-                        const SizedBox(height: 4),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  const Text(
-                                    "今日の学習時間",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const Spacer(),
                                   Text(
-                                    "${todayTotal.inHours}時間${todayTotal.inMinutes % 60}分",
+                                    "${goalTime.inHours}時間${goalTime.inMinutes % 60}分",
+                                    textAlign: TextAlign.center,
                                     style: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 19,
                                       color: Colors.black87,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1,
                                     ),
                                   ),
+
+                                  const SizedBox(height: 6),
+
+                                  Row(
+                                    children: const [
+                                      Icon(
+                                        Icons.trending_up_rounded,
+                                        size: 17,
+                                        color: Color(0xFF2196F3),
+                                      ),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        "達成率",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 2),
+
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: LinearProgressIndicator(
+                                          value: progress.clamp(0.0, 1.0),
+                                          minHeight: 10,
+                                          borderRadius: BorderRadius.circular(9),
+                                          color: const Color(0xFF42A5F5),
+                                          backgroundColor: const Color(0xFFBBDEFB),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        "${(progress * 100).toStringAsFixed(0)}%",
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: 1,
-                          width: double.infinity,
-                          color: const Color(0xFFE5E7EB),
-                        ),
+                            ),
+                            const SizedBox(height: 2),
 
-                        const SizedBox(height: 0),
+                            Container(
+                              height: 1,
+                              width: double.infinity,
+                              color: const Color(0xFFE5E7EB),
+                            ),
 
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
+                            const SizedBox(height: 4),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                              child: Column(
                                 children: [
-                                  const Text(
-                                    "目標まで残り",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    "${(goalTime - todayTotal).isNegative ? Duration.zero.inHours : (goalTime - todayTotal).inHours}時間"
-                                        "${(goalTime - todayTotal).isNegative ? 0 : (goalTime - todayTotal).inMinutes % 60}分",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        "今日の学習時間",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        "${todayTotal.inHours}時間${todayTotal.inMinutes % 60}分",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              height: 1,
+                              width: double.infinity,
+                              color: const Color(0xFFE5E7EB),
+                            ),
+
+                            const SizedBox(height: 0),
+
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 16,
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        "目標まで残り",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        remainingTime.isNegative
+                                            ? "達成済み！"
+                                            : "${remainingTime.inHours}時間${remainingTime.inMinutes % 60}分",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ],
           ),
@@ -329,6 +343,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// StopwatchWidget のコードはそのまま
 class StopwatchWidget extends StatefulWidget {
   final Function(Duration) onStop;
 
@@ -387,7 +402,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     return Card(
       elevation: 9,
       shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.34),
-      color: Color(0xFF2196F3),
+      color: const Color(0xFF2196F3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
@@ -420,7 +435,6 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                //開始、停止
                 GestureDetector(
                   onTap: () {
                     if (_stopwatch.isRunning) {
@@ -455,8 +469,6 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                     ],
                   ),
                 ),
-
-                // リセット
                 GestureDetector(
                   onTap: _reset,
                   child: Column(
