@@ -17,7 +17,7 @@ class LinkScreen extends StatelessWidget {
         title: const Text(
           'Link',
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.black87,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -38,15 +38,13 @@ class LinkScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsPage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -65,7 +63,7 @@ class LinkScreen extends StatelessWidget {
               context,
               icon: Icons.question_answer,
               title: 'Q&A',
-              subtitle: '質問・回答で学習をサポート',
+              subtitle: '質問・回答で疑問を解決する',
               screen: QnAListPage(),
             ),
             const SizedBox(height: 16),
@@ -100,7 +98,7 @@ class LinkScreen extends StatelessWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
-        leading: Icon(icon, size: 36, color: const Color(0xFF3D96E8)),
+        leading: Icon(icon, size: 36, color: const Color(0xFF2196F3)),
         title: Text(
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

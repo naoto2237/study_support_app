@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../room_space.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RoomMakingScreen extends StatefulWidget {
   const RoomMakingScreen({super.key});
@@ -10,6 +11,9 @@ class RoomMakingScreen extends StatefulWidget {
 
 class _RoomMakingScreenState extends State<RoomMakingScreen> {
   int _selectedVisibility = 0;
+
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +46,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
           const SizedBox(height: 10),
 
           TextField(
+            controller: _titleController,
             decoration: InputDecoration(
               hintText: "例）TOEIC800点を目指す仲間のルーム",
               border: OutlineInputBorder(
@@ -59,6 +64,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
           const SizedBox(height: 10),
 
           TextField(
+            controller: _descriptionController,
             maxLines: 5,
             decoration: InputDecoration(
               hintText: "このルームの目的や活動内容を入力してください",
@@ -135,14 +141,32 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                if (_titleController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("ルームタイトルを入力してください")),
+                  );
+                  return;
+                }
+
+                await FirebaseFirestore.instance.collection("rooms").add({
+                  "title": _titleController.text.trim(),
+                  "description": _descriptionController.text.trim(),
+                  "isPublic": _selectedVisibility == 0,
+                  "members": 1,
+                  "createdAt": FieldValue.serverTimestamp(),
+                });
+
+                if (!context.mounted) return;
+
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const RoomSpaceScreen(),
                   ),
                 );
               },
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3D96E8),
                 foregroundColor: Colors.white,
@@ -152,18 +176,13 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
               ),
               child: const Text(
                 "ルームを作成する",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
           ),
 
           const SizedBox(height: 30),
         ],
-
-
       ),
     );
   }

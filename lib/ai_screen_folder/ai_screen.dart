@@ -358,7 +358,7 @@ class _AiTestScreenState extends State<AiScreen> {
                                       Text(
                                         "質問例",
                                         style: TextStyle(
-                                          fontSize: 16,
+                                          fontSize: 15.6,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),

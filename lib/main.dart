@@ -10,6 +10,7 @@ import 'mypage_screen_folder/mypage_screen.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,9 +29,17 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Study Support App',
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      supportedLocales: const [Locale('ja')],
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: Colors.deepPurple,
+        colorSchemeSeed: Color(0xFFF7F7F7),
         textTheme: GoogleFonts.notoSansJpTextTheme(),
 
         textSelectionTheme: const TextSelectionThemeData(
@@ -97,7 +106,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       }
     });
   }
-
 
   @override
   void dispose() {
