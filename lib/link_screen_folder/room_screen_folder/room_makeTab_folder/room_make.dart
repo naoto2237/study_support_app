@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'room_making.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../room_space.dart';
 
 class CreateRoomTab extends StatelessWidget {
   const CreateRoomTab({super.key});
@@ -133,6 +134,7 @@ class CreateRoomTab extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 15),
                     child: RoomCard(
+                      docId: doc.id,
                       title: data["title"] ?? "",
                       members: "${data["members"]}人",
                       isPublic: data["isPublic"] ?? true,
@@ -152,9 +154,11 @@ class RoomCard extends StatelessWidget {
   final String title;
   final String members;
   final bool isPublic;
+  final String docId;
 
   const RoomCard({
     super.key,
+    required this.docId,
     required this.title,
     required this.members,
     required this.isPublic,
@@ -198,9 +202,98 @@ class RoomCard extends StatelessWidget {
           ),
         ),
 
-        trailing: const Icon(Icons.arrow_forward_ios),
+        trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          onSelected: (value) async {
+            switch (value) {
+              case "edit":
+                // TODO: 編集画面へ遷移
+                break;
 
-        onTap: () {},
+              case "delete":
+                final result = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("ルームを削除"),
+                    content: const Text("このルームを削除しますか？"),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text("キャンセル"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text(
+                          "削除",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (result == true) {
+                  await FirebaseFirestore.instance
+                      .collection("rooms")
+                      .doc(docId)
+                      .delete();
+                }
+                break;
+            }
+          },
+          itemBuilder: (context) => const [
+            PopupMenuItem(
+              value: "edit",
+              child: Row(
+                children: [Icon(Icons.edit), SizedBox(width: 10), Text("編集")],
+              ),
+            ),
+            PopupMenuItem(
+              value: "delete",
+              child: Row(
+                children: [
+                  Icon(Icons.delete, color: Colors.red),
+                  SizedBox(width: 10),
+                  Text("削除", style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        onTap: () async {
+          final result = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("ルームに入る"),
+              content: Text("「$title」に入りますか？"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text("キャンセル"),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3D96E8),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("入る"),
+                ),
+              ],
+            ),
+          );
+
+          if (result == true) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RoomSpaceScreen(
+                  roomTitle: title,
+                ),
+              ),
+            );
+          }
+        },
       ),
     );
   }

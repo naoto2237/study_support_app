@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class RoomSpaceScreen extends StatefulWidget {
-  const RoomSpaceScreen({super.key});
+  final String roomTitle;
+
+  const RoomSpaceScreen({
+    super.key,
+    required this.roomTitle,
+  });
 
   @override
   State<RoomSpaceScreen> createState() => _RoomSpaceScreenState();
@@ -53,8 +58,8 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen>
                       Expanded(
                         child: Transform.translate(
                           offset: Offset(0, -1), // ← -3〜-5で調整
-                          child: Text(
-                            "TOEIC800点を目指す仲間のルーム",
+                          child:Text(
+                            widget.roomTitle,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,

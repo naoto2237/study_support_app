@@ -18,6 +18,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -25,7 +26,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
         centerTitle: true,
         title: const Text(
           "ルームを作る",
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -34,7 +35,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
         children: [
           const Text(
             "ルーム設定",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 25),
@@ -77,7 +78,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
           const SizedBox(height: 40),
           const Text(
             "公開設定",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 20),
@@ -162,7 +163,9 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const RoomSpaceScreen(),
+                    builder: (context) => RoomSpaceScreen(
+                      roomTitle: _titleController.text.trim(),
+                    ),
                   ),
                 );
               },

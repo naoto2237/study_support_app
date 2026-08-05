@@ -15,7 +15,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -23,12 +22,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> checkUser() async {
-
     User? user = FirebaseAuth.instance.currentUser;
 
-    if(user == null){
-      final credential =
-      await FirebaseAuth.instance.signInAnonymously();
+    if (user == null) {
+      final credential = await FirebaseAuth.instance.signInAnonymously();
 
       user = credential.user;
     }
@@ -38,26 +35,23 @@ class _SplashScreenState extends State<SplashScreen> {
         .doc(user!.uid)
         .get();
 
-    if(!mounted) return;
+    if (!mounted) return;
 
-    if(doc.exists){
+    if (doc.exists) {
       Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const HomeScreen()));
-    }else{
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } else {
       Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const OnboardingScreen()));
+        context,
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
     }
-
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
