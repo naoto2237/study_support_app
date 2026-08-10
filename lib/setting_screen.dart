@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
-// ★ ホーム画面と共有する目標時間（初期値 3.0時間）
+// ★ メイン画面やホーム画面と共有する変数
+// 1. 1日の目標時間（初期値 3.0時間）
 final ValueNotifier<double> dailyTargetHours = ValueNotifier<double>(3.0);
+
+// 2. ダークモード設定（初期値 false = ライトモード）
+final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,15 +18,11 @@ class _SettingsPageState extends State<SettingsPage> {
   // 通知設定の選択状態（'all' = すべての通知, 'off' = オフ）
   String _selectedNotificationOption = 'all';
 
-  // ダークモード・ライトモードの選択状態（false = ライト, true = ダーク）
-  bool _isDarkMode = false;
-
   // 学習記録の公開設定の選択状態（'public' = 公開, 'private' = 非公開）
   String _selectedPrivacyOption = 'public';
 
   // 1日の目標時間を変更するダイアログ
   void _showTargetTimeDialog(BuildContext context) {
-    // 現在の目標の数値を初期値としてテキストコントローラにセット
     final TextEditingController controller = TextEditingController(
       text: dailyTargetHours.value.toString(),
     );
@@ -68,7 +68,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () {
-                // ★ 入力されたテキストを数字（double）に変換して共有変数に保存
                 double? newTarget = double.tryParse(controller.text);
                 if (newTarget != null && newTarget > 0) {
                   dailyTargetHours.value = newTarget;
@@ -160,7 +159,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // ダークモード・ライトモード選択ダイアログ（ラジオボタン）
   void _showThemeSettingsDialog(BuildContext context) {
-    bool tempThemeOption = _isDarkMode;
+    // 現在のグローバルなダークモードの状態を初期値にする
+    bool tempThemeOption = isDarkModeNotifier.value;
 
     showDialog(
       context: context,
@@ -211,12 +211,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () {
-                    setState(() {
-                      _isDarkMode = tempThemeOption;
-                    });
+                    // ★ ここで一発変更！アプリ全体（メイン・ホーム含め）が瞬時に切り替わります
+                    isDarkModeNotifier.value = tempThemeOption;
+
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(_isDarkMode ? 'ダークモードに切り替えました' : 'ライトモードに切り替えました')),
+                      SnackBar(content: Text(tempThemeOption ? 'ダークモードに切り替えました' : 'ライトモードに切り替えました')),
                     );
                   },
                   child: const Text('保存'),
@@ -301,8 +301,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   // 使い方ガイドを表示するダイアログ
-  void _showGuideDialog(BuildContext context) {
-    final bool isDark = _isDarkMode;
+  void _showGuideDialog(BuildContext context, bool isDark) {
     final dialogBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white70 : Colors.black87;
     final subTextColor = isDark ? Colors.white54 : Colors.grey;
@@ -380,7 +379,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ガイド内の項目を表示するためのパーツ用ウィジェット
   Widget _guideItem({
     required IconData icon,
     required String title,
@@ -409,167 +407,172 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = _isDarkMode;
-    final backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white70 : Colors.black87;
-    final subTextColor = isDark ? Colors.white54 : Colors.grey;
+    // アプリ全体のダークモード状態を監視して、設定画面自体の色も自動で切り替える
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDark, child) {
+        final backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
+        final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final textColor = isDark ? Colors.white70 : Colors.black87;
+        final subTextColor = isDark ? Colors.white54 : Colors.grey;
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          '設定',
-          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-        ),
-        elevation: 0,
-        backgroundColor: cardColor,
-        iconTheme: IconThemeData(color: textColor),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // --- ■ 学習・目標 ---
-          Padding(
-            padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
-            child: Text(
-              '学習・目標',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: subTextColor),
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          appBar: AppBar(
+            title: Text(
+              '設定',
+              style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
             ),
-          ),
-          Card(
             elevation: 0,
-            color: cardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-            ),
-            child: ValueListenableBuilder<double>(
-              valueListenable: dailyTargetHours,
-              builder: (context, targetValue, child) {
-                return ListTile(
-                  leading: const Icon(Icons.flag_outlined, color: Colors.blue),
-                  title: Text('1日の目標時間', style: TextStyle(color: textColor)),
-                  subtitle: Text('現在の設定: ${targetValue}時間', style: TextStyle(fontSize: 12, color: subTextColor)),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                  onTap: () => _showTargetTimeDialog(context),
-                );
-              },
-            ),
+            backgroundColor: cardColor,
+            iconTheme: IconThemeData(color: textColor),
           ),
-
-          const SizedBox(height: 24),
-
-          // --- ■ アプリ設定 ---
-          Padding(
-            padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
-            child: Text(
-              'アプリ設定',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: subTextColor),
-            ),
-          ),
-          Card(
-            elevation: 0,
-            color: cardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-            ),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.notifications_outlined, color: Colors.blue),
-                  title: Text('通知設定', style: TextStyle(color: textColor)),
-                  subtitle: Text('タップして変更', style: TextStyle(fontSize: 12, color: subTextColor)),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                  onTap: () => _showNotificationSettingsDialog(context),
+          body: ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              // --- ■ 学習・目標 ---
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                child: Text(
+                  '学習・目標',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: subTextColor),
                 ),
-                Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-                ListTile(
-                  leading: const Icon(Icons.dark_mode_outlined, color: Colors.blue),
-                  title: Text('ダークモード', style: TextStyle(color: textColor)),
-                  subtitle: Text(isDark ? 'ダーク（暗黒い感じ）' : 'ライト（通常）', style: TextStyle(fontSize: 12, color: subTextColor)),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                  onTap: () => _showThemeSettingsDialog(context),
+              ),
+              Card(
+                elevation: 0,
+                color: cardColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                 ),
-                Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-                ListTile(
-                  leading: const Icon(Icons.lock_outline, color: Colors.blue),
-                  title: Text('学習記録の公開', style: TextStyle(color: textColor)),
-                  subtitle: Text(_selectedPrivacyOption == 'public' ? '公開する' : '非公開にする', style: TextStyle(fontSize: 12, color: subTextColor)),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                  onTap: () => _showPrivacySettingsDialog(context),
+                child: ValueListenableBuilder<double>(
+                  valueListenable: dailyTargetHours,
+                  builder: (context, targetValue, child) {
+                    return ListTile(
+                      leading: const Icon(Icons.flag_outlined, color: Colors.blue),
+                      title: Text('1日の目標時間', style: TextStyle(color: textColor)),
+                      subtitle: Text('現在の設定: ${targetValue}時間', style: TextStyle(fontSize: 12, color: subTextColor)),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                      onTap: () => _showTargetTimeDialog(context),
+                    );
+                  },
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          // --- ■ アプリについて ---
-          Padding(
-            padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
-            child: Text(
-              'アプリについて',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: subTextColor),
-            ),
-          ),
-          Card(
-            elevation: 0,
-            color: cardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.help_outline, color: Colors.blue),
-              title: Text('使い方ガイド', style: TextStyle(color: textColor)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-              onTap: () => _showGuideDialog(context),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // --- ログアウト・アカウント消去ボタン ---
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: textColor,
-                      side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+              // --- ■ アプリ設定 ---
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                child: Text(
+                  'アプリ設定',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: subTextColor),
+                ),
+              ),
+              Card(
+                elevation: 0,
+                color: cardColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.notifications_outlined, color: Colors.blue),
+                      title: Text('通知設定', style: TextStyle(color: textColor)),
+                      subtitle: Text('タップして変更', style: TextStyle(fontSize: 12, color: subTextColor)),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                      onTap: () => _showNotificationSettingsDialog(context),
                     ),
-                    onPressed: () {
-                      // ログアウト処理
-                    },
-                    child: const Text('ログアウトする'),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
+                    Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                    ListTile(
+                      leading: const Icon(Icons.dark_mode_outlined, color: Colors.blue),
+                      title: Text('ダークモード', style: TextStyle(color: textColor)),
+                      subtitle: Text(isDark ? 'ダーク（暗黒い感じ）' : 'ライト（通常）', style: TextStyle(fontSize: 12, color: subTextColor)),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                      onTap: () => _showThemeSettingsDialog(context),
                     ),
-                    onPressed: () {
-                      // アカウント消去処理
-                    },
-                    child: const Text('アカウントを消去する'),
-                  ),
+                    Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                    ListTile(
+                      leading: const Icon(Icons.lock_outline, color: Colors.blue),
+                      title: Text('学習記録の公開', style: TextStyle(color: textColor)),
+                      subtitle: Text(_selectedPrivacyOption == 'public' ? '公開する' : '非公開にする', style: TextStyle(fontSize: 12, color: subTextColor)),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                      onTap: () => _showPrivacySettingsDialog(context),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // --- ■ アプリについて ---
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                child: Text(
+                  'アプリについて',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: subTextColor),
+                ),
+              ),
+              Card(
+                elevation: 0,
+                color: cardColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.help_outline, color: Colors.blue),
+                  title: Text('使い方ガイド', style: TextStyle(color: textColor)),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: () => _showGuideDialog(context, isDark),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // --- ログアウト・アカウント消去ボタン ---
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: textColor,
+                          side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          // ログアウト処理
+                        },
+                        child: const Text('ログアウトする'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        onPressed: () {
+                          // アカウント消去処理
+                        },
+                        child: const Text('アカウントを消去する'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
-          const SizedBox(height: 24),
-        ],
-      ),
+        );
+      },
     );
   }
 }

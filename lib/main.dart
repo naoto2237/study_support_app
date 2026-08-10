@@ -8,11 +8,10 @@ import 'link_screen_folder/link_screen.dart';
 import 'record_screen_folder/record_screen.dart';
 import 'mypage_screen_folder/mypage_screen.dart';
 
+import 'package:study_support_app/setting_screen.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-
-import 'splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,29 +27,51 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Study Support App',
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDark, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Study Support App',
 
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
 
-      supportedLocales: const [Locale('ja')],
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Color(0xFFF7F7F7),
-        textTheme: GoogleFonts.notoSansJpTextTheme(),
+          // ライトモード時のテーマ
+          theme: ThemeData(
+            useMaterial3: true,
+            colorSchemeSeed: Colors.deepPurple,
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: const Color(0xFFF7F7F7),
+            canvasColor: const Color(0xFFF7F7F7),
+            textTheme: GoogleFonts.notoSansJpTextTheme(),
+            textSelectionTheme: const TextSelectionThemeData(
+              cursorColor: Color(0xFF2196F3),
+              selectionColor: Color(0x552196F3),
+              selectionHandleColor: Color(0xFF2196F3),
+            ),
+          ),
 
-        textSelectionTheme: const TextSelectionThemeData(
-          cursorColor: Color(0xFF2196F3), // カーソル
-          selectionColor: Color(0x552196F3), // 選択範囲（水色）
-          selectionHandleColor: Color(0xFF2196F3), // ハンドル
-        ),
-      ),
-      home: const MainNavigationScreen(),
+          // ダークモード時のテーマ（アプリ全体を確実に黒くする設定）
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            colorSchemeSeed: Colors.deepPurple,
+            brightness: Brightness.dark,
+            // ★ アプリ全体の背景を真っ黒（またはダークグレー）に強制
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            canvasColor: const Color(0xFF121212),
+            dialogBackgroundColor: const Color(0xFF1E1E1E),
+            cardColor: const Color(0xFF1E1E1E),
+            textTheme: GoogleFonts.notoSansJpTextTheme(ThemeData.dark().textTheme),
+            textSelectionTheme: const TextSelectionThemeData(
+              cursorColor: Color(0xFF2196F3),
+              selectionColor: Color(0x552196F3),
+              selectionHandleColor: Color(0xFF2196F3),
+            ),
+          ),
+
+          home: const MainNavigationScreen(),
+        );
+      },
     );
   }
 }
@@ -66,14 +87,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
 
-  // ★ 1. 今日の総学習時間を保存する変数をここに追加します
   int todayTotalSeconds = 0;
 
   late AnimationController _controller;
   late Animation<double> _animation;
   int _animatedIndex = -1;
 
-  // ★ 2. _screens の部分を、以下のように書き換えます
   List<Widget> get _screens => [
     HomeScreen(
       onStudyFinished: (seconds) {
@@ -130,6 +149,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     required int index,
   }) {
     final selected = _selectedIndex == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Expanded(
       child: InkWell(
@@ -154,7 +174,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   size: 27,
                   color: selected
                       ? const Color(0xFF3D96E8)
-                      : const Color(0xFFB5B5B5),
+                      : (isDark ? Colors.grey.shade500 : const Color(0xFFB5B5B5)),
                 ),
               ),
               const SizedBox(height: 0),
@@ -166,7 +186,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   letterSpacing: -0.2,
                   color: selected
                       ? const Color(0xFF3D96E8)
-                      : const Color(0xFF9E9E9E),
+                      : (isDark ? Colors.grey.shade400 : const Color(0xFF9E9E9E)),
                 ),
               ),
             ],
@@ -178,10 +198,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: _screens[_selectedIndex],
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(color: Colors.white),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
+              width: 0.5,
+            ),
+          ),
+        ),
         child: SafeArea(
           top: false,
           child: SizedBox(

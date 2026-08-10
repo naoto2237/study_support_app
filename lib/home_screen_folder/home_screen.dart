@@ -24,8 +24,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ダークモードかどうかを自動で判定する
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      // ライトのときは元の薄い色、ダークのときは自動で真っ黒（#121212）にする
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7),
       appBar: AppBar(
         centerTitle: false,
         backgroundColor: Colors.white,
