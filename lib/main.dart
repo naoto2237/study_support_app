@@ -51,6 +51,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
 
+<<<<<<< HEAD
           // ダークモード時のテーマ（アプリ全体を確実に黒くする設定）
           darkTheme: ThemeData(
             useMaterial3: true,
@@ -72,6 +73,15 @@ class MyApp extends StatelessWidget {
           home: const MainNavigationScreen(),
         );
       },
+=======
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: Color(0xFF2196F3), // カーソル
+          selectionColor: Color(0x552196F3), // 選択範囲（水色）
+          selectionHandleColor: Color(0xFF2196F3), // ハンドル
+        ),
+      ),
+      home: const SplashScreen(),
+>>>>>>> 873954abce27b94bf2e7f67e7256823ce57446cc
     );
   }
 }

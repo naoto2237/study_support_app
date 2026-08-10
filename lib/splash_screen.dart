@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/data_screen.dart';
 import 'package:study_support_app/home_screen_folder/home_screen.dart';
-
+import 'package:study_support_app/main.dart';
 import 'home_screen_folder/home_screen.dart';
 import 'data_screen.dart';
 
@@ -22,34 +22,31 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> checkUser() async {
-    User? user = FirebaseAuth.instance.currentUser;
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) {
-      final credential = await FirebaseAuth.instance.signInAnonymously();
+      if (user == null) {
+        final credential =
+        await FirebaseAuth.instance.signInAnonymously();
 
-      user = credential.user;
-    }
+        user = credential.user;
+      }
 
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user!.uid)
-        .get();
+      if (user == null || !mounted) return;
 
-    if (!mounted) return;
-
-    if (doc.exists) {
+      // 開発中は毎回OnboardingScreenへ
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(
+          builder: (_) => const OnboardingScreen(),
+        ),
       );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-      );
+    } catch (e, stackTrace) {
+      print("❌ エラー発生");
+      print(e);
+      print(stackTrace);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return const Scaffold(body: Center(child: CircularProgressIndicator()));

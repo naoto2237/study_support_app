@@ -49,10 +49,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const HomeScreen(),
+        builder: (_) => const MainNavigationScreen(),
       ),
     );
-
   }
 
   @override

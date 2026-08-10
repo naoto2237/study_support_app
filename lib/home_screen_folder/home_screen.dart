@@ -155,15 +155,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               padding: const EdgeInsets.only(
                                 left: 20,
                                 right: 20,
-                                top: 14,
-                                bottom: 12,
+                                top: 13,
+                                bottom: 10,
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
                                   Icon(
                                     Icons.flag_rounded,
-                                    size: 19,
+                                    size: 24,
                                     color: Color(0xFFFF2D55),
                                   ),
                                   SizedBox(width: 6),
@@ -187,8 +187,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 9,
+                                horizontal: 19,
+                                vertical: 7,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -197,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     "${goalTime.inHours}時間${goalTime.inMinutes % 60}分",
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
-                                      fontSize: 19,
+                                      fontSize: 18,
                                       color: Colors.black87,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1,
@@ -210,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     children: const [
                                       Icon(
                                         Icons.trending_up_rounded,
-                                        size: 17,
+                                        size: 19,
                                         color: Color(0xFF2196F3),
                                       ),
                                       SizedBox(width: 6),
@@ -231,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       Expanded(
                                         child: LinearProgressIndicator(
                                           value: progress.clamp(0.0, 1.0),
-                                          minHeight: 10,
+                                          minHeight: 7,
                                           borderRadius: BorderRadius.circular(9),
                                           color: const Color(0xFF42A5F5),
                                           backgroundColor: const Color(0xFFBBDEFB),
@@ -250,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 0),
 
                             Container(
                               height: 1,
@@ -261,15 +261,21 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 4),
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
+                                horizontal: 19,
                                 vertical: 10,
                               ),
                               child: Column(
                                 children: [
                                   Row(
                                     children: [
+                                      const Icon(
+                                        Icons.timer_outlined,
+                                        size: 19,
+                                        color: Color(0xFF2196F3),
+                                      ),
+                                      const SizedBox(width: 6),
                                       const Text(
-                                        "今日の学習時間",
+                                        "今日の総学習時間",
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.black87,
@@ -279,10 +285,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       Text(
                                         "${todayTotal.inHours}時間${todayTotal.inMinutes % 60}分",
                                         style: const TextStyle(
-                                          fontSize: 16,
+                                          fontSize: 15,
                                           color: Colors.black87,
                                           fontWeight: FontWeight.bold,
-                                          letterSpacing: 1,
                                         ),
                                       ),
                                     ],
@@ -297,17 +302,23 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: const Color(0xFFE5E7EB),
                             ),
 
-                            const SizedBox(height: 0),
+                            const SizedBox(height: 4),
 
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 16,
+                                horizontal: 19,
+                                vertical: 10,
                               ),
                               child: Column(
                                 children: [
                                   Row(
                                     children: [
+                                      const Icon(
+                                        Icons.hourglass_empty,
+                                        size: 19,
+                                        color: Color(0xFF2196F3),
+                                      ),
+                                      const SizedBox(width: 6),
                                       const Text(
                                         "目標まで残り",
                                         style: TextStyle(
@@ -321,14 +332,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ? "達成済み！"
                                             : "${remainingTime.inHours}時間${remainingTime.inMinutes % 60}分",
                                         style: const TextStyle(
-                                          fontSize: 16,
+                                          fontSize: 15,
                                           color: Colors.black87,
                                           fontWeight: FontWeight.bold,
-                                          letterSpacing: 1,
                                         ),
                                       ),
                                     ],
                                   ),
+                                  const SizedBox(height: 4),
                                 ],
                               ),
                             ),
@@ -366,7 +377,10 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     _stopwatch.start();
 
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+    // すぐに画面更新
+    setState(() {});
+
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       setState(() {});
     });
   }
@@ -390,9 +404,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     final hours = elapsed.inHours.toString().padLeft(2, '0');
     final minutes = (elapsed.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
-    final milliseconds = (elapsed.inMilliseconds % 1000 ~/ 100).toString();
 
-    return "$hours:$minutes:$seconds.$milliseconds";
+    return "$hours:$minutes:$seconds";
   }
 
   @override
@@ -404,8 +417,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 9,
-      shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.34),
+      elevation: 7,
+      shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.40),
       color: const Color(0xFF2196F3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -430,7 +443,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                letterSpacing: 2.0,
+                letterSpacing: 3.0,
               ),
             ),
 
