@@ -29,7 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       // ライトのときは元の薄い色、ダークのときは自動で真っ黒（#121212）にする
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7),
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : const Color(0xFFF7F7F7),
       appBar: AppBar(
         centerTitle: false,
         backgroundColor: Colors.white,
@@ -56,9 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsPage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
             ),
@@ -122,7 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   // 設定された時間（例: 3.5時間）を Duration に変換
                   Duration goalTime = Duration(
                     hours: targetHoursValue.floor(),
-                    minutes: ((targetHoursValue - targetHoursValue.floor()) * 60).round(),
+                    minutes:
+                        ((targetHoursValue - targetHoursValue.floor()) * 60)
+                            .round(),
                   );
 
                   // 達成率の計算
@@ -232,9 +234,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                         child: LinearProgressIndicator(
                                           value: progress.clamp(0.0, 1.0),
                                           minHeight: 7,
-                                          borderRadius: BorderRadius.circular(9),
+                                          borderRadius: BorderRadius.circular(
+                                            9,
+                                          ),
                                           color: const Color(0xFF42A5F5),
-                                          backgroundColor: const Color(0xFFBBDEFB),
+                                          backgroundColor: const Color(
+                                            0xFFBBDEFB,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: 10),
@@ -275,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                       const Text(
-                                        "今日の総学習時間",
+                                        "今日の学習時間",
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.black87,
@@ -418,7 +424,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 7,
-      shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.40),
+      shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.39),
       color: const Color(0xFF2196F3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -462,15 +468,19 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                   },
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.white,
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
                         child: Icon(
                           _stopwatch.isRunning
                               ? Icons.pause_rounded
                               : Icons.play_arrow_rounded,
                           color: const Color(0xFF2196F3),
-                          size: 33,
+                          size: 39,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -490,13 +500,17 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                   onTap: _reset,
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.white,
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
                         child: const Icon(
                           Icons.refresh_rounded,
                           color: Color(0xFF2196F3),
-                          size: 33,
+                          size: 39,
                         ),
                       ),
                       const SizedBox(height: 0),

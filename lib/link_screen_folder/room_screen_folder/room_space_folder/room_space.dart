@@ -107,13 +107,14 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     return Container(
       width: double.infinity,
       height: 260,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.only(
+        left: 18,
+        right: 15,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE5E7EB),
-        ),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -128,18 +129,23 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         child: Row(
           children: [
             // 左：タイマー
-            Expanded(
-              flex: 3,
-              child: _buildTimer(),
+            Expanded(flex: 3, child: _buildTimer()),
+
+            const SizedBox(width: 10),
+
+            SizedBox(
+              height: 212,
+              child: VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: const Color(0xFFE5E7EB),
+              ),
             ),
 
-            const SizedBox(width: 4),
+            const SizedBox(width: 0),
 
             // 右：学習情報
-            Expanded(
-              flex: 2,
-              child: _buildStudyInfoCard(),
-            ),
+            Expanded(flex: 2, child: _buildStudyInfoCard()),
           ],
         ),
       ),
@@ -150,71 +156,72 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     return SizedBox(
       width: 220,
       height: 220,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 進捗バー
-          SizedBox(
-            width: 202,
-            height: 202,
-            child: CircularProgressIndicator(
-              value: 0.45,
-              strokeWidth: 7,
-              strokeCap: StrokeCap.round,
-              backgroundColor: const Color(0xFFBBDEFB),
-              valueColor: const AlwaysStoppedAnimation(
-                Color(0xFF2196F3),
+      child: Transform.translate(
+        offset: const Offset(-3, 0),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // 進捗バー
+            SizedBox(
+              width: 190,
+              height: 190,
+              child: CircularProgressIndicator(
+                value: 0.45,
+                strokeWidth: 7,
+                strokeCap: StrokeCap.round,
+                backgroundColor: const Color(0xFFBBDEFB),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFF2196F3)),
               ),
             ),
-          ),
 
-          // 中央
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Transform.translate(
-                offset: const Offset(0, 18),
-                child: const Text(
-                  "学習タイマー",
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+            // 中央
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Transform.translate(
+                  offset: const Offset(0, 13),
+                  child: const Text(
+                    "学習タイマー",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 0),
+                const SizedBox(height: 0),
 
-              Transform.translate(
-                offset: const Offset(0, 12),
-                child: Text(
-                  _formatTime(),
-                  style: const TextStyle(
-                    color: Color(0xFF2196F3),
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+                Transform.translate(
+                  offset: const Offset(0, 9),
+                  child: Text(
+                    _formatTime(),
+                    style: const TextStyle(
+                      color: Color(0xFF2196F3),
+                      fontSize: 31,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 6),
+                const SizedBox(height: 6),
 
-              Transform.translate(
-                offset: const Offset(0, 15),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildStartButton(),
-                    const SizedBox(width: 24),
-                    _buildResetButton(),
-                  ],
+                Transform.translate(
+                  offset: const Offset(0, 14),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildStartButton(),
+                      const SizedBox(width: 24),
+                      _buildResetButton(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -231,8 +238,8 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       child: Column(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Color(0xFF2196F3),
               shape: BoxShape.circle,
@@ -242,11 +249,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
                   ? Icons.pause_rounded
                   : Icons.play_arrow_rounded,
               color: Colors.white,
-              size: 33,
+              size: 28,
             ),
           ),
           const SizedBox(height: 2),
-
         ],
       ),
     );
@@ -258,8 +264,8 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       child: Column(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -268,11 +274,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             child: const Icon(
               Icons.refresh_rounded,
               color: Color(0xFF2196F3),
-              size: 33,
+              size: 28,
             ),
           ),
           const SizedBox(height: 2),
-
         ],
       ),
     );
@@ -286,41 +291,39 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }) {
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
+        padding: const EdgeInsets.only(left: 11, right: 0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              color: iconColor,
-              size: 22,
+            Row(
+              children: [
+                Transform.translate(
+                  offset: const Offset(0, 1),
+                  child: Icon(icon, color: iconColor, size: 17),
+                ),
+
+                const SizedBox(width: 6),
+
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
+              ],
             ),
 
-            const SizedBox(width: 10),
+            const SizedBox(height: 8),
 
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black87,
-                    ),
-                  ),
-
-                  const SizedBox(height: 3),
-
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
+            Padding(
+              padding: const EdgeInsets.only(left: 24),
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  letterSpacing: 1,
+                ),
               ),
             ),
           ],
@@ -328,6 +331,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       ),
     );
   }
+
   Widget _buildStudyInfoCard() {
     return SizedBox(
       height: 220,
@@ -340,9 +344,15 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             iconColor: const Color(0xFFFF2D55),
           ),
 
-          const Divider(
-            height: 1,
-            color: Color(0xFFE5E7EB),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 0),
+              child: SizedBox(
+                width: 120,
+                child: const Divider(height: 1, color: Color(0xFFE5E7EB)),
+              ),
+            ),
           ),
 
           _buildInfoRow(
@@ -352,14 +362,20 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             iconColor: const Color(0xFF2196F3),
           ),
 
-          const Divider(
-            height: 1,
-            color: Color(0xFFE5E7EB),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 0),
+              child: SizedBox(
+                width: 120,
+                child: const Divider(height: 1, color: Color(0xFFE5E7EB)),
+              ),
+            ),
           ),
 
           _buildInfoRow(
             icon: Icons.timer_outlined,
-            title: "今日の総学習時間",
+            title: "今日の学習時間",
             value: "2時間15分",
             iconColor: const Color(0xFF2196F3),
           ),
@@ -367,66 +383,67 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       ),
     );
   }
+
   // =========================================================
   // メンバー・チャット・共有ノートの3つのボタン
   // =========================================================
   Widget _buildRoomFeatureButtons() {
     return Row(
-        children: [
-          Expanded(
-            child: _buildFeatureButton(
-              icon: Icons.groups_rounded,
-              title: "メンバー",
-              subtitle: "3人参加中",
-              iconColor: const Color(0xFF2196F3),
-              onTap: () {
-                _openFeatureScreen(
-                  title: "メンバー",
-                  icon: Icons.groups_rounded,
-                  child: _buildMembersScreenContent(),
-                );
-              },
-            ),
+      children: [
+        Expanded(
+          child: _buildFeatureButton(
+            icon: Icons.groups_rounded,
+            title: "メンバー",
+            subtitle: "3人参加中",
+            iconColor: const Color(0xFF2196F3),
+            onTap: () {
+              _openFeatureScreen(
+                title: "メンバー",
+                icon: Icons.groups_rounded,
+                child: _buildMembersScreenContent(),
+              );
+            },
           ),
+        ),
 
-          const SizedBox(width: 10),
+        const SizedBox(width: 10),
 
-          Expanded(
-            child: _buildFeatureButton(
-              icon: Icons.chat_bubble_rounded,
-              title: "チャット",
-              subtitle: "未読 3件",
-              iconColor: const Color(0xFF2196F3),
-              badge: "3",
-              onTap: () {
-                _openFeatureScreen(
-                  title: "チャット",
-                  icon: Icons.chat_bubble_rounded,
-                  child: _buildChatScreenContent(),
-                );
-              },
-            ),
+        Expanded(
+          child: _buildFeatureButton(
+            icon: Icons.chat_bubble_rounded,
+            title: "チャット",
+            subtitle: "未読 3件",
+            iconColor: const Color(0xFF2196F3),
+            badge: "3",
+            onTap: () {
+              _openFeatureScreen(
+                title: "チャット",
+                icon: Icons.chat_bubble_rounded,
+                child: _buildChatScreenContent(),
+              );
+            },
           ),
+        ),
 
-          const SizedBox(width: 10),
+        const SizedBox(width: 10),
 
-          Expanded(
-            child: _buildFeatureButton(
-              icon: Icons.description_rounded,
-              title: "共有ノート",
-              subtitle: "更新 2件",
-              iconColor: const Color(0xFF2196F3),
-              badge: "2",
-              onTap: () {
-                _openFeatureScreen(
-                  title: "共有ノート",
-                  icon: Icons.description_rounded,
-                  child: _buildNotesScreenContent(),
-                );
-              },
-            ),
+        Expanded(
+          child: _buildFeatureButton(
+            icon: Icons.description_rounded,
+            title: "共有ノート",
+            subtitle: "更新 2件",
+            iconColor: const Color(0xFF2196F3),
+            badge: "2",
+            onTap: () {
+              _openFeatureScreen(
+                title: "共有ノート",
+                icon: Icons.description_rounded,
+                child: _buildNotesScreenContent(),
+              );
+            },
           ),
-        ],
+        ),
+      ],
     );
   }
 
