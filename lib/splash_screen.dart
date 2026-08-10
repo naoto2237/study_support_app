@@ -1,10 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:study_support_app/data_screen.dart';
-import 'package:study_support_app/home_screen_folder/home_screen.dart';
-import 'package:study_support_app/main.dart';
-import 'home_screen_folder/home_screen.dart';
+
 import 'data_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,13 +11,21 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _isNavigating = false;
+
   @override
   void initState() {
     super.initState();
-    checkUser();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkUser();
+    });
   }
 
   Future<void> checkUser() async {
+    // すでに遷移処理をしていたら何もしない
+    if (_isNavigating) return;
+
     try {
       User? user = FirebaseAuth.instance.currentUser;
 
@@ -34,21 +38,28 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (user == null || !mounted) return;
 
+      // 遷移開始を記録
+      _isNavigating = true;
+
       // 開発中は毎回OnboardingScreenへ
-      Navigator.pushReplacement(
-        context,
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => const OnboardingScreen(),
         ),
       );
     } catch (e, stackTrace) {
-      print("❌ エラー発生");
-      print(e);
-      print(stackTrace);
+      debugPrint('❌ エラー発生');
+      debugPrint(e.toString());
+      debugPrint(stackTrace.toString());
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
   }
 }

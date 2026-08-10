@@ -173,7 +173,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Transform.translate(
-                offset: const Offset(0, 20),
+                offset: const Offset(0, 18),
                 child: const Text(
                   "学習タイマー",
                   style: TextStyle(
@@ -187,7 +187,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               const SizedBox(height: 0),
 
               Transform.translate(
-                offset: const Offset(0, 13),
+                offset: const Offset(0, 12),
                 child: Text(
                   _formatTime(),
                   style: const TextStyle(
