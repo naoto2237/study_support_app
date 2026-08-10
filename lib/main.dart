@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
           selectionHandleColor: Color(0xFF2196F3), // ハンドル
         ),
       ),
-      home: const MainNavigationScreen(),
+      home: const SplashScreen(),
     );
   }
 }

@@ -277,7 +277,10 @@ class _AiTestScreenState extends State<AiScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon: const Icon(Icons.history),
+                icon: const Icon(
+                  Icons.history,
+                  color: Colors.black87,
+                ),
                 onPressed: () {
                   // キーボードを閉じる
                   FocusScope.of(context).unfocus();

@@ -18,7 +18,7 @@ class LinkScreen extends StatelessWidget {
           'Link',
           style: TextStyle(
             color: Colors.black87,
-            fontSize: 20,
+            fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
         ),

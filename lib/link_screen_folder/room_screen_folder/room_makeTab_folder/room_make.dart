@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'room_making.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../room_space.dart';
+import '../room_space_folder/room_space.dart';
 
 class CreateRoomTab extends StatelessWidget {
   const CreateRoomTab({super.key});
@@ -65,7 +65,7 @@ class CreateRoomTab extends StatelessWidget {
                         Text(
                           "同じ目標を持つ仲間を集めよう",
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 1.00),
+                            color: Colors.white.withValues(alpha: 0.90),
                             fontSize: 15,
                           ),
                         ),
