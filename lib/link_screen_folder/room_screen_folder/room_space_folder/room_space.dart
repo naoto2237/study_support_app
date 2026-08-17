@@ -1182,9 +1182,9 @@ class _RoomFeatureScreenState extends State<_RoomFeatureScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // 背景画像をキーボードで動かさない
       resizeToAvoidBottomInset: false,
 
-      // AppBar
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -1208,7 +1208,6 @@ class _RoomFeatureScreenState extends State<_RoomFeatureScreen> {
           ),
         ),
 
-        // 壁紙変更
         actions: [
           IconButton(
             icon: const Icon(Icons.wallpaper, color: Colors.black87, size: 24),
@@ -1217,34 +1216,32 @@ class _RoomFeatureScreenState extends State<_RoomFeatureScreen> {
         ],
       ),
 
-      // Body
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-
-        decoration: BoxDecoration(color: const Color(0xFFF7F7F7)),
-
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (_selectedBackground != null)
-              Transform.translate(
-                offset: _backgroundOffset,
-                child: Transform.scale(
-                  scale: _backgroundScale,
-                  alignment: Alignment.center,
-                  child: Image.file(
-                    _selectedBackground!,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ==========================================
+          // 背景画像
+          // 完全に固定する
+          // ==========================================
+          if (_selectedBackground != null)
+            Positioned.fill(
+              child: ClipRect(
+                child: Transform.translate(
+                  offset: _backgroundOffset,
+                  child: Transform.scale(
+                    scale: _backgroundScale,
+                    alignment: Alignment.center,
+                    child: Image.file(_selectedBackground!, fit: BoxFit.cover),
                   ),
                 ),
               ),
+            ),
 
-            widget.child,
-          ],
-        ),
+          // ==========================================
+          // 背景の上にチャット画面
+          // ==========================================
+          Positioned.fill(child: widget.child),
+        ],
       ),
     );
   }

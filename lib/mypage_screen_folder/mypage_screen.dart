@@ -100,102 +100,50 @@ class ProfileHeader extends StatelessWidget {
             height: 335,
             width: double.infinity,
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFCF4D67), Color(0xFFC44862)],
+              image: DecorationImage(
+                image: AssetImage(
+                  'assets/images/haikei8.png',
+                ),
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
               ),
             ),
           ),
 
-          // ------------------------------------------
-          // 背景の薄いアイコン
-          // ------------------------------------------
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.08,
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 35,
-                      top: 35,
-                      child: Icon(
-                        Icons.menu_book_outlined,
-                        size: 55,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Positioned(
-                      right: 75,
-                      top: 80,
-                      child: Icon(
-                        Icons.access_time,
-                        size: 55,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Positioned(
-                      left: 65,
-                      top: 150,
-                      child: Icon(
-                        Icons.edit_outlined,
-                        size: 50,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Positioned(
-                      right: 35,
-                      top: 180,
-                      child: Icon(
-                        Icons.star_outline,
-                        size: 50,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Positioned(
-                      left: 25,
-                      top: 245,
-                      child: Icon(
-                        Icons.lightbulb_outline,
-                        size: 45,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
 
           // ------------------------------------------
           // 通知・設定
           // ------------------------------------------
           Positioned(
-            top: 32,
-            right: 16,
+            top: 56,
+            right: 0,
             child: Row(
               children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.notifications_none,
-                    color: Colors.white,
+                Padding(
+                  padding: const EdgeInsets.only(left: 9),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.notifications_none,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {},
                   ),
                 ),
-
-                IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SettingsPage(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Colors.white,
+                Padding(
+                  padding: const EdgeInsets.only(right: 7),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.settings_outlined,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsPage(),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -206,7 +154,7 @@ class ProfileHeader extends StatelessWidget {
           // 白いプロフィールエリア
           // ------------------------------------------
           Positioned(
-            top: 230,
+            top: 237,
             left: 0,
             right: 0,
             child: Container(
@@ -225,7 +173,7 @@ class ProfileHeader extends StatelessWidget {
           // プロフィール画像
           // ------------------------------------------
           Positioned(
-            top: 200,
+            top: 187,
             left: 0,
             right: 0,
             child: Center(
@@ -240,16 +188,16 @@ class ProfileHeader extends StatelessWidget {
                     ),
                     child: icon.isNotEmpty
                         ? CircleAvatar(
-                      radius: 45,
+                      radius: 44,
                       backgroundImage: NetworkImage(icon),
                     )
                         : CircleAvatar(
-                      radius: 45,
+                      radius: 44,
                       backgroundColor: MypageScreen.primaryBlue
                           .withOpacity(0.12),
                       child: const Icon(
                         Icons.person,
-                        size: 70,
+                        size: 65,
                         color: MypageScreen.primaryBlue,
                       ),
                     ),
@@ -284,7 +232,7 @@ class ProfileHeader extends StatelessWidget {
           // 名前
           // ------------------------------------------
           Positioned(
-            top: 348,
+            top: 289,
             left: 0,
             right: 0,
             child: Center(
@@ -294,32 +242,9 @@ class ProfileHeader extends StatelessWidget {
                   Text(
                     name,
                     style: const TextStyle(
-                      fontSize: 25,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(width: 10),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: MypageScreen.primaryBlue,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: const Text(
-                      "Lv.8",
-                      style: TextStyle(
-                        color: MypageScreen.primaryBlue,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      letterSpacing: -1
                     ),
                   ),
                 ],

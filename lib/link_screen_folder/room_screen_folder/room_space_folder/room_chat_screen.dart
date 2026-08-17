@@ -52,9 +52,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
 
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) {
-      return;
-    }
+    if (user == null) return;
 
     try {
       // Firestoreから現在のユーザー名を取得
@@ -75,14 +73,18 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
 
       _controller.clear();
 
-      _focusNode.requestFocus();
+      // キーボードはそのまま表示
+      if (_focusNode.canRequestFocus) {
+        _focusNode.requestFocus();
+      }
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      // 少し待ってから一番下へ
+      await Future.delayed(const Duration(milliseconds: 50));
 
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
         );
       }
@@ -95,12 +97,12 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
-    return Stack(
+    return Column(
       children: [
-        // =========================
+        // ==========================================
         // チャット一覧
-        // =========================
-        Positioned.fill(
+        // ==========================================
+        Expanded(
           child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: _messageStreamData,
             builder: (context, snapshot) {
@@ -125,18 +127,17 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
 
               return ListView.builder(
                 controller: _scrollController,
-                padding: EdgeInsets.fromLTRB(
-                  8,
-                  16,
-                  8,
-                  100 + MediaQuery.of(context).viewInsets.bottom,
-                ),
+                padding: const EdgeInsets.fromLTRB(8, 16, 8, 12),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   final data = messages[index].data();
 
                   final uid = data['uid'] as String? ?? '';
+
                   final name = data['name'] as String? ?? 'ユーザー';
+
                   final message = data['message'] as String? ?? '';
 
                   final timestamp = data['createdAt'] as Timestamp?;
@@ -149,16 +150,17 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
                     time =
                         '${date.hour.toString().padLeft(2, '0')}:'
                         '${date.minute.toString().padLeft(2, '0')}';
+                  } else {
+                    // serverTimestampがまだ確定していない場合
+                    time = '送信中';
                   }
-
-                  final isMine = uid == currentUid;
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 9),
                     child: RoomChatBubble(
                       name: name,
                       message: message,
-                      isMine: isMine,
+                      isMine: uid == currentUid,
                       time: time,
                     ),
                   );
@@ -168,93 +170,116 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
           ),
         ),
 
-        // =========================
-        // メッセージ入力欄
-        // =========================
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(13, 8, 13, 12),
-              child: Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Color(0xFFF7F7F7),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-                ),
-                child: Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 13, 60, 13),
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        scrollController: _textFieldScrollController,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        minLines: 1,
-                        maxLines: 10,
-                        style: const TextStyle(fontSize: 16.0, height: 1.4),
-                        cursorColor: const Color(0xFF258EDB),
-                        decoration: const InputDecoration(
-                          hintText: 'チャットを送る...',
-                          border: InputBorder.none,
-                          isCollapsed: true,
-                        ),
-                        onSubmitted: (_) {
-                          _sendMessage();
-                        },
-                      ),
-                    ),
+        // ==========================================
+        // 入力欄
+        // ==========================================
+        _ChatInputArea(
+          controller: _controller,
+          focusNode: _focusNode,
+          textFieldScrollController: _textFieldScrollController,
+          onSend: _sendMessage,
+        ),
+      ],
+    );
+  }
+}
 
-                    // =========================
-                    // 送信ボタン
-                    // =========================
-                    Positioned(
-                      right: 8,
-                      bottom: 8,
-                      child: Transform.translate(
-                        offset: const Offset(0, 2.0),
-                        child: Material(
-                          color: Colors.transparent,
-                          shape: const CircleBorder(),
-                          child: InkWell(
-                            customBorder: const CircleBorder(),
-                            onTap: _sendMessage,
-                            child: Ink(
-                              width: 36,
-                              height: 36,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF258EDB),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Transform.translate(
-                                  offset: const Offset(1, 0),
-                                  child: const Icon(
-                                    Icons.send_rounded,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
+// =====================================================
+// 入力欄
+//
+// MediaQueryはここだけで使用する。
+// そのためキーボードが開いたときに
+// チャット一覧までMediaQueryの変更を受けにくくする。
+// =====================================================
+
+class _ChatInputArea extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ScrollController textFieldScrollController;
+  final VoidCallback onSend;
+
+  const _ChatInputArea({
+    required this.controller,
+    required this.focusNode,
+    required this.textFieldScrollController,
+    required this.onSend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(13, 8, 13, 12),
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F7),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+            ),
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 13, 60, 13),
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    scrollController: textFieldScrollController,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    minLines: 1,
+                    maxLines: 10,
+                    style: const TextStyle(fontSize: 16, height: 1.4),
+                    cursorColor: const Color(0xFF258EDB),
+                    decoration: const InputDecoration(
+                      hintText: 'チャットを送る...',
+                      border: InputBorder.none,
+                      isCollapsed: true,
+                    ),
+                    onSubmitted: (_) {
+                      onSend();
+                    },
+                  ),
+                ),
+
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: onSend,
+                      child: Ink(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF258EDB),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 20,
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -282,51 +307,49 @@ class RoomChatBubble extends StatelessWidget {
     // =========================
     // 吹き出し
     // =========================
-    final bubble = IntrinsicWidth(
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 282),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-            decoration: BoxDecoration(
-              color: isMine ? const Color(0xFFC9E9FF) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              message,
-              style: TextStyle(
-                fontSize: 15,
-                color: isMine ? Colors.black87 : Colors.black87,
-                height: 1.4,
-              ),
+    final bubble = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          constraints: const BoxConstraints(maxWidth: 282),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          decoration: BoxDecoration(
+            color: isMine ? const Color(0xFFC9E9FF) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            message,
+            style: const TextStyle(
+              fontSize: 15,
+              color: Colors.black87,
+              height: 1.4,
             ),
           ),
+        ),
 
-          // =========================
-          // ちょん
-          // =========================
-          Positioned(
-            top: 1.76,
-            left: isMine ? null : -2.17,
-            right: isMine ? -2.17 : null,
-            child: Transform.flip(
-              flipX: !isMine,
-              child: Transform.rotate(
-                angle: 18.635,
-                child: ClipPath(
-                  clipper: _BubbleTailClipper(),
-                  child: Container(
-                    width: 10,
-                    height: 18,
-                    color: isMine ? const Color(0xFFC9E9FF) : Colors.white,
-                  ),
+        // =========================
+        // 吹き出しの「ちょん」
+        // =========================
+        Positioned(
+          top: 1.76,
+          left: isMine ? null : -2.17,
+          right: isMine ? -2.17 : null,
+          child: Transform.flip(
+            flipX: !isMine,
+            child: Transform.rotate(
+              angle: 18.635,
+              child: ClipPath(
+                clipper: _BubbleTailClipper(),
+                child: Container(
+                  width: 10,
+                  height: 18,
+                  color: isMine ? const Color(0xFFC9E9FF) : Colors.white,
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
 
     // =========================
@@ -348,7 +371,7 @@ class RoomChatBubble extends StatelessWidget {
 
           const SizedBox(width: 8),
 
-          // アイコンの真右に名前
+          // 名前 + メッセージ
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -410,6 +433,10 @@ class RoomChatBubble extends StatelessWidget {
     );
   }
 }
+
+// =====================================================
+// 吹き出しの尻尾
+// =====================================================
 
 class _BubbleTailClipper extends CustomClipper<Path> {
   @override
