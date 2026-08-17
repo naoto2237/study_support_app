@@ -529,7 +529,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                               ? Icons.pause_rounded
                               : Icons.play_arrow_rounded,
                           color: const Color(0xFF258EDB),
-                          size: 37,
+                          size: 35,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -560,7 +560,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                         child: const Icon(
                           Icons.refresh_rounded,
                           color: Color(0xFF258EDB),
-                          size: 37,
+                          size: 35,
                         ),
                       ),
                       const SizedBox(height: 0),

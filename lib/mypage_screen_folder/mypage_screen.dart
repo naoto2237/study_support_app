@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:study_support_app/setting_screen.dart';
+import 'profile_edit_screen.dart';
 
 class MypageScreen extends StatefulWidget {
   const MypageScreen({super.key});
@@ -89,7 +90,7 @@ class ProfileHeader extends StatelessWidget {
     final String icon = data["icon"] ?? "";
 
     return SizedBox(
-      height: 405,
+      height: 350,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -101,15 +102,12 @@ class ProfileHeader extends StatelessWidget {
             width: double.infinity,
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(
-                  'assets/images/haikei8.png',
-                ),
+                image: AssetImage('assets/images/haikei8.png'),
                 fit: BoxFit.cover,
                 alignment: Alignment.center,
               ),
             ),
           ),
-
 
           // ------------------------------------------
           // 通知・設定
@@ -188,19 +186,19 @@ class ProfileHeader extends StatelessWidget {
                     ),
                     child: icon.isNotEmpty
                         ? CircleAvatar(
-                      radius: 44,
-                      backgroundImage: NetworkImage(icon),
-                    )
+                            radius: 43,
+                            backgroundImage: NetworkImage(icon),
+                          )
                         : CircleAvatar(
-                      radius: 44,
-                      backgroundColor: MypageScreen.primaryBlue
-                          .withOpacity(0.12),
-                      child: const Icon(
-                        Icons.person,
-                        size: 65,
-                        color: MypageScreen.primaryBlue,
-                      ),
-                    ),
+                            radius: 43,
+                            backgroundColor: MypageScreen.primaryBlue
+                                .withOpacity(0.12),
+                            child: const Icon(
+                              Icons.person,
+                              size: 65,
+                              color: MypageScreen.primaryBlue,
+                            ),
+                          ),
                   ),
 
                   Positioned(
@@ -244,7 +242,7 @@ class ProfileHeader extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: -1
+                      letterSpacing: -1,
                     ),
                   ),
                 ],
@@ -295,6 +293,9 @@ class ProfileContent extends StatelessWidget {
           // ------------------------------------------
           Row(
             children: [
+              // ------------------------------------------
+              // プロフィール分析
+              // ------------------------------------------
               Expanded(
                 child: _ActionButton(
                   icon: Icons.bar_chart_rounded,
@@ -305,11 +306,23 @@ class ProfileContent extends StatelessWidget {
 
               const SizedBox(width: 14),
 
+              // ------------------------------------------
+              // プロフィールを編集
+              // ------------------------------------------
               Expanded(
                 child: _ActionButton(
                   icon: Icons.edit,
                   text: "プロフィールを編集",
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileEditScreen(
+                          data: data,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
