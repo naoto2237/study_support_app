@@ -289,6 +289,7 @@ class RoomCard extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => RoomSpaceScreen(
                   roomTitle: title,
+                  roomId: docId,
                 ),
               ),
             );

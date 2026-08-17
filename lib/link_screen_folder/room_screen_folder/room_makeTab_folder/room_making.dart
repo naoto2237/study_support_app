@@ -153,14 +153,15 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
                     );
                     return;
                   }
-
-                  await FirebaseFirestore.instance.collection("rooms").add({
-                    "title": _titleController.text.trim(),
-                    "description": _descriptionController.text.trim(),
-                    "isPublic": _selectedVisibility == 0,
-                    "members": 1,
-                    "createdAt": FieldValue.serverTimestamp(),
-                  });
+                  final roomRef = await FirebaseFirestore.instance
+                      .collection("rooms")
+                      .add({
+                        "title": _titleController.text.trim(),
+                        "description": _descriptionController.text.trim(),
+                        "isPublic": _selectedVisibility == 0,
+                        "members": 1,
+                        "createdAt": FieldValue.serverTimestamp(),
+                      });
 
                   if (!context.mounted) return;
 
@@ -169,6 +170,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
                     MaterialPageRoute(
                       builder: (context) => RoomSpaceScreen(
                         roomTitle: _titleController.text.trim(),
+                        roomId: roomRef.id,
                       ),
                     ),
                   );

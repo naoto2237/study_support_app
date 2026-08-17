@@ -44,12 +44,14 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_dotenv: ^6.0.1
   http: ^1.6.0
-  shared_preferences: ^2.2.3
+  shared_preferences: ^2.5.5
   image_picker: ^1.1.2
 
   fl_chart: ^0.68.0
   google_generative_ai: ^0.4.7
   jumping_dot: ^0.0.7
+  firebase_storage: ^13.4.6
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -77,7 +79,8 @@ flutter:
   uses-material-design: true
   assets:
     - .env
-
+    - assets/images/haikei5.png
+    - assets/images/haikei8.png
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

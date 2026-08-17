@@ -218,11 +218,11 @@ class _AiTestScreenState extends State<AiScreen> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-      },
+      onTap: () {},
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: _hasStartedChat
+            ? const Color(0xFFF7F7F7)
+            : Colors.white,
 
         appBar: AppBar(
           leadingWidth: 56,
@@ -259,17 +259,19 @@ class _AiTestScreenState extends State<AiScreen> {
 
           title: Transform.translate(
             offset: Offset(_hasStartedChat ? -19 : 0, 0),
-            child: const Text(
+            child: Text(
               "AIサポート",
               style: TextStyle(
-                color: Colors.black87,
+                color: _hasStartedChat ? Colors.black87 : Colors.white,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           centerTitle: false,
-          backgroundColor: Colors.white,
+          backgroundColor: _hasStartedChat
+              ? Colors.white
+              : const Color(0xFF258EDB),
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
@@ -277,9 +279,9 @@ class _AiTestScreenState extends State<AiScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.history,
-                  color: Colors.black87,
+                  color: _hasStartedChat ? Colors.black87 : Colors.white,
                 ),
                 onPressed: () {
                   // キーボードを閉じる
@@ -315,7 +317,7 @@ class _AiTestScreenState extends State<AiScreen> {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2196F3),
+                                color: Color(0xFF258EDB),
                               ),
                             ),
                           ),
@@ -333,17 +335,12 @@ class _AiTestScreenState extends State<AiScreen> {
                           ),
                           const SizedBox(height: 11),
 
-                          Card(
-                            elevation: 0,
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: const BorderSide(color: Color(0xFFE5E7EB)),
-                            ),
+                          Container(
+                            color: Colors.transparent,
                             child: Padding(
                               padding: const EdgeInsets.only(
-                                left: 18,
-                                right: 18,
+                                left: 0,
+                                right: 0,
                                 top: 11,
                                 bottom: 11,
                               ),
@@ -354,7 +351,7 @@ class _AiTestScreenState extends State<AiScreen> {
                                     children: [
                                       Icon(
                                         Icons.lightbulb_outline,
-                                        color: Color(0xFF2196F3),
+                                        color: Color(0xFF258EDB),
                                         size: 20,
                                       ),
                                       SizedBox(width: 8),
@@ -371,13 +368,13 @@ class _AiTestScreenState extends State<AiScreen> {
                                   const SizedBox(height: 9),
 
                                   SizedBox(
-                                    height: 240,
+                                    height: 270,
                                     child: GridView.count(
                                       crossAxisCount: 2,
                                       // 2列
                                       mainAxisSpacing: 10,
                                       crossAxisSpacing: 10,
-                                      childAspectRatio: 2.3,
+                                      childAspectRatio: 2.6,
                                       physics:
                                           const NeverScrollableScrollPhysics(),
                                       children: [
@@ -459,7 +456,7 @@ class _AiTestScreenState extends State<AiScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF2196F3), size: 23),
+            Icon(icon, color: const Color(0xFF258EDB), size: 23),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -483,7 +480,7 @@ class _AiTestScreenState extends State<AiScreen> {
       padding: const EdgeInsets.only(top: 0, right: 0, left: 0, bottom: 15),
       child: _messages.isEmpty
           ? Padding(
-              padding: const EdgeInsets.only(top: 77),
+              padding: const EdgeInsets.only(top: 50),
               child: Center(
                 child: Text(
                   "質問例をタップするか、\n下の入力欄から質問してみよう！",
@@ -513,15 +510,15 @@ class _AiTestScreenState extends State<AiScreen> {
                             vertical: 10,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2196F3),
+                            color: const Color(0xFFC9E9FF),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
                             message.text,
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              height: 1.5,
+                              color: Colors.black87,
+                              fontSize: 16,
+                              height: 1.4,
                             ),
                           ),
                         ),
@@ -539,8 +536,8 @@ class _AiTestScreenState extends State<AiScreen> {
                           message.text,
                           style: const TextStyle(
                             color: Colors.black87,
-                            fontSize: 15,
-                            height: 1.6,
+                            fontSize: 16,
+                            height: 1.4,
                           ),
                         ),
 
@@ -584,7 +581,7 @@ class _AiTestScreenState extends State<AiScreen> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         JumpingDots(
-                          color: Color(0xFF2196F3),
+                          color: Color(0xFF258EDB),
                           radius: 5,
                           numberOfDots: 3,
                           animationDuration: Duration(milliseconds: 250),

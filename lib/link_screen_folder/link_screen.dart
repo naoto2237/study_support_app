@@ -11,13 +11,13 @@ class LinkScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor:  Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF258EDB),
         title: const Text(
           'Link',
           style: TextStyle(
-            color: Colors.black87,
+            color: Colors.white,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -44,7 +44,7 @@ class LinkScreen extends StatelessWidget {
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -98,7 +98,7 @@ class LinkScreen extends StatelessWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
-        leading: Icon(icon, size: 36, color: const Color(0xFF2196F3)),
+        leading: Icon(icon, size: 36, color: const Color(0xFF258EDB)),
         title: Text(
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

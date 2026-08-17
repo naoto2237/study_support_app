@@ -113,7 +113,7 @@ class AiHistoryScreen extends StatelessWidget {
                     backgroundColor: Color(0xFFEAF4FF),
                     child: Icon(
                       Icons.chat_bubble_outline,
-                      color: Color(0xFF2196F3),
+                      color: Color(0xFF258EDB),
                     ),
                   ),
                   title: Text(

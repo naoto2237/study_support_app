@@ -63,25 +63,27 @@ class _RecordScreenState extends State<RecordScreen> {
     String todayKey = formatDate(selectedDay);
 
     int currentDaySeconds = (studyRecords[todayKey] ?? 0);
-    int displaySeconds = widget.totalSeconds > 0 ? widget.totalSeconds : currentDaySeconds;
+    int displaySeconds = widget.totalSeconds > 0
+        ? widget.totalSeconds
+        : currentDaySeconds;
 
     int totalMinutes = displaySeconds ~/ 60;
     double totalHours = displaySeconds / 3600.0;
     int streakDays = calculateStreak();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           "学習グラフ",
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF258EDB),
         elevation: 0,
         actions: [
           Padding(
@@ -98,15 +100,13 @@ class _RecordScreenState extends State<RecordScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsPage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -121,7 +121,10 @@ class _RecordScreenState extends State<RecordScreen> {
               ),
               child: Column(
                 children: [
-                  infoRow("選択日の学習時間", "${totalMinutes}分 (${totalHours.toStringAsFixed(1)}時間)"),
+                  infoRow(
+                    "選択日の学習時間",
+                    "${totalMinutes}分 (${totalHours.toStringAsFixed(1)}時間)",
+                  ),
                   const SizedBox(height: 8),
                   infoRow("累計学習時間", "${totalHours.toStringAsFixed(1)}時間"),
                   const SizedBox(height: 8),
@@ -224,7 +227,7 @@ class _RecordScreenState extends State<RecordScreen> {
                 Text(
                   isWeek
                       ? "${formatDate(selectedWeekStart)} ～ "
-                      "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
+                            "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
                       : formatDate(selectedDay),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),

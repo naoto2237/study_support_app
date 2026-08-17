@@ -323,13 +323,13 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3),
+                      color: const Color(0xFFC9E9FF),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       message.text,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Colors.black87,
                         fontSize: 15,
                         height: 1.5,
                       ),
@@ -394,7 +394,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   JumpingDots(
-                    color: Color(0xFF2196F3),
+                    color: Color(0xFF258EDB),
                     radius: 5,
                     numberOfDots: 3,
                     animationDuration: Duration(milliseconds: 250),
