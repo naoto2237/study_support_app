@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:study_support_app/setting_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -29,14 +29,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       // ライトのときは元の薄い色、ダークのときは自動で真っ黒（#121212）にする
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : const Color(0xFFF7F7F7),
       appBar: AppBar(
         centerTitle: false,
-        backgroundColor: Color(0xFF258EDB),
+        backgroundColor: Colors.white,
         title: const Text(
           "ホーム",
           style: TextStyle(
-            color: Colors.white,
+            color: Colors.black87,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -62,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -76,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Icon(
                       Icons.calendar_today_rounded,
-                      color: Color(0xFF258EDB),
+                      color: Color(0xFF2196F3),
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -99,7 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: StopwatchWidget(
                     onStop: (time) {
                       setState(() {
-                        time -= todayTotal;
                         todayTotal += time;
                       });
 
@@ -212,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       Icon(
                                         Icons.trending_up_rounded,
                                         size: 19,
-                                        color: Color(0xFF258EDB),
+                                        color: Color(0xFF2196F3),
                                       ),
                                       SizedBox(width: 6),
                                       Text(
@@ -236,9 +237,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                           borderRadius: BorderRadius.circular(
                                             9,
                                           ),
-                                          color: const Color(0xFF258EDB),
+                                          color: const Color(0xFF42A5F5),
                                           backgroundColor: const Color(
-                                            0xFFC9E9FF,
+                                            0xFFBBDEFB,
                                           ),
                                         ),
                                       ),
@@ -276,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const Icon(
                                         Icons.timer_outlined,
                                         size: 19,
-                                        color: Color(0xFF258EDB),
+                                        color: Color(0xFF2196F3),
                                       ),
                                       const SizedBox(width: 6),
                                       const Text(
@@ -321,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const Icon(
                                         Icons.hourglass_empty,
                                         size: 19,
-                                        color: Color(0xFF258EDB),
+                                        color: Color(0xFF2196F3),
                                       ),
                                       const SizedBox(width: 6),
                                       const Text(
@@ -423,8 +424,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 7,
-      shadowColor: const Color(0xFF258EDB).withValues(alpha: 0.39),
-      color: const Color(0xFF258EDB),
+      shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.39),
+      color: const Color(0xFF2196F3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
@@ -440,19 +441,19 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
               ),
             ),
 
-            const SizedBox(height: 3),
+            const SizedBox(height: 1),
 
             Text(
               _formatTime(),
-              style: GoogleFonts.roboto(
-                fontSize: 37,
+              style: const TextStyle(
+                fontSize: 36,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                letterSpacing: 1.9,
+                letterSpacing: 3.0,
               ),
             ),
 
-            const SizedBox(height: 5),
+            const SizedBox(height: 9),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -468,8 +469,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                   child: Column(
                     children: [
                       Container(
-                        width: 48,
-                        height: 48,
+                        width: 50,
+                        height: 50,
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -478,8 +479,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                           _stopwatch.isRunning
                               ? Icons.pause_rounded
                               : Icons.play_arrow_rounded,
-                          color: const Color(0xFF258EDB),
-                          size: 38,
+                          color: const Color(0xFF2196F3),
+                          size: 39,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -500,16 +501,16 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                   child: Column(
                     children: [
                       Container(
-                        width: 48,
-                        height: 48,
+                        width: 50,
+                        height: 50,
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.refresh_rounded,
-                          color: Color(0xFF258EDB),
-                          size: 38,
+                          color: Color(0xFF2196F3),
+                          size: 39,
                         ),
                       ),
                       const SizedBox(height: 0),
