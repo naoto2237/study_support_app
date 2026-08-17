@@ -1,7 +1,8 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+// アプリの動作確認用 main（必要に応じて既存のmainと統合してください）
 void main() {
   runApp(const MyApp());
 }
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4A90E2),
+          seedColor: const Color(0xFF3D96E8),
         ),
       ),
       home: const QnAListPage(),
@@ -31,36 +32,91 @@ class MyApp extends StatelessWidget {
 class Reply {
   String userName;
   String text;
+  String userId;
 
-  Reply({required this.userName, required this.text});
+  Reply({required this.userName, required this.text, required this.userId});
+
+  Map<String, dynamic> toMap() => {
+    "userName": userName,
+    "text": text,
+    "userId": userId,
+  };
+
+  factory Reply.fromMap(Map<String, dynamic> map) {
+    return Reply(
+      userName: map["userName"] ?? "名無し",
+      text: map["text"] ?? "",
+      userId: map["userId"] ?? "",
+    );
+  }
 }
 
 class Answer {
+  String id;
   String userName;
   String text;
+  String userId;
   List<Reply> replies;
 
   Answer({
+    required this.id,
     required this.userName,
     required this.text,
+    required this.userId,
     List<Reply>? replies,
   }) : replies = replies ?? [];
+
+  factory Answer.fromMap(String id, Map<String, dynamic> map) {
+    var rawReplies = map["replies"] as List? ?? [];
+    List<Reply> parsedReplies = rawReplies
+        .map((r) => Reply.fromMap(r as Map<String, dynamic>))
+        .toList();
+
+    return Answer(
+      id: id,
+      userName: map["userName"] ?? "名無し",
+      text: map["text"] ?? "",
+      userId: map["userId"] ?? "",
+      replies: parsedReplies,
+    );
+  }
 }
 
 class Question {
+  String id;
   String content;
   String userName;
+  String userId;
   List<Answer> answers;
 
   Question({
+    required this.id,
     required this.content,
     required this.userName,
+    required this.userId,
     List<Answer>? answers,
   }) : answers = answers ?? [];
+
+  factory Question.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    var rawAnswers = data["answers"] as List? ?? [];
+    List<Answer> parsedAnswers = rawAnswers.map((a) {
+      final map = a as Map<String, dynamic>;
+      return Answer.fromMap(map["id"] ?? "", map);
+    }).toList();
+
+    return Question(
+      id: doc.id,
+      content: data["content"] ?? "",
+      userName: data["userName"] ?? "名無し",
+      userId: data["userId"] ?? "",
+      answers: parsedAnswers,
+    );
+  }
 }
 
 // =========================
-// 一覧
+// 一覧画面
 // =========================
 
 class QnAListPage extends StatefulWidget {
@@ -71,92 +127,56 @@ class QnAListPage extends StatefulWidget {
 }
 
 class _QnAListPageState extends State<QnAListPage> {
-  final Color primaryColor = const Color(0xFF4A90E2);
+  final Color primaryColor = const Color(0xFF3D96E8);
   final TextEditingController searchController = TextEditingController();
-
-  List<Question> questions = [];
   String keyword = "";
 
-  @override
-  void initState() {
-    super.initState();
-    loadData();
+  // マイページのユーザー名を取得するヘルパー関数
+  Future<String> _getCurrentUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return "ゲスト";
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+      if (userDoc.exists && userDoc.data()!["name"] != null) {
+        return userDoc.data()!["name"];
+      }
+    } catch (_) {}
+    return "名前未設定";
   }
 
-  Future<void> saveData() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final data = questions.map((q) {
-      return {
-        "content": q.content,
-        "userName": q.userName,
-        "answers": q.answers.map((a) {
-          return {
-            "userName": a.userName,
-            "text": a.text,
-            "replies": a.replies
-                .map((r) => {
-              "userName": r.userName,
-              "text": r.text,
-            })
-                .toList(),
-          };
-        }).toList(),
-      };
-    }).toList();
-
-    await prefs.setString("qna_data", jsonEncode(data));
-  }
-
-  Future<void> loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString("qna_data");
-    if (data == null) return;
-
-    final List decoded = jsonDecode(data);
-
-    setState(() {
-      questions = decoded.map((q) {
-        return Question(
-          content: q["content"],
-          userName: q["userName"],
-          answers: (q["answers"] as List).map((a) {
-            return Answer(
-              userName: a["userName"],
-              text: a["text"],
-              replies: (a["replies"] as List? ?? [])
-                  .map((r) => Reply(
-                userName: r["userName"],
-                text: r["text"],
-              ))
-                  .toList(),
-            );
-          }).toList(),
-        );
-      }).toList();
-    });
-  }
-
-  List<Question> get filteredQuestions {
-    if (keyword.isEmpty) return questions;
-
-    return questions
-        .where((q) =>
-    q.content.contains(keyword) || q.userName.contains(keyword))
-        .toList();
-  }
-
+  // 質問投稿画面へ遷移
   Future<void> goPost() async {
-    final result = await Navigator.push<Question>(
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("ログインしていません")),
+      );
+      return;
+    }
+
+    // マイページの名前を自動取得
+    final currentUserName = await _getCurrentUserName();
+
+    final result = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (_) => PostPage(primaryColor: primaryColor),
       ),
     );
 
-    if (result != null) {
-      setState(() => questions.add(result));
-      saveData();
+    if (result != null && result.isNotEmpty) {
+      // Firestoreに質問を追加（マイページの名前をそのまま保存）
+      await FirebaseFirestore.instance.collection("questions").add({
+        "content": result,
+        "userName": currentUserName,
+        "userId": user.uid,
+        "answers": [],
+        "createdAt": FieldValue.serverTimestamp(),
+      });
     }
   }
 
@@ -167,36 +187,7 @@ class _QnAListPageState extends State<QnAListPage> {
         builder: (_) => DetailPage(
           question: q,
           primaryColor: primaryColor,
-          onChanged: saveData,
-          onDeleteQuestion: () {
-            setState(() => questions.remove(q));
-            saveData();
-            Navigator.pop(context);
-          },
         ),
-      ),
-    ).then((_) => setState(() {}));
-  }
-
-  void editQuestion(Question q) {
-    final c = TextEditingController(text: q.content);
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("質問編集"),
-        content: TextField(controller: c),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("キャンセル")),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => q.content = c.text);
-              saveData();
-              Navigator.pop(context);
-            },
-            child: const Text("保存"),
-          ),
-        ],
       ),
     );
   }
@@ -226,25 +217,59 @@ class _QnAListPageState extends State<QnAListPage> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredQuestions.length,
-              itemBuilder: (_, i) {
-                final q = filteredQuestions[i];
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("questions")
+                  .orderBy("createdAt", descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(child: Text("データの取得に失敗しました"));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("質問はまだありません"));
+                }
 
-                return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: primaryColor,
-                      child: Text(
-                        q.userName.isNotEmpty ? q.userName[0] : "?",
-                        style: const TextStyle(color: Colors.white),
+                final questions = snapshot.data!.docs
+                    .map((doc) => Question.fromFirestore(doc))
+                    .toList();
+
+                final filteredQuestions = questions.where((q) {
+                  if (keyword.isEmpty) return true;
+                  return q.content.contains(keyword) ||
+                      q.userName.contains(keyword);
+                }).toList();
+
+                if (filteredQuestions.isEmpty) {
+                  return const Center(child: Text("一致する質問が見つかりません"));
+                }
+
+                return ListView.builder(
+                  itemCount: filteredQuestions.length,
+                  itemBuilder: (_, i) {
+                    final q = filteredQuestions[i];
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: primaryColor,
+                          child: Text(
+                            q.userName.isNotEmpty ? q.userName[0] : "?",
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(q.content),
+                        subtitle:
+                        Text("${q.userName} ・ 回答 ${q.answers.length}件"),
+                        onTap: () => goDetail(q),
                       ),
-                    ),
-                    title: Text(q.content),
-                    subtitle:
-                    Text("${q.userName} ・ 回答 ${q.answers.length}件"),
-                    onTap: () => goDetail(q),
-                  ),
+                    );
+                  },
                 );
               },
             ),
@@ -261,7 +286,7 @@ class _QnAListPageState extends State<QnAListPage> {
 }
 
 // =========================
-// 投稿
+// 投稿画面（名前入力なし）
 // =========================
 
 class PostPage extends StatefulWidget {
@@ -274,16 +299,11 @@ class PostPage extends StatefulWidget {
 }
 
 class _PostPageState extends State<PostPage> {
-  final name = TextEditingController();
   final content = TextEditingController();
 
   void submit() {
-    if (name.text.isEmpty || content.text.isEmpty) return;
-
-    Navigator.pop(
-      context,
-      Question(content: content.text, userName: name.text),
-    );
+    if (content.text.isEmpty) return;
+    Navigator.pop(context, content.text);
   }
 
   @override
@@ -298,10 +318,22 @@ class _PostPageState extends State<PostPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(controller: name, decoration: const InputDecoration(labelText: "名前")),
-            TextField(controller: content, decoration: const InputDecoration(labelText: "質問")),
+            TextField(
+              controller: content,
+              decoration: const InputDecoration(
+                labelText: "質問内容",
+                alignLabelWithHint: true,
+              ),
+              maxLines: 5,
+            ),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: submit, child: const Text("投稿")),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: submit,
+                child: const Text("投稿"),
+              ),
+            ),
           ],
         ),
       ),
@@ -310,21 +342,17 @@ class _PostPageState extends State<PostPage> {
 }
 
 // =========================
-// 詳細（質問も⋯対応）
+// 詳細・回答・返信画面
 // =========================
 
 class DetailPage extends StatefulWidget {
   final Question question;
   final Color primaryColor;
-  final VoidCallback onChanged;
-  final VoidCallback onDeleteQuestion;
 
   const DetailPage({
     super.key,
     required this.question,
     required this.primaryColor,
-    required this.onChanged,
-    required this.onDeleteQuestion,
   });
 
   @override
@@ -332,74 +360,85 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
-  final answerName = TextEditingController();
   final answerText = TextEditingController();
 
-  void addAnswer() {
-    if (answerName.text.isEmpty || answerText.text.isEmpty) return;
+  // マイページのユーザー名を取得するヘルパー
+  Future<String> _getCurrentUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return "ゲスト";
 
-    setState(() {
-      widget.question.answers.add(
-        Answer(userName: answerName.text, text: answerText.text),
-      );
-    });
-
-    widget.onChanged();
-    answerText.clear();
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+      if (userDoc.exists && userDoc.data()!["name"] != null) {
+        return userDoc.data()!["name"];
+      }
+    } catch (_) {}
+    return "名前未設定";
   }
 
-  void editAnswer(Answer a) {
-    final c = TextEditingController(text: a.text);
+  // 回答追加（名前入力欄なし、マイペの名前を自動使用）
+  Future<void> addAnswer() async {
+    if (answerText.text.isEmpty) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("回答編集"),
-        content: TextField(controller: c),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("キャンセル")),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => a.text = c.text);
-              widget.onChanged();
-              Navigator.pop(context);
-            },
-            child: const Text("保存"),
-          ),
-        ],
-      ),
+    final currentUserName = await _getCurrentUserName();
+
+    final newAnswer = Answer(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userName: currentUserName,
+      text: answerText.text,
+      userId: user.uid,
     );
+
+    widget.question.answers.add(newAnswer);
+    await _updateFirestoreAnswers();
+
+    answerText.clear();
+    setState(() {});
   }
 
-  void deleteAnswer(Answer a) {
-    setState(() => widget.question.answers.remove(a));
-    widget.onChanged();
+  // 回答削除
+  Future<void> deleteAnswer(Answer a) async {
+    widget.question.answers.remove(a);
+    await _updateFirestoreAnswers();
+    setState(() {});
   }
 
-  void addReply(Answer a) {
-    final name = TextEditingController();
-    final text = TextEditingController();
+  // 返信追加（名前入力欄なし、マイペの名前を自動使用）
+  Future<void> addReply(Answer a) async {
+    final textController = TextEditingController();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final currentUserName = await _getCurrentUserName();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("返信"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: name, decoration: const InputDecoration(labelText: "名前")),
-            TextField(controller: text, decoration: const InputDecoration(labelText: "返信")),
-          ],
+        content: TextField(
+          controller: textController,
+          decoration: const InputDecoration(labelText: "返信内容"),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("キャンセル")),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("キャンセル")),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                a.replies.add(Reply(userName: name.text, text: text.text));
-              });
-
-              widget.onChanged();
+            onPressed: () async {
+              if (textController.text.isNotEmpty) {
+                a.replies.add(Reply(
+                  userName: currentUserName,
+                  text: textController.text,
+                  userId: user.uid,
+                ));
+                await _updateFirestoreAnswers();
+                setState(() {});
+              }
               Navigator.pop(context);
             },
             child: const Text("送信"),
@@ -409,7 +448,8 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  void editQuestion() {
+  // 質問編集
+  Future<void> editQuestion() async {
     final c = TextEditingController(text: widget.question.content);
 
     showDialog(
@@ -418,11 +458,16 @@ class _DetailPageState extends State<DetailPage> {
         title: const Text("質問編集"),
         content: TextField(controller: c),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("キャンセル")),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("キャンセル")),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               setState(() => widget.question.content = c.text);
-              widget.onChanged();
+              await FirebaseFirestore.instance
+                  .collection("questions")
+                  .doc(widget.question.id)
+                  .update({"content": c.text});
               Navigator.pop(context);
             },
             child: const Text("保存"),
@@ -432,9 +477,44 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
+  // 質問削除
+  Future<void> deleteQuestion() async {
+    await FirebaseFirestore.instance
+        .collection("questions")
+        .doc(widget.question.id)
+        .delete();
+    Navigator.pop(context);
+  }
+
+  // Firestoreのanswers配列を更新
+  Future<void> _updateFirestoreAnswers() async {
+    final dataToSave = widget.question.answers.map((a) {
+      return {
+        "id": a.id,
+        "userName": a.userName,
+        "text": a.text,
+        "userId": a.userId,
+        "replies": a.replies
+            .map((r) => {
+          "userName": r.userName,
+          "text": r.text,
+          "userId": r.userId,
+        })
+            .toList(),
+      };
+    }).toList();
+
+    await FirebaseFirestore.instance
+        .collection("questions")
+        .doc(widget.question.id)
+        .update({"answers": dataToSave});
+  }
+
   @override
   Widget build(BuildContext context) {
     final q = widget.question;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final bool isMyQuestion = currentUser != null && q.userId == currentUser.uid;
 
     return Scaffold(
       appBar: AppBar(
@@ -442,17 +522,18 @@ class _DetailPageState extends State<DetailPage> {
         foregroundColor: Colors.white,
         title: const Text("詳細"),
         actions: [
-          PopupMenuButton(
-            icon: const Icon(Icons.more_vert),
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: "edit", child: Text("質問を編集")),
-              PopupMenuItem(value: "delete", child: Text("質問を削除")),
-            ],
-            onSelected: (v) {
-              if (v == "edit") editQuestion();
-              if (v == "delete") widget.onDeleteQuestion();
-            },
-          )
+          if (isMyQuestion)
+            PopupMenuButton(
+              icon: const Icon(Icons.more_vert),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: "edit", child: Text("質問を編集")),
+                PopupMenuItem(value: "delete", child: Text("質問を削除")),
+              ],
+              onSelected: (v) {
+                if (v == "edit") editQuestion();
+                if (v == "delete") deleteQuestion();
+              },
+            )
         ],
       ),
       body: Column(
@@ -495,8 +576,12 @@ class _DetailPageState extends State<DetailPage> {
               itemCount: q.answers.length,
               itemBuilder: (_, i) {
                 final a = q.answers[i];
+                final bool isMyAnswer =
+                    currentUser != null && a.userId == currentUser.uid;
 
                 return Card(
+                  margin:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Column(
                     children: [
                       ListTile(
@@ -509,20 +594,21 @@ class _DetailPageState extends State<DetailPage> {
                         ),
                         title: Text(a.text),
                         subtitle: Text(a.userName),
-                        trailing: PopupMenuButton(
+                        trailing: isMyAnswer
+                            ? PopupMenuButton(
                           itemBuilder: (_) => const [
-                            PopupMenuItem(value: "edit", child: Text("編集")),
-                            PopupMenuItem(value: "delete", child: Text("削除")),
+                            PopupMenuItem(
+                                value: "delete", child: Text("削除")),
                           ],
                           onSelected: (v) {
-                            if (v == "edit") editAnswer(a);
                             if (v == "delete") deleteAnswer(a);
                           },
-                        ),
+                        )
+                            : null,
                       ),
-
                       ...a.replies.map((r) => Padding(
-                        padding: const EdgeInsets.only(left: 40, bottom: 6),
+                        padding: const EdgeInsets.only(
+                            left: 40, bottom: 6, right: 12),
                         child: Row(
                           children: [
                             CircleAvatar(
@@ -541,7 +627,6 @@ class _DetailPageState extends State<DetailPage> {
                           ],
                         ),
                       )),
-
                       TextButton(
                         onPressed: () => addReply(a),
                         child: const Text("返信"),
@@ -558,19 +643,15 @@ class _DetailPageState extends State<DetailPage> {
             child: Column(
               children: [
                 TextField(
-                  controller: answerName,
-                  decoration: const InputDecoration(labelText: "名前"),
-                ),
-                TextField(
                   controller: answerText,
-                  decoration: const InputDecoration(labelText: "回答"),
+                  decoration: const InputDecoration(labelText: "回答を入力"),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: addAnswer,
-                    child: const Text("回答"),
+                    child: const Text("回答する"),
                   ),
                 ),
               ],
