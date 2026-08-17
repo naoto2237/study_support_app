@@ -219,9 +219,9 @@ class _AiTestScreenState extends State<AiScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final textColor = isDark ? Colors.white : Colors.black87;
     final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
 
     return GestureDetector(
@@ -229,7 +229,7 @@ class _AiTestScreenState extends State<AiScreen> {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: bgColor,
 
         appBar: AppBar(
           leadingWidth: 56,
@@ -269,14 +269,14 @@ class _AiTestScreenState extends State<AiScreen> {
             child: const Text(
               "AIサポート",
               style: TextStyle(
-                color: Colors.black87,
+                color: Colors.white,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           centerTitle: false,
-          backgroundColor: Colors.white,
+          backgroundColor: Color(0xFF258EDB),
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
@@ -284,10 +284,7 @@ class _AiTestScreenState extends State<AiScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon: const Icon(
-                  Icons.history,
-                  color: Colors.black87,
-                ),
+                icon: const Icon(Icons.history, color: Colors.white),
                 onPressed: () {
                   // キーボードを閉じる
                   FocusScope.of(context).unfocus();
@@ -322,7 +319,7 @@ class _AiTestScreenState extends State<AiScreen> {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2196F3),
+                                color: Color(0xFF258EDB),
                               ),
                             ),
                           ),
@@ -330,94 +327,83 @@ class _AiTestScreenState extends State<AiScreen> {
 
                           Padding(
                             padding: const EdgeInsets.only(left: 3),
-                            child: const Text(
+                            child: Text(
                               "勉強方法・問題解説・学習計画など、\nAIがあなたの学習をサポートします。",
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.black87,
-                              ),
+                              style: TextStyle(fontSize: 15, color: textColor),
                             ),
                           ),
                           const SizedBox(height: 11),
 
-                          Card(
-                            elevation: 0,
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: const BorderSide(color: Color(0xFFE5E7EB)),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 0,
+                              right: 0,
+                              top: 11,
+                              bottom: 11,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                left: 18,
-                                right: 18,
-                                top: 11,
-                                bottom: 11,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.lightbulb_outline,
-                                        color: Color(0xFF2196F3),
-                                        size: 20,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.lightbulb_outline,
+                                      color: Color(0xFF258EDB),
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "質問例",
+                                      style: TextStyle(
+                                        fontSize: 15.6,
+                                        fontWeight: FontWeight.bold,
+                                        color: textColor,
                                       ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        "質問例",
-                                        style: TextStyle(
-                                          fontSize: 15.6,
-                                          fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                        ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 9),
+
+                                SizedBox(
+                                  height: 240,
+                                  child: GridView.count(
+                                    crossAxisCount: 2,
+                                    // 2列
+                                    mainAxisSpacing: 10,
+                                    crossAxisSpacing: 10,
+                                    childAspectRatio: 2.6,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    children: [
+                                      _questionChip(
+                                        Icons.menu_book_outlined,
+                                        "効率的な勉強方法を教えて",
+                                      ),
+                                      _questionChip(
+                                        Icons.quiz_outlined,
+                                        "この問題を解説して",
+                                      ),
+                                      _questionChip(
+                                        Icons.calendar_month_outlined,
+                                        "一週間の学習計画を立てて",
+                                      ),
+                                      _questionChip(
+                                        Icons.psychology_alt_outlined,
+                                        "暗記のコツを教えて",
+                                      ),
+                                      _questionChip(
+                                        Icons.trending_up_outlined,
+                                        "集中力を上げる方法は？",
+                                      ),
+                                      _questionChip(
+                                        Icons.local_fire_department_outlined,
+                                        "やる気を維持する方法は？",
                                       ),
                                     ],
                                   ),
-
-                                  const SizedBox(height: 9),
-
-                                  SizedBox(
-                                    height: 240,
-                                    child: GridView.count(
-                                      crossAxisCount: 2,
-                                      // 2列
-                                      mainAxisSpacing: 10,
-                                      crossAxisSpacing: 10,
-                                      childAspectRatio: 2.3,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      children: [
-                                        _questionChip(
-                                          Icons.menu_book_outlined,
-                                          "効率的な勉強方法を教えて",
-                                        ),
-                                        _questionChip(
-                                          Icons.quiz_outlined,
-                                          "この問題を解説して",
-                                        ),
-                                        _questionChip(
-                                          Icons.calendar_month_outlined,
-                                          "一週間の学習計画を立てて",
-                                        ),
-                                        _questionChip(
-                                          Icons.psychology_alt_outlined,
-                                          "暗記のコツを教えて",
-                                        ),
-                                        _questionChip(
-                                          Icons.trending_up_outlined,
-                                          "集中力を上げる方法は？",
-                                        ),
-                                        _questionChip(
-                                          Icons.local_fire_department_outlined,
-                                          "やる気を維持する方法は？",
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
 
@@ -449,6 +435,8 @@ class _AiTestScreenState extends State<AiScreen> {
   }
 
   Widget _questionChip(IconData icon, String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
@@ -459,23 +447,35 @@ class _AiTestScreenState extends State<AiScreen> {
         FocusScope.of(context).requestFocus(FocusNode());
       },
       child: Container(
-        padding: const EdgeInsets.only(left: 14, right: 14, top: 0),
+        padding: const EdgeInsets.only(
+          left: 14,
+          right: 14,
+          top: 0,
+        ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(
+            color: isDark
+                ? Colors.grey.shade800
+                : const Color(0xFFE5E7EB),
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF2196F3), size: 23),
+            Icon(
+              icon,
+              color: const Color(0xFF258EDB),
+              size: 23,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w500,
-                  color: textColor,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -486,18 +486,17 @@ class _AiTestScreenState extends State<AiScreen> {
       ),
     );
   }
-
   Widget _buildAnswerCard() {
     return Padding(
       padding: const EdgeInsets.only(top: 0, right: 0, left: 0, bottom: 15),
       child: _messages.isEmpty
           ? Padding(
-              padding: const EdgeInsets.only(top: 77),
+              padding: const EdgeInsets.only(top: 70),
               child: Center(
                 child: Text(
                   "質問例をタップするか、\n下の入力欄から質問してみよう！",
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     color: Colors.black54,
                     height: 1.7,
@@ -522,7 +521,7 @@ class _AiTestScreenState extends State<AiScreen> {
                             vertical: 10,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2196F3),
+                            color: const Color(0xFF258EDB),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
@@ -593,7 +592,7 @@ class _AiTestScreenState extends State<AiScreen> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         JumpingDots(
-                          color: Color(0xFF2196F3),
+                          color: Color(0xFF258EDB),
                           radius: 5,
                           numberOfDots: 3,
                           animationDuration: Duration(milliseconds: 250),

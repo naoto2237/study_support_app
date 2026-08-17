@@ -72,18 +72,18 @@ class _RecordScreenState extends State<RecordScreen> {
     int streakDays = calculateStreak();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           "学習グラフ",
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF258EDB),
         elevation: 0,
         actions: [
           Padding(
@@ -108,7 +108,7 @@ class _RecordScreenState extends State<RecordScreen> {
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -274,6 +274,9 @@ class _RecordScreenState extends State<RecordScreen> {
   }
 
   BarChartData createChart() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     List<double> values = [];
 
     if (isWeek) {

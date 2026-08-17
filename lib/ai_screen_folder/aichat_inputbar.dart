@@ -88,9 +88,16 @@ class _AiChatInputBarState extends State<AiChatInputBar>
               curve: Curves.easeOut,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark
+                    ? const Color(0xFF1E1E1E)
+                    : const Color(0xFFF7F7F7),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.grey.shade800
+                      : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

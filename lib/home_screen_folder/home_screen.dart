@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
+import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/setting_screen.dart';
-import 'package:study_support_app/main.dart' as app; // ← 'app' という名前のあだ名を付ける
 
 class HomeScreen extends StatefulWidget {
   // ★ 親から関数を受け取る窓口を追加
@@ -27,22 +26,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // ダークモードかどうかを自動で判定する
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white70 : Colors.black87;
-    final divColor1 = isDark ? Colors.grey.shade800 : const Color(0xFFB5BDC7);
-    final divColor2 = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
 
     return Scaffold(
       // ライトのときは元の薄い色、ダークのときは自動で真っ黒（#121212）にする
-      backgroundColor: bgColor,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
       appBar: AppBar(
         centerTitle: false,
-        backgroundColor: cardColor,
-        title: Text(
+        backgroundColor: Color(0xFF258EDB),
+        title: const Text(
           "ホーム",
           style: TextStyle(
-            color: textColor,
+            color: Colors.white,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -51,14 +45,14 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 9),
             child: IconButton(
-              icon: Icon(Icons.notifications_none, color: textColor),
+              icon: const Icon(Icons.notifications_none),
               onPressed: () {},
             ),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: Icon(Icons.settings_outlined, color: textColor),
+              icon: const Icon(Icons.settings_outlined),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -68,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-        iconTheme: IconThemeData(color: textColor),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -82,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Icon(
                       Icons.calendar_today_rounded,
-                      color: Color(0xFF2196F3),
+                      color: Color(0xFF258EDB),
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -91,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: textColor,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                   ],
@@ -105,6 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: StopwatchWidget(
                     onStop: (time) {
                       setState(() {
+                        time -= todayTotal;
                         todayTotal += time;
                       });
 
@@ -121,14 +116,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // ★ 設定画面の目標時間とリアルタイム連動させるためのビルダー
               ValueListenableBuilder<double>(
-                valueListenable: app.dailyTargetHours,
+                valueListenable: dailyTargetHours,
                 builder: (context, targetHoursValue, child) {
                   // 設定された時間（例: 3.5時間）を Duration に変換
                   Duration goalTime = Duration(
                     hours: targetHoursValue.floor(),
                     minutes:
-                    ((targetHoursValue - targetHoursValue.floor()) * 60)
-                        .round(),
+                        ((targetHoursValue - targetHoursValue.floor()) * 60)
+                            .round(),
                   );
 
                   // 達成率の計算
@@ -145,11 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       child: Card(
                         elevation: 0,
-                        color: cardColor,
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: divColor2,
+                          side: const BorderSide(
+                            color: Color(0xFFE5E7EB),
                             width: 1,
                           ),
                         ),
@@ -177,7 +172,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     "今日の目標",
                                     style: TextStyle(
                                       fontSize: 15,
-                                      color: textColor,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -188,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               height: 1,
                               width: double.infinity,
-                              color: divColor1,
+                              color: const Color(0xFFB5BDC7),
                             ),
 
                             Padding(
@@ -204,7 +201,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 18,
-                                      color: textColor,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1,
                                     ),
@@ -214,17 +213,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                   Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.trending_up_rounded,
                                         size: 19,
-                                        color: Color(0xFF2196F3),
+                                        color: Color(0xFF258EDB),
                                       ),
-                                      const SizedBox(width: 6),
+                                      SizedBox(width: 6),
                                       Text(
                                         "達成率",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: textColor,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                     ],
@@ -242,9 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                             9,
                                           ),
                                           color: const Color(0xFF42A5F5),
-                                          backgroundColor: isDark
-                                              ? Colors.grey.shade800
-                                              : const Color(0xFFBBDEFB),
+                                          backgroundColor: const Color(
+                                            0xFFBBDEFB,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: 10),
@@ -252,7 +253,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                         "${(progress * 100).toStringAsFixed(0)}%",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: textColor,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                     ],
@@ -265,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               height: 1,
                               width: double.infinity,
-                              color: divColor2,
+                              color: const Color(0xFFE5E7EB),
                             ),
 
                             const SizedBox(height: 4),
@@ -281,14 +284,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const Icon(
                                         Icons.timer_outlined,
                                         size: 19,
-                                        color: Color(0xFF2196F3),
+                                        color: Color(0xFF258EDB),
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
                                         "今日の学習時間",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: textColor,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                       const Spacer(),
@@ -296,7 +301,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                         "${todayTotal.inHours}時間${todayTotal.inMinutes % 60}分",
                                         style: TextStyle(
                                           fontSize: 15,
-                                          color: textColor,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -309,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               height: 1,
                               width: double.infinity,
-                              color: divColor2,
+                              color: const Color(0xFFE5E7EB),
                             ),
 
                             const SizedBox(height: 4),
@@ -326,14 +333,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const Icon(
                                         Icons.hourglass_empty,
                                         size: 19,
-                                        color: Color(0xFF2196F3),
+                                        color: Color(0xFF258EDB),
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
                                         "目標まで残り",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: textColor,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                       const Spacer(),
@@ -343,7 +352,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                             : "${remainingTime.inHours}時間${remainingTime.inMinutes % 60}分",
                                         style: TextStyle(
                                           fontSize: 15,
-                                          color: textColor,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -428,8 +439,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 7,
-      shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.39),
-      color: const Color(0xFF2196F3),
+      shadowColor: const Color(0xFF258EDB).withValues(alpha: 0.39),
+      color: const Color(0xFF258EDB),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
@@ -445,19 +456,19 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
               ),
             ),
 
-            const SizedBox(height: 1),
+            const SizedBox(height: 3),
 
             Text(
               _formatTime(),
-              style: const TextStyle(
-                fontSize: 36,
+              style: GoogleFonts.roboto(
+                fontSize: 37,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                letterSpacing: 3.0,
+                letterSpacing: 1.9,
               ),
             ),
 
-            const SizedBox(height: 9),
+            const SizedBox(height: 5),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -473,8 +484,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                   child: Column(
                     children: [
                       Container(
-                        width: 50,
-                        height: 50,
+                        width: 48,
+                        height: 48,
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -483,8 +494,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                           _stopwatch.isRunning
                               ? Icons.pause_rounded
                               : Icons.play_arrow_rounded,
-                          color: const Color(0xFF2196F3),
-                          size: 39,
+                          color: const Color(0xFF258EDB),
+                          size: 38,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -505,16 +516,16 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                   child: Column(
                     children: [
                       Container(
-                        width: 50,
-                        height: 50,
+                        width: 48,
+                        height: 48,
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.refresh_rounded,
-                          color: Color(0xFF2196F3),
-                          size: 39,
+                          color: Color(0xFF258EDB),
+                          size: 38,
                         ),
                       ),
                       const SizedBox(height: 0),

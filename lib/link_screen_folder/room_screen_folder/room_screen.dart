@@ -61,9 +61,9 @@ class RoomScreen extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           bottom: TabBar(
-            indicatorColor: const Color(0xFF2196F3),
+            indicatorColor: const Color(0xFF258EDB),
             indicatorWeight: 3,
-            labelColor: const Color(0xFF2196F3),
+            labelColor: const Color(0xFF258EDB),
             unselectedLabelColor: unselectedLabelColor,
 
             tabs: const [

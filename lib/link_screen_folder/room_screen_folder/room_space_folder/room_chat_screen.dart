@@ -15,14 +15,30 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _textFieldScrollController = ScrollController();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _messageStreamData;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _messageStreamData = _firestore
+        .collection('rooms')
+        .doc(widget.roomId)
+        .collection('messages')
+        .orderBy('createdAt', descending: false)
+        .snapshots();
+  }
 
   @override
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
     _scrollController.dispose();
+    _textFieldScrollController.dispose();
     super.dispose();
   }
 
@@ -75,104 +91,98 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
     }
   }
 
-  // =========================
-  // メッセージ取得
-  // =========================
-  Stream<QuerySnapshot<Map<String, dynamic>>> _messageStream() {
-    return _firestore
-        .collection('rooms')
-        .doc(widget.roomId)
-        .collection('messages')
-        .orderBy('createdAt', descending: false)
-        .snapshots();
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      child: Column(
-        children: [
-          // =========================
-          // チャット一覧
-          // =========================
-          Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _messageStream(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('メッセージを取得できませんでした'));
-                }
+    return Stack(
+      children: [
+        // =========================
+        // チャット一覧
+        // =========================
+        Positioned.fill(
+          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: _messageStreamData,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(child: Text('メッセージを取得できませんでした'));
+              }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                final messages = snapshot.data?.docs ?? [];
+              final messages = snapshot.data?.docs ?? [];
 
-                if (messages.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'まだチャットはありません',
-                      style: TextStyle(color: Colors.black45, fontSize: 14),
+              if (messages.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'まだチャットはありません',
+                    style: TextStyle(color: Colors.black45, fontSize: 14),
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                controller: _scrollController,
+                padding: EdgeInsets.fromLTRB(
+                  8,
+                  16,
+                  8,
+                  100 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  final data = messages[index].data();
+
+                  final uid = data['uid'] as String? ?? '';
+                  final name = data['name'] as String? ?? 'ユーザー';
+                  final message = data['message'] as String? ?? '';
+
+                  final timestamp = data['createdAt'] as Timestamp?;
+
+                  String time = '';
+
+                  if (timestamp != null) {
+                    final date = timestamp.toDate();
+
+                    time =
+                        '${date.hour.toString().padLeft(2, '0')}:'
+                        '${date.minute.toString().padLeft(2, '0')}';
+                  }
+
+                  final isMine = uid == currentUid;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 9),
+                    child: RoomChatBubble(
+                      name: name,
+                      message: message,
+                      isMine: isMine,
+                      time: time,
                     ),
                   );
-                }
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(8, 16, 8, 7),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final data = messages[index].data();
-
-                    final uid = data['uid'] as String? ?? '';
-                    final name = data['name'] as String? ?? 'ユーザー';
-                    final message = data['message'] as String? ?? '';
-
-                    final timestamp = data['createdAt'] as Timestamp?;
-
-                    String time = '';
-
-                    if (timestamp != null) {
-                      final date = timestamp.toDate();
-
-                      time =
-                          '${date.hour.toString().padLeft(2, '0')}:'
-                          '${date.minute.toString().padLeft(2, '0')}';
-                    }
-
-                    final isMine = uid == currentUid;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 9),
-                      child: RoomChatBubble(
-                        name: name,
-                        message: message,
-                        isMine: isMine,
-                        time: time,
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                },
+              );
+            },
           ),
+        ),
 
-          // =========================
-          // メッセージ入力欄
-          // =========================
-          SafeArea(
+        // =========================
+        // メッセージ入力欄
+        // =========================
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          child: SafeArea(
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(13, 8, 13, 12),
               child: Container(
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Color(0xFFF7F7F7),
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
                 ),
@@ -184,7 +194,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
                       child: TextField(
                         controller: _controller,
                         focusNode: _focusNode,
-                        scrollController: _scrollController,
+                        scrollController: _textFieldScrollController,
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
                         minLines: 1,
@@ -243,8 +253,8 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
