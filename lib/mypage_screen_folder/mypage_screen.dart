@@ -14,43 +14,124 @@ class MypageScreen extends StatefulWidget {
 }
 
 class _MypageScreenState extends State<MypageScreen> {
+
   @override
   Widget build(BuildContext context) {
+    // ダークモードかどうかを判定
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF7F7F7),
+
+      appBar: AppBar(
+        elevation: 0,
+        centerTitle: false,
+        backgroundColor: Colors.white,
+
+        title: const Text(
+          "マイページ",
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 19,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        actions: [
+
+          Padding(
+            padding: const EdgeInsets.only(left: 9),
+            child: IconButton(
+              icon: const Icon(
+                Icons.notifications_none,
+              ),
+              onPressed: () {},
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: const Icon(
+                Icons.settings_outlined,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                    const SettingsPage(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+
+        iconTheme: const IconThemeData(
+          color: Colors.black,
+        ),
+      ),
 
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: _getUserStream(),
 
         builder: (context, snapshot) {
+
           // 読み込み中
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState ==
+          ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
           // エラー
           if (snapshot.hasError) {
-            return const Center(child: Text("ユーザー情報の取得に失敗しました"));
+            return const Center(
+              child: Text(
+                "ユーザー情報の取得に失敗しました",
+              ),
+            );
           }
 
           // ログインしていない
           if (!snapshot.hasData) {
-            return const Center(child: Text("ログインしてください"));
+            return const Center(
+              child: Text(
+                "ログインしてください",
+              ),
+            );
           }
 
-          // Firestoreにデータがない
+          // Firestoreにデータが存在しない
           if (!snapshot.data!.exists) {
-            return const Center(child: Text("ユーザー情報が見つかりません"));
+            return const Center(
+              child: Text(
+                "ユーザー情報が見つかりません",
+              ),
+            );
           }
 
+          // Firestoreのデータ
           final data = snapshot.data!.data()!;
 
           return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+
             child: Column(
               children: [
-                ProfileHeader(data: data),
 
-                ProfileContent(data: data),
+                ProfileCard(
+                  data: data,
+                ),
+
+                const SizedBox(height: 18),
+
+                const StudyTimeCard(),
               ],
             ),
           );
@@ -59,11 +140,15 @@ class _MypageScreenState extends State<MypageScreen> {
     );
   }
 
+
   // 現在ログインしているユーザーのFirestoreデータを取得
   Stream<DocumentSnapshot<Map<String, dynamic>>> _getUserStream() {
+
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
+
+      // ログインしていない場合
       return const Stream.empty();
     }
 
@@ -74,324 +159,190 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 }
 
-// ======================================================
-// 上部プロフィールヘッダー
-// ======================================================
 
-class ProfileHeader extends StatelessWidget {
+// ==============================
+// プロフィールカード
+// ==============================
+
+class ProfileCard extends StatelessWidget {
+
   final Map<String, dynamic> data;
+  final bool isDark;
+  final Color cardColor;
+  final Color textColor;
 
-  const ProfileHeader({super.key, required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    final String name = data["name"] ?? "名前未設定";
-    final String icon = data["icon"] ?? "";
-
-    return SizedBox(
-      height: 405,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // ------------------------------------------
-          // プロフィール背景画像
-          // ------------------------------------------
-          SizedBox(
-            height: 335,
-            width: double.infinity,
-            child: Image.asset('assets/images/haikei8.png', fit: BoxFit.cover),
-          ),
-
-          // ------------------------------------------
-          // 通知・設定
-          // ------------------------------------------
-          Positioned(
-            top: 56,
-            right: 0,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 9),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {},
-                  ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.only(right: 7),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // ------------------------------------------
-          // 白いプロフィールエリア
-          // ------------------------------------------
-          Positioned(
-            top: 236,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 180,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-              ),
-            ),
-          ),
-
-          // ------------------------------------------
-          // プロフィール画像
-          // ------------------------------------------
-          Positioned(
-            top: 185,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: icon.isNotEmpty
-                        ? CircleAvatar(
-                            radius: 44,
-                            backgroundImage: NetworkImage(icon),
-                          )
-                        : CircleAvatar(
-                            radius: 44,
-                            backgroundColor: MypageScreen.primaryBlue
-                                .withOpacity(0.12),
-                            child: const Icon(
-                              Icons.person,
-                              size: 62,
-                              color: MypageScreen.primaryBlue,
-                            ),
-                          ),
-                  ),
-
-                  Positioned(
-                    right: -2,
-                    bottom: 2,
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: const BoxDecoration(
-                        color: MypageScreen.primaryBlue,
-                        shape: BoxShape.circle,
-                        border: Border.fromBorderSide(
-                          BorderSide(color: Colors.white, width: 3),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 19,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ------------------------------------------
-          // 名前
-          // ------------------------------------------
-          Positioned(
-            top: 290,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ======================================================
-// プロフィール以下
-// ======================================================
-
-class ProfileContent extends StatelessWidget {
-  final Map<String, dynamic> data;
-
-  const ProfileContent({super.key, required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    final String grade = data["grade"] ?? "未設定";
-
-    final String goal = data["goal"] ?? "未設定";
-
-    final String location = data["location"] ?? "未設定";
-
-    final String studyStyle = data["studyStyle"] ?? "未設定";
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          // ------------------------------------------
-          // 一言コメント
-          // ------------------------------------------
-          const Text(
-            "継続は力なり！一緒に頑張りましょう！",
-            style: TextStyle(color: Colors.grey, fontSize: 14),
-          ),
-
-          const SizedBox(height: 18),
-
-          // ------------------------------------------
-          // プロフィール分析・編集
-          // ------------------------------------------
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.bar_chart_rounded,
-                  text: "プロフィール分析",
-                  onTap: () {},
-                ),
-              ),
-
-              const SizedBox(width: 14),
-
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.edit,
-                  text: "プロフィールを編集",
-                  onTap: () {},
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          // ------------------------------------------
-          // プロフィール項目
-          // ------------------------------------------
-          _ProfileRow(icon: Icons.school, title: "学年・職種（任意）", value: grade),
-
-          _ProfileRow(icon: Icons.track_changes, title: "学習目標", value: goal),
-
-          _ProfileRow(
-            icon: Icons.location_on,
-            title: "住んでいる場所（任意）",
-            value: location,
-          ),
-
-          _ProfileRow(icon: Icons.schedule, title: "勉強スタイル", value: studyStyle),
-
-          const SizedBox(height: 20),
-
-          // ------------------------------------------
-          // 学習時間
-          // ------------------------------------------
-          const StudyTimeSection(),
-
-          const SizedBox(height: 30),
-        ],
-      ),
-    );
-  }
-}
-
-// ======================================================
-// アクションボタン
-// ======================================================
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.text,
-    required this.onTap,
+  const ProfileCard({
+    super.key,
+    required this.data,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(30),
-      onTap: onTap,
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7FAFF),
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: MypageScreen.primaryBlue.withOpacity(0.25),
-            width: 1.5,
-          ),
+
+    // Firestoreから取得
+    final String name =
+    data["name"] ?? "名前未設定";
+
+    final String grade =
+    data["grade"] ?? "未設定";
+
+    final String goal =
+    data["goal"] ?? "未設定";
+
+    final String location =
+    data["location"] ?? "未設定";
+
+    final String studyStyle =
+    data["studyStyle"] ?? "未設定";
+
+    final String icon =
+    data["icon"] ?? "";
+
+    return Card(
+      color: Colors.white,
+      elevation: 2,
+
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+      ),
+
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: 14,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+
+        child: Column(
           children: [
-            Icon(icon, color: MypageScreen.primaryBlue, size: 25),
 
-            const SizedBox(width: 8),
+ // ==========================
+ // アイコン・名前
+ // ==========================
 
-            Flexible(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: MypageScreen.primaryBlue,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+            Row(
+              children: [
+
+                Stack(
+                  children: [
+
+                    // アイコン
+                    icon.isNotEmpty
+                    ? CircleAvatar(
+                      radius: 45,
+                      backgroundImage:
+                      NetworkImage(icon),
+                    )
+                    : CircleAvatar(
+                      radius: 45,
+                      backgroundColor:
+                      MypageScreen.primaryBlue
+                          .withOpacity(0.12),
+
+                      child: const Icon(
+                        Icons.person,
+                        size: 60,
+                        color:
+                        MypageScreen.primaryBlue,
+                      ),
+                    ),
+
+                    // カメラアイコン
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+
+                        child: const CircleAvatar(
+                          radius: 15,
+                          backgroundColor:
+                          MypageScreen.primaryBlue,
+
+                          child: Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                overflow: TextOverflow.ellipsis,
-              ),
+
+                const SizedBox(width: 18),
+
+                // 名前
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                    children: [
+
+                      Text(
+                        name,
+
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      const Text(
+                        "継続は力なり！一緒に頑張りましょう！",
+
+                        style: TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
 
-            const SizedBox(width: 5),
+            const SizedBox(height: 20),
 
-            const Icon(
-              Icons.chevron_right,
-              color: MypageScreen.primaryBlue,
-              size: 22,
+            const Divider(),
+
+            // 学年・職種
+            ProfileItem(
+              icon: Icons.person,
+              title: "学年・職種（任意）",
+              value: grade,
+            ),
+
+            const Divider(),
+
+            // 学習目標
+            ProfileItem(
+              icon: Icons.track_changes,
+              title: "学習目標",
+              value: goal,
+            ),
+
+            const Divider(),
+
+            // 住んでいる場所
+            ProfileItem(
+              icon: Icons.location_on,
+              title: "住んでいる場所（任意）",
+              value: location,
+            ),
+
+            const Divider(),
+
+            // 勉強スタイル
+            ProfileItem(
+              icon: Icons.schedule,
+              title: "勉強スタイル",
+              value: studyStyle,
             ),
           ],
         ),
@@ -400,235 +351,231 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ======================================================
-// プロフィール項目
-// ======================================================
 
-class _ProfileRow extends StatelessWidget {
+// ==============================
+// プロフィール項目
+// ==============================
+
+class ProfileItem extends StatelessWidget {
+
   final IconData icon;
   final String title;
   final String value;
+  final Color textColor;
+  final Color? dividerColor;
+  final bool isLast;
 
-  const _ProfileRow({
+  const ProfileItem({
+    super.key,
     required this.icon,
     required this.title,
     required this.value,
+    required this.textColor,
+    this.dividerColor,
+    this.isLast = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 81,
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 0,
+        vertical: 7,
       ),
+
       child: Row(
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: MypageScreen.primaryBlue.withOpacity(0.10),
-              shape: BoxShape.circle,
+
+          CircleAvatar(
+            radius: 20,
+
+            backgroundColor:
+            MypageScreen.primaryBlue
+                .withOpacity(.12),
+
+            child: Icon(
+              icon,
+              color: MypageScreen.primaryBlue,
             ),
-            child: Icon(icon, color: MypageScreen.primaryBlue, size: 24),
           ),
 
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
 
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+
               children: [
+
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+
+                  style: const TextStyle(
+                    color: Colors.grey,
+                  ),
                 ),
 
-                const SizedBox(height: 3),
+                const SizedBox(height: 5),
 
                 Text(
                   value,
+
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+// ==============================
+// 学習時間
+// ==============================
+
+class StudyTimeCard extends StatelessWidget {
+
+  const StudyTimeCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Card(
+      color: Colors.white,
+      elevation: 2,
+
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+      ),
+
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: 13,
+        ),
+
+        child: Column(
+          children: [
+
+            Row(
+              children: [
+
+                CircleAvatar(
+                  radius: 20,
+
+                  backgroundColor:
+                  MypageScreen.primaryBlue
+                      .withOpacity(.12),
+
+                  child: const Icon(
+                    Icons.schedule,
+                    color:
+                    MypageScreen.primaryBlue,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                const Text(
+                  "今週・今月の総学習時間",
+
+                  style: TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-          ),
 
-          const Icon(
-            Icons.chevron_right,
-            color: MypageScreen.primaryBlue,
-            size: 25,
-          ),
-        ],
-      ),
-    );
-  }
-}
+            const SizedBox(height: 11),
 
-// ======================================================
-// 学習時間セクション
-// ======================================================
+            Row(
+              children: [
 
-class StudyTimeSection extends StatelessWidget {
-  const StudyTimeSection({super.key});
+                Expanded(
+                  child: Column(
+                    children: [
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.access_time,
-              color: MypageScreen.primaryBlue,
-              size: 23,
-            ),
+                      const Text(
+                        "今週の総学習時間",
+                        style: TextStyle(
+                          fontSize: 12,
+                        ),
+                      ),
 
-            const SizedBox(width: 7),
+                      const SizedBox(height: 12),
 
-            const Expanded(
-              child: Text(
-                "今週・今月の総学習時間 ✨",
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-            ),
+                      Text(
+                        "12時間45分",
 
-            Text(
-              "詳細を見る",
-              style: TextStyle(
-                color: MypageScreen.primaryBlue,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const Icon(
-              Icons.chevron_right,
-              color: MypageScreen.primaryBlue,
-              size: 22,
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 12),
-
-        Row(
-          children: [
-            Expanded(
-              child: _StudyTimeBox(
-                title: "今週の学習時間",
-                time: "12時間45分",
-                target: "目標 20時間",
-                percent: "62%",
-                progress: 0.62,
-              ),
-            ),
-
-            const SizedBox(width: 14),
-
-            Expanded(
-              child: _StudyTimeBox(
-                title: "今月の学習時間",
-                time: "58時間30分",
-                target: "目標 80時間",
-                percent: "73%",
-                progress: 0.73,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// ======================================================
-// 学習時間カード
-// ======================================================
-
-class _StudyTimeBox extends StatelessWidget {
-  final String title;
-  final String time;
-  final String target;
-  final String percent;
-  final double progress;
-
-  const _StudyTimeBox({
-    required this.title,
-    required this.time,
-    required this.target,
-    required this.percent,
-    required this.progress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: MypageScreen.primaryBlue,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            time,
-            style: const TextStyle(
-              color: MypageScreen.primaryBlue,
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 6,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                MypageScreen.primaryBlue,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 9),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(target, style: const TextStyle(fontSize: 11)),
-
-              Text(
-                percent,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                        style: TextStyle(
+                          color:
+                          MypageScreen.primaryBlue,
+                          fontSize: 20.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+
+                Container(
+                  height: 70,
+                  width: 1,
+                  color: Colors.grey.shade300,
+                ),
+
+                Expanded(
+                  child: Column(
+                    children: [
+
+                      const Text(
+                        "今月の総学習時間",
+                        style: TextStyle(
+                          fontSize: 12,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Text(
+                        "58時間30分",
+
+                        style: TextStyle(
+                          color:
+                          MypageScreen.primaryBlue,
+                          fontSize: 20.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            const Text(
+              "※表示されている学習時間は、アプリ内での学習時間です。",
+
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+

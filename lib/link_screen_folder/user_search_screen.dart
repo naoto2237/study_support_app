@@ -4,13 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
 
-@override
+  @override
   State<UserSearchScreen> createState() => _UserSearchScreenState();
 }
 
 class _UserSearchScreenState extends State<UserSearchScreen> {
-  final TextEditingController searchController =
-  TextEditingController();
+  final TextEditingController searchController = TextEditingController();
 
   String searchText = "";
 
@@ -28,36 +27,50 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F8F8);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final borderColor = isDark ? Colors.grey.shade800 : Colors.grey;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text("ユーザー検索"),
+        backgroundColor: cardColor,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        iconTheme: IconThemeData(color: textColor),
+        title: Text(
+          "ユーザー検索",
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 19),
+        ),
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(15),
-
         child: Column(
           children: [
-
             // 検索欄
             TextField(
               controller: searchController,
-
+              style: TextStyle(color: textColor),
+              cursorColor: const Color(0xFF2196F3),
               decoration: InputDecoration(
                 hintText: "ユーザー名を入力",
-
+                hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-
-                    onPressed: searchUsers,
+                  icon: Icon(Icons.search, color: isDark ? Colors.white60 : Colors.grey),
+                  onPressed: searchUsers,
                 ),
-
-                border: const OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF2196F3), width: 2),
+                ),
               ),
-
               // キーボードの検索ボタンでも検索
               onSubmitted: (_) {
                 searchUsers();
@@ -79,7 +92,6 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
   }
 }
 
-
 class UserList extends StatelessWidget {
   final String searchText;
 
@@ -90,14 +102,19 @@ class UserList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
 
     // まだ検索していない場合
     if (searchText.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           "ユーザー名を入力して検索してください",
           style: TextStyle(
-            color: Colors.grey,
+            color: subtitleColor,
           ),
         ),
       );
@@ -105,35 +122,31 @@ class UserList extends StatelessWidget {
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
-      .collection("users")
-
+          .collection("users")
       // 検索文字から始まる名前
-      .where(
+          .where(
         "name",
         isGreaterThanOrEqualTo: searchText,
       )
-      .where(
+          .where(
         "name",
         isLessThan: "$searchText\uf8ff",
       )
-
-      .snapshots(),
-
+          .snapshots(),
       builder: (context, snapshot) {
-
         // エラー
         if (snapshot.hasError) {
           return Center(
             child: Text(
               "エラーが発生しました\n${snapshot.error}",
               textAlign: TextAlign.center,
+              style: TextStyle(color: textColor),
             ),
           );
         }
 
         // 読み込み中
-        if (snapshot.connectionState ==
-        ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(),
           );
@@ -144,11 +157,11 @@ class UserList extends StatelessWidget {
 
         // ユーザーがいない
         if (users.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               "ユーザーが見つかりません",
               style: TextStyle(
-                color: Colors.grey,
+                color: subtitleColor,
               ),
             ),
           );
@@ -157,52 +170,54 @@ class UserList extends StatelessWidget {
         // ユーザー一覧
         return ListView.builder(
           itemCount: users.length,
-
           itemBuilder: (context, index) {
-
             final data = users[index].data();
 
-            final String name =
-            data["name"] ?? "名前なし";
-
-            final String email =
-            data["email"] ?? "";
-
-            final String icon =
-            data["icon"] ?? "";
+            final String name = data["name"] ?? "名前なし";
+            final String email = data["email"] ?? "";
+            final String icon = data["icon"] ?? "";
 
             return Card(
+              elevation: 0,
+              color: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: borderColor, width: 1),
+              ),
               margin: const EdgeInsets.only(
                 bottom: 10,
               ),
-
               child: ListTile(
-
                 // アイコン
                 leading: icon.isNotEmpty
-                ? CircleAvatar(
-                  backgroundImage:
-                  NetworkImage(icon),
+                    ? CircleAvatar(
+                  backgroundImage: NetworkImage(icon),
                 )
-                : const CircleAvatar(
-                  child: Icon(Icons.person),
+                    : CircleAvatar(
+                  backgroundColor: isDark ? Colors.blue.withValues(alpha: 0.2) : const Color(0xFFEAF4FF),
+                  child: const Icon(Icons.person, color: Color(0xFF2196F3)),
                 ),
 
                 // 名前
                 title: Text(
                   name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
+                    color: textColor,
                   ),
                 ),
 
                 // メールアドレス
-                subtitle: Text(email),
+                subtitle: Text(
+                  email,
+                  style: TextStyle(color: subtitleColor),
+                ),
 
                 // 右側の矢印
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
+                  color: isDark ? Colors.white60 : Colors.grey,
                 ),
 
                 onTap: () {

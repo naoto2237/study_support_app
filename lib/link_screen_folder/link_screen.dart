@@ -10,14 +10,22 @@ class LinkScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.black54;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+    final trailingColor = isDark ? Colors.white60 : Colors.grey;
+
     return Scaffold(
-      backgroundColor:  Colors.white,
+      backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
-        backgroundColor: Color(0xFF258EDB),
+        backgroundColor: Colors.white,
         title: const Text(
           'Link',
           style: TextStyle(
-            color: Colors.white,
+            color: Colors.black87,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -44,7 +52,7 @@ class LinkScreen extends StatelessWidget {
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -56,6 +64,11 @@ class LinkScreen extends StatelessWidget {
               title: 'ユーザー検索',
               subtitle: '同じ目標を持つ学習仲間を探す',
               screen: const UserSearchScreen(),
+              cardColor: cardColor,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+              borderColor: borderColor,
+              trailingColor: trailingColor,
             ),
             const SizedBox(height: 16),
 
@@ -65,6 +78,11 @@ class LinkScreen extends StatelessWidget {
               title: 'Q&A',
               subtitle: '質問・回答で疑問を解決する',
               screen: QnAListPage(),
+              cardColor: cardColor,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+              borderColor: borderColor,
+              trailingColor: trailingColor,
             ),
             const SizedBox(height: 16),
 
@@ -74,6 +92,11 @@ class LinkScreen extends StatelessWidget {
               title: 'ルーム',
               subtitle: '同じ目標の仲間と交流する',
               screen: const RoomScreen(),
+              cardColor: cardColor,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+              borderColor: borderColor,
+              trailingColor: trailingColor,
             ),
           ],
         ),
@@ -98,7 +121,7 @@ class LinkScreen extends StatelessWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
-        leading: Icon(icon, size: 36, color: const Color(0xFF258EDB)),
+        leading: Icon(icon, size: 36, color: const Color(0xFF2196F3)),
         title: Text(
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

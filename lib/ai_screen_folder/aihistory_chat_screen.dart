@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:jumping_dot/jumping_dot.dart';
 import 'package:flutter/services.dart';
 import 'ai_history_screen.dart';
+import 'ai_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/rendering.dart';
 import 'aichat_inputbar.dart';
@@ -216,6 +217,11 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -323,13 +329,13 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFC9E9FF),
+                      color: const Color(0xFF2196F3),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       message.text,
                       style: const TextStyle(
-                        color: Colors.black87,
+                        color: Colors.white,
                         fontSize: 15,
                         height: 1.5,
                       ),
@@ -393,8 +399,9 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
+                  // const を削除
                   JumpingDots(
-                    color: Color(0xFF258EDB),
+                    color: Color(0xFF2196F3),
                     radius: 5,
                     numberOfDots: 3,
                     animationDuration: Duration(milliseconds: 250),

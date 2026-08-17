@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/setting_screen.dart';
+import 'package:study_support_app/main.dart'; // ★ main.dart から共有の isDarkModeNotifier を読み込む
 
 class RecordScreen extends StatefulWidget {
   final int totalSeconds;
@@ -63,27 +65,25 @@ class _RecordScreenState extends State<RecordScreen> {
     String todayKey = formatDate(selectedDay);
 
     int currentDaySeconds = (studyRecords[todayKey] ?? 0);
-    int displaySeconds = widget.totalSeconds > 0
-        ? widget.totalSeconds
-        : currentDaySeconds;
+    int displaySeconds = widget.totalSeconds > 0 ? widget.totalSeconds : currentDaySeconds;
 
     int totalMinutes = displaySeconds ~/ 60;
     double totalHours = displaySeconds / 3600.0;
     int streakDays = calculateStreak();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
         title: const Text(
           "学習グラフ",
           style: TextStyle(
-            color: Colors.white,
+            color: Colors.black,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: false,
-        backgroundColor: Color(0xFF258EDB),
+        backgroundColor: Colors.white,
         elevation: 0,
         actions: [
           Padding(
@@ -100,13 +100,15 @@ class _RecordScreenState extends State<RecordScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsPage(),
+                  ),
                 );
               },
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -121,10 +123,7 @@ class _RecordScreenState extends State<RecordScreen> {
               ),
               child: Column(
                 children: [
-                  infoRow(
-                    "選択日の学習時間",
-                    "${totalMinutes}分 (${totalHours.toStringAsFixed(1)}時間)",
-                  ),
+                  infoRow("選択日の学習時間", "${totalMinutes}分 (${totalHours.toStringAsFixed(1)}時間)"),
                   const SizedBox(height: 8),
                   infoRow("累計学習時間", "${totalHours.toStringAsFixed(1)}時間"),
                   const SizedBox(height: 8),
@@ -227,7 +226,7 @@ class _RecordScreenState extends State<RecordScreen> {
                 Text(
                   isWeek
                       ? "${formatDate(selectedWeekStart)} ～ "
-                            "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
+                      "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
                       : formatDate(selectedDay),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
@@ -314,6 +313,12 @@ class _RecordScreenState extends State<RecordScreen> {
             showTitles: true,
             reservedSize: 35,
             interval: 2,
+            getTitlesWidget: (value, meta) {
+              return Text(
+                value.toInt().toString(),
+                style: TextStyle(color: textColor, fontSize: 11),
+              );
+            },
           ),
         ),
         bottomTitles: AxisTitles(

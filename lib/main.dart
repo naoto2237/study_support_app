@@ -14,6 +14,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'splash_screen.dart';
 
+// アプリ全体で共有するダークモードの状態変数（初期値: false = ライト）
+final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
+
+// 目標時間も共有できるように保持
+final ValueNotifier<double> dailyTargetHours = ValueNotifier<double>(3.0);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -28,29 +34,65 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Study Support App',
+    // ValueListenableBuilderでアプリ全体（MaterialApp）を囲み、
+    // ダークモードが切り替わった瞬間にアプリ全体を再ビルドして黒ベースに反映させます
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDark, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Study Support App',
 
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
 
-      supportedLocales: const [Locale('ja')],
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Color(0xFFF7F7F7),
-        textTheme: GoogleFonts.notoSansJpTextTheme(),
+          supportedLocales: const [Locale('ja')],
 
-        textSelectionTheme: const TextSelectionThemeData(
-          cursorColor: Color(0xFF2196F3), // カーソル
-          selectionColor: Color(0x552196F3), // 選択範囲（水色）
-          selectionHandleColor: Color(0xFF2196F3), // ハンドル
-        ),
-      ),
-      home: const SplashScreen(),
+          // ライト用テーマとダーク用テーマを切り替える設定
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+
+          // ライトモード時のテーマ
+          theme: ThemeData(
+            useMaterial3: true,
+            colorSchemeSeed: const Color(0xFFF7F7F7),
+            brightness: Brightness.light,
+            textTheme: GoogleFonts.notoSansJpTextTheme(),
+            textSelectionTheme: const TextSelectionThemeData(
+              cursorColor: Color(0xFF2196F3),
+              selectionColor: Color(0x552196F3),
+              selectionHandleColor: Color(0xFF2196F3),
+            ),
+          ),
+
+          // ダークモード時（黒ベース）のテーマ
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF121212), // 全体の背景を黒ベースに
+
+            // ダークモード時のボトムナビゲーションの色を統一
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Color(0xFF1E1E1E),
+              selectedItemColor: Color(0xFF3D96E8),
+              unselectedItemColor: Colors.white60,
+            ),
+
+            textTheme: GoogleFonts.notoSansJpTextTheme(
+              ThemeData.dark().textTheme, // ダークモード用の文字色を適用
+            ),
+            textSelectionTheme: const TextSelectionThemeData(
+              cursorColor: Color(0xFF2196F3),
+              selectionColor: Color(0x552196F3),
+              selectionHandleColor: Color(0xFF2196F3),
+            ),
+          ),
+
+          home: const SplashScreen(),
+        );
+      },
     );
   }
 }
@@ -66,14 +108,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
 
-  // ★ 1. 今日の総学習時間を保存する変数をここに追加します
   int todayTotalSeconds = 0;
 
   late AnimationController _controller;
   late Animation<double> _animation;
   int _animatedIndex = -1;
 
-  // ★ 2. _screens の部分を、以下のように書き換えます
   List<Widget> get _screens => [
     HomeScreen(
       onStudyFinished: (seconds) {
@@ -124,12 +164,58 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _controller.forward(from: 0);
   }
 
+  @override
+  Widget build(BuildContext context) {
+    // Flutterのテーマから現在の明るさを直接取得（確実に連動します）
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final barColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF121212) : null,
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: Material(
+        color: barColor,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: 60,
+              child: Row(
+                children: [
+                  navItem(icon: Icons.home, label: "ホーム", index: 0, isDark: isDark),
+                  navItem(icon: Icons.auto_awesome, label: "AIサポート", index: 1, isDark: isDark),
+                  navItem(icon: Icons.diversity_3, label: "Link", index: 2, isDark: isDark),
+                  navItem(icon: Icons.bar_chart, label: "学習記録", index: 3, isDark: isDark),
+                  navItem(icon: Icons.person, label: "マイページ", index: 4, isDark: isDark),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget navItem({
     required IconData icon,
     required String label,
     required int index,
+    required bool isDark,
   }) {
     final selected = _selectedIndex == index;
+
+    // 選択中・非選択中の色をダークモードに応じて分岐
+    final selectedColor = const Color(0xFF3D96E8);
+    final unselectedColor = isDark ? Colors.white60 : const Color(0xFFB5B5B5);
+    final unselectedTextCol = isDark ? Colors.white60 : const Color(0xFF9E9E9E);
 
     return Expanded(
       child: InkWell(
@@ -152,9 +238,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                 child: Icon(
                   icon,
                   size: 27,
-                  color: selected
-                      ? const Color(0xFF3D96E8)
-                      : const Color(0xFFB5B5B5),
+                  color: selected ? selectedColor : unselectedColor,
                 ),
               ),
               const SizedBox(height: 0),
@@ -164,37 +248,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   letterSpacing: -0.2,
-                  color: selected
-                      ? const Color(0xFF3D96E8)
-                      : const Color(0xFF9E9E9E),
+                  color: selected ? selectedColor : unselectedTextCol,
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(color: Colors.white),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 60,
-            child: Row(
-              children: [
-                navItem(icon: Icons.home, label: "ホーム", index: 0),
-                navItem(icon: Icons.auto_awesome, label: "AIサポート", index: 1),
-                navItem(icon: Icons.diversity_3, label: "Link", index: 2),
-                navItem(icon: Icons.bar_chart, label: "学習記録", index: 3),
-                navItem(icon: Icons.person, label: "マイページ", index: 4),
-              ],
-            ),
           ),
         ),
       ),

@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'data_screen.dart';
+import 'data_screen.dart'; // もしくは OnboardingScreen があるファイル
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -56,9 +56,17 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    // ★ 現在のテーマがダークモードかどうかを判定
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      // ★ ダークモード時は黒ベース、ライトモード時は白系に切り替える
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       body: Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+          // くるくる回るインジケーターの色もダークモードで見えやすく調整可能
+          color: const Color(0xFF3D96E8),
+        ),
       ),
     );
   }

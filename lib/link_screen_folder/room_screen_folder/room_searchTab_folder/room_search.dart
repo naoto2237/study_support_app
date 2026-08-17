@@ -5,21 +5,45 @@ class SearchRoomTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
+
     return Container(
-      color: const Color(0xFFF7F7F7),
+      color: bgColor,
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           // 検索バー
           TextField(
+            style: TextStyle(color: textColor),
+            cursorColor: const Color(0xFF3D96E8),
             decoration: InputDecoration(
               hintText: "ルーム名・資格名で検索",
-              prefixIcon: const Icon(Icons.search),
+              hintStyle: TextStyle(color: subtitleColor),
+              prefixIcon: Icon(Icons.search, color: subtitleColor),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: cardColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(15),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(
+                  color: isDark ? Colors.grey.shade800 : Colors.transparent,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide(
+                  color: isDark ? Colors.grey.shade800 : Colors.transparent,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(
+                  color: Color(0xFF3D96E8),
+                  width: 2,
+                ),
               ),
             ),
           ),
@@ -36,11 +60,14 @@ class SearchRoomTab extends StatelessWidget {
               icon: const Icon(Icons.filter_list),
               label: const Text("絞り込み"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: cardColor,
                 foregroundColor: const Color(0xFF3D96E8),
-                elevation: 1,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
+                  side: BorderSide(
+                    color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
+                  ),
                 ),
               ),
             ),
@@ -48,9 +75,13 @@ class SearchRoomTab extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          const Text(
+          Text(
             "公開ルーム",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
           ),
 
           const SizedBox(height: 15),
@@ -82,16 +113,26 @@ class PublicRoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 0,
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: borderColor, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: Colors.green.shade100,
+              backgroundColor: isDark ? Colors.green.withValues(alpha: 0.2) : Colors.green.shade100,
               child: const Icon(Icons.groups, color: Colors.green),
             ),
 
@@ -103,9 +144,10 @@ class PublicRoomCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
+                      color: textColor,
                     ),
                   ),
 
@@ -113,9 +155,9 @@ class PublicRoomCard extends StatelessWidget {
 
                   Row(
                     children: [
-                      const Icon(Icons.people, size: 16, color: Colors.grey),
+                      Icon(Icons.people, size: 16, color: subtitleColor),
                       const SizedBox(width: 5),
-                      Text(members),
+                      Text(members, style: TextStyle(color: subtitleColor)),
                     ],
                   ),
                 ],
@@ -127,6 +169,7 @@ class PublicRoomCard extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3D96E8),
                 foregroundColor: Colors.white,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
