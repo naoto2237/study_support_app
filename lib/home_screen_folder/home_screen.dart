@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/setting_screen.dart';
+import 'package:study_support_app/main.dart' as app; // ← 'app' という名前のあだ名を付ける
 
 class HomeScreen extends StatefulWidget {
   // ★ 親から関数を受け取る窓口を追加
@@ -26,6 +27,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // ダークモードかどうかを自動で判定する
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final divColor1 = isDark ? Colors.grey.shade800 : const Color(0xFFB5BDC7);
+    final divColor2 = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
 
     return Scaffold(
       // ライトのときは元の薄い色、ダークのときは自動で真っ黒（#121212）にする
@@ -99,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: StopwatchWidget(
                     onStop: (time) {
                       setState(() {
-                        time -= todayTotal;
                         todayTotal += time;
                       });
 
@@ -116,14 +121,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // ★ 設定画面の目標時間とリアルタイム連動させるためのビルダー
               ValueListenableBuilder<double>(
-                valueListenable: dailyTargetHours,
+                valueListenable: app.dailyTargetHours,
                 builder: (context, targetHoursValue, child) {
                   // 設定された時間（例: 3.5時間）を Duration に変換
                   Duration goalTime = Duration(
                     hours: targetHoursValue.floor(),
                     minutes:
-                        ((targetHoursValue - targetHoursValue.floor()) * 60)
-                            .round(),
+                    ((targetHoursValue - targetHoursValue.floor()) * 60)
+                        .round(),
                   );
 
                   // 達成率の計算
@@ -393,6 +398,9 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
 
+  // 前回停止したときまでに、すでに記録した時間
+  Duration _lastRecordedTime = Duration.zero;
+
   void _start() {
     if (_stopwatch.isRunning) return;
 
@@ -409,13 +417,33 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   void _stop() {
     _stopwatch.stop();
     _timer?.cancel();
+    _timer = null;
 
-    widget.onStop(_stopwatch.elapsed);
+    // 今回の学習で新しく経過した時間だけ計算
+    final currentElapsed = _stopwatch.elapsed;
+    final sessionTime = currentElapsed - _lastRecordedTime;
+
+    // 今回までの累計時間を記録
+    _lastRecordedTime = currentElapsed;
+
+    // 今回の学習時間だけ親に渡す
+    if (sessionTime > Duration.zero) {
+      widget.onStop(sessionTime);
+    }
+
+    setState(() {});
   }
 
   void _reset() {
-    _stop();
+    _stopwatch.stop();
+    _timer?.cancel();
+    _timer = null;
+
     _stopwatch.reset();
+
+    // 記録済み時間もリセット
+    _lastRecordedTime = Duration.zero;
+
     setState(() {});
   }
 
@@ -439,11 +467,16 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 7,
-      shadowColor: const Color(0xFF258EDB).withValues(alpha: 0.39),
-      color: const Color(0xFF258EDB),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.39),
+      color: const Color(0xFF2196F3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 25,
+          vertical: 12,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -511,6 +544,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                     ],
                   ),
                 ),
+
                 GestureDetector(
                   onTap: _reset,
                   child: Column(
