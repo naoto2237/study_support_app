@@ -5,17 +5,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:jumping_dot/jumping_dot.dart';
 import 'package:flutter/services.dart';
 import 'ai_history_screen.dart';
+import 'ai_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/rendering.dart';
 import 'aichat_inputbar.dart';
 import 'dart:io';
-
-class ChatMessage {
-  final bool isUser;
-  final String text;
-
-  ChatMessage({required this.isUser, required this.text});
-}
 
 class AiHistoryChatScreen extends StatefulWidget {
   final String chatId;
@@ -28,23 +21,17 @@ class AiHistoryChatScreen extends StatefulWidget {
 
 class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
   bool _isLoading = false;
-  bool _hasStartedChat = false;
   bool _isLoadingHistory = true;
 
   List<ChatMessage> _messages = [];
-
   final TextEditingController _textController = TextEditingController();
-
   File? _selectedImage;
   String? _chatId;
 
-  // Groqに質問を送る関数
   Future<void> askGemini() async {
     if (_textController.text.trim().isEmpty) return;
 
     final question = _textController.text;
-
-    // キーボードを閉じる
     FocusScope.of(context).unfocus();
 
     if (_chatId == null) {
@@ -54,17 +41,16 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
           .collection('ai_history')
           .doc(_chatId)
           .set({
-            'title': question,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+        'title': question,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     }
 
     setState(() {
       _isLoading = true;
       _messages.add(ChatMessage(isUser: true, text: question));
       _textController.clear();
-      _hasStartedChat = true;
     });
 
     try {
@@ -73,10 +59,10 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
           .doc(_chatId)
           .collection('messages')
           .add({
-            'role': 'user',
-            'text': question,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+        'role': 'user',
+        'text': question,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
       final apiKey = dotenv.get('GEMINI_API_KEY');
 
       final url = Uri.parse(
@@ -91,7 +77,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
             "parts": [
               {
                 "text":
-                    'あなたは学生向けのAI学習サポートアシスタントです。'
+                'あなたは学生向けのAI学習サポートアシスタントです。'
                     '漢数字は使わないで、1,2,3などのちゃんとした数字を使ってください。'
                     '学生が勉強を前向きに続けられるようにサポートしてください。'
                     '勉強方法、問題解説、学習計画、モチベーション維持など、学習に関する相談に答えてください。'
@@ -121,7 +107,6 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-
         final reply = data["candidates"][0]["content"]["parts"][0]["text"];
 
         setState(() {
@@ -134,26 +119,25 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
             .doc(_chatId)
             .collection('messages')
             .add({
-              'role': 'assistant',
-              'text': reply,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+          'role': 'assistant',
+          'text': reply,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
         await FirebaseFirestore.instance
             .collection('ai_history')
             .doc(_chatId)
             .set({
-              'updatedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
       } else {
         setState(() {
           _isLoading = false;
-
           if (response.statusCode == 503) {
             _messages.add(
               ChatMessage(
                 isUser: false,
-                text: "現在AIが混み合っています。\n少し時間をおいてもう一度お試しください。",
+                text: "現在AIが混み合っています。\n少し時間をおいてもう一度お試しください.",
               ),
             );
           } else {
@@ -192,7 +176,6 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
 
     for (final doc in snapshot.docs) {
       final data = doc.data();
-
       loadedMessages.add(
         ChatMessage(isUser: data['role'] == 'user', text: data['text'] ?? ''),
       );
@@ -201,7 +184,6 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
     setState(() {
       _chatId = widget.chatId;
       _messages = loadedMessages;
-      _hasStartedChat = loadedMessages.isNotEmpty;
       _isLoadingHistory = false;
     });
   }
@@ -209,25 +191,28 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
   @override
   void initState() {
     super.initState();
-
     _chatId = widget.chatId;
     _loadMessages();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: bgColor,
 
         appBar: AppBar(
           leadingWidth: 56,
-          // デフォルトは56
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () {
               Navigator.pop(context);
             },
@@ -235,17 +220,17 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
 
           title: Transform.translate(
             offset: const Offset(-19, 0),
-            child: const Text(
+            child: Text(
               "AIサポート",
               style: TextStyle(
-                color: Colors.black87,
+                color: textColor,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           centerTitle: false,
-          backgroundColor: Colors.white,
+          backgroundColor: cardColor,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
@@ -253,7 +238,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon: const Icon(Icons.history, color: Colors.black87),
+                icon: Icon(Icons.history, color: textColor),
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
@@ -268,7 +253,9 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
           child: Column(
             children: [
               Expanded(
-                child: SingleChildScrollView(
+                child: _isLoadingHistory
+                    ? const Center(child: CircularProgressIndicator())
+                    : SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -276,7 +263,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [_buildAnswerCard()],
+                      children: [_buildAnswerCard(textColor)],
                     ),
                   ),
                 ),
@@ -299,7 +286,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
     );
   }
 
-  Widget _buildAnswerCard() {
+  Widget _buildAnswerCard(Color textColor) {
     if (_messages.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -311,7 +298,6 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
         children: [
           ..._messages.map((message) {
             if (message.isUser) {
-              // ユーザーの質問
               return Align(
                 alignment: Alignment.centerRight,
                 child: ConstrainedBox(
@@ -339,7 +325,6 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
               );
             }
 
-            // AIの回答
             return SizedBox(
               width: double.infinity,
               child: Column(
@@ -347,13 +332,12 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
                 children: [
                   Text(
                     message.text,
-                    style: const TextStyle(
-                      color: Colors.black87,
+                    style: TextStyle(
+                      color: textColor,
                       fontSize: 15,
                       height: 1.6,
                     ),
                   ),
-
                   Row(
                     children: [
                       Transform.translate(
@@ -362,8 +346,8 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
-                            splashColor: Colors.grey.withOpacity(0.15),
-                            highlightColor: Colors.grey.withOpacity(0.08),
+                            splashColor: Colors.grey.withValues(alpha: 0.15),
+                            highlightColor: Colors.grey.withValues(alpha: 0.08),
                             onTap: () async {
                               await Clipboard.setData(
                                 ClipboardData(text: message.text),
@@ -385,19 +369,20 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
                 ],
               ),
             );
-          }).toList(),
+          }),
 
           if (_isLoading)
             Padding(
-              padding: EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
+                  // const を削除
                   JumpingDots(
-                    color: Color(0xFF2196F3),
+                    color: const Color(0xFF2196F3),
                     radius: 5,
                     numberOfDots: 3,
-                    animationDuration: Duration(milliseconds: 250),
+                    animationDuration: const Duration(milliseconds: 250),
                   ),
                 ],
               ),

@@ -8,8 +8,14 @@ class CreateRoomTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final cardBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
+
     return Container(
-      color: Color(0xFFF7F7F7), // ← 背景色
+      color: bgColor, // ← 背景色
 
       child: ListView(
         padding: const EdgeInsets.all(20),
@@ -49,11 +55,11 @@ class CreateRoomTab extends StatelessWidget {
 
                   const SizedBox(width: 18),
 
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "ルームを作る",
                           style: TextStyle(
                             color: Colors.white,
@@ -61,11 +67,11 @@ class CreateRoomTab extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           "同じ目標を持つ仲間を集めよう",
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.90),
+                            color: Colors.white70,
                             fontSize: 15,
                           ),
                         ),
@@ -81,9 +87,13 @@ class CreateRoomTab extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          const Text(
+          Text(
             "マイルーム",
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
           ),
 
           const SizedBox(height: 15),
@@ -103,24 +113,28 @@ class CreateRoomTab extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 40),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardBgColor,
                     borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: isDark ? Colors.grey.shade800 : Colors.transparent,
+                    ),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      Icon(Icons.groups_outlined, size: 50, color: Colors.grey),
-                      SizedBox(height: 12),
+                      Icon(Icons.groups_outlined, size: 50, color: subtitleColor),
+                      const SizedBox(height: 12),
                       Text(
                         "まだルームを作成していません",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: textColor,
                         ),
                       ),
-                      SizedBox(height: 6),
+                      const SizedBox(height: 6),
                       Text(
                         "「ルームを作る」から作成しましょう",
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: subtitleColor),
                       ),
                     ],
                   ),
@@ -166,21 +180,35 @@ class RoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 0,
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: borderColor, width: 1),
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
 
         leading: CircleAvatar(
           radius: 28,
-          backgroundColor: Colors.blue.shade100,
-          child: const Icon(Icons.groups, color: const Color(0xFF3D96E8)),
+          backgroundColor: isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue.shade100,
+          child: const Icon(Icons.groups, color: Color(0xFF3D96E8)),
         ),
 
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
+            color: textColor,
+          ),
         ),
 
         subtitle: Padding(
@@ -190,36 +218,43 @@ class RoomCard extends StatelessWidget {
               Icon(
                 isPublic ? Icons.public : Icons.lock,
                 size: 16,
-                color: Colors.grey,
+                color: subtitleColor,
               ),
               const SizedBox(width: 5),
-              Text(isPublic ? "公開" : "非公開"),
+              Text(
+                isPublic ? "公開" : "非公開",
+                style: TextStyle(color: subtitleColor),
+              ),
               const SizedBox(width: 15),
-              const Icon(Icons.people, size: 16, color: Colors.grey),
+              Icon(Icons.people, size: 16, color: subtitleColor),
               const SizedBox(width: 5),
-              Text(members),
+              Text(
+                members,
+                style: TextStyle(color: subtitleColor),
+              ),
             ],
           ),
         ),
 
         trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert),
+          icon: Icon(Icons.more_vert, color: subtitleColor),
           onSelected: (value) async {
             switch (value) {
               case "edit":
-                // TODO: 編集画面へ遷移
+              // TODO: 編集画面へ遷移
                 break;
 
               case "delete":
                 final result = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text("ルームを削除"),
-                    content: const Text("このルームを削除しますか？"),
+                    backgroundColor: cardColor,
+                    title: Text("ルームを削除", style: TextStyle(color: textColor)),
+                    content: Text("このルームを削除しますか？", style: TextStyle(color: subtitleColor)),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text("キャンセル"),
+                        child: Text("キャンセル", style: TextStyle(color: subtitleColor)),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context, true),
@@ -241,14 +276,18 @@ class RoomCard extends StatelessWidget {
                 break;
             }
           },
-          itemBuilder: (context) => const [
+          itemBuilder: (context) => [
             PopupMenuItem(
               value: "edit",
               child: Row(
-                children: [Icon(Icons.edit), SizedBox(width: 10), Text("編集")],
+                children: [
+                  Icon(Icons.edit, color: textColor),
+                  const SizedBox(width: 10),
+                  Text("編集", style: TextStyle(color: textColor)),
+                ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: "delete",
               child: Row(
                 children: [
@@ -264,12 +303,13 @@ class RoomCard extends StatelessWidget {
           final result = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text("ルームに入る"),
-              content: Text("「$title」に入りますか？"),
+              backgroundColor: cardColor,
+              title: Text("ルームに入る", style: TextStyle(color: textColor)),
+              content: Text("「$title」に入りますか？", style: TextStyle(color: subtitleColor)),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text("キャンセル"),
+                  child: Text("キャンセル", style: TextStyle(color: subtitleColor)),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),

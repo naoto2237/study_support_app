@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:jumping_dot/jumping_dot.dart';
 import 'package:flutter/services.dart';
 import 'ai_history_screen.dart';
+import 'aihistory_chat_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/rendering.dart';
 import 'aichat_inputbar.dart';
@@ -38,13 +39,10 @@ class _AiTestScreenState extends State<AiScreen> {
   File? _selectedImage;
   String? _chatId;
 
-  // Groqに質問を送る関数
   Future<void> askGemini() async {
     if (_textController.text.trim().isEmpty) return;
 
     final question = _textController.text;
-
-    // キーボードを閉じる
     FocusScope.of(context).unfocus();
 
     if (_chatId == null) {
@@ -54,10 +52,10 @@ class _AiTestScreenState extends State<AiScreen> {
           .collection('ai_history')
           .doc(_chatId)
           .set({
-            'title': question,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+        'title': question,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     }
 
     setState(() {
@@ -73,10 +71,10 @@ class _AiTestScreenState extends State<AiScreen> {
           .doc(_chatId)
           .collection('messages')
           .add({
-            'role': 'user',
-            'text': question,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+        'role': 'user',
+        'text': question,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
       final apiKey = dotenv.get('GEMINI_API_KEY');
 
       final url = Uri.parse(
@@ -91,7 +89,7 @@ class _AiTestScreenState extends State<AiScreen> {
             "parts": [
               {
                 "text":
-                    'あなたは学生向けのAI学習サポートアシスタントです。'
+                'あなたは学生向けのAI学習サポートアシスタントです。'
                     '漢数字は使わないで、1,2,3などのちゃんとした数字を使ってください。'
                     '学生が勉強を前向きに続けられるようにサポートしてください。'
                     '勉強方法、問題解説、学習計画、モチベーション維持など、学習に関する相談に答えてください。'
@@ -121,7 +119,6 @@ class _AiTestScreenState extends State<AiScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-
         final reply = data["candidates"][0]["content"]["parts"][0]["text"];
 
         setState(() {
@@ -134,21 +131,20 @@ class _AiTestScreenState extends State<AiScreen> {
             .doc(_chatId)
             .collection('messages')
             .add({
-              'role': 'assistant',
-              'text': reply,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+          'role': 'assistant',
+          'text': reply,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
         await FirebaseFirestore.instance
             .collection('ai_history')
             .doc(_chatId)
             .set({
-              'updatedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
       } else {
         setState(() {
           _isLoading = false;
-
           if (response.statusCode == 503) {
             _messages.add(
               ChatMessage(
@@ -192,7 +188,6 @@ class _AiTestScreenState extends State<AiScreen> {
 
     for (final doc in snapshot.docs) {
       final data = doc.data();
-
       loadedMessages.add(
         ChatMessage(isUser: data['role'] == 'user', text: data['text'] ?? ''),
       );
@@ -208,7 +203,6 @@ class _AiTestScreenState extends State<AiScreen> {
   @override
   void initState() {
     super.initState();
-
     if (widget.chatId != null) {
       _chatId = widget.chatId;
       _loadMessages();
@@ -217,59 +211,62 @@ class _AiTestScreenState extends State<AiScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: bgColor,
 
         appBar: AppBar(
           leadingWidth: 56,
-          // デフォルトは56
           leading: _hasStartedChat
               ? IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () {
-                    if (widget.fromHistory) {
-                      Navigator.pop(context);
-
-                      Future.microtask(() {
-                        _messages.clear();
-                        _chatId = null;
-                        _hasStartedChat = false;
-                        _selectedImage = null;
-                        _textController.clear();
-                      });
-
-                      return;
-                    } else {
-                      setState(() {
-                        _messages.clear();
-                        _chatId = null;
-                        _hasStartedChat = false;
-                        _isLoading = false;
-                        _textController.clear();
-                        _selectedImage = null;
-                      });
-                    }
-                  },
-                )
+            icon: Icon(Icons.arrow_back, color: textColor),
+            onPressed: () {
+              if (widget.fromHistory) {
+                Navigator.pop(context);
+                Future.microtask(() {
+                  _messages.clear();
+                  _chatId = null;
+                  _hasStartedChat = false;
+                  _selectedImage = null;
+                  _textController.clear();
+                });
+                return;
+              } else {
+                setState(() {
+                  _messages.clear();
+                  _chatId = null;
+                  _hasStartedChat = false;
+                  _isLoading = false;
+                  _textController.clear();
+                  _selectedImage = null;
+                });
+              }
+            },
+          )
               : null,
 
           title: Transform.translate(
             offset: Offset(_hasStartedChat ? -19 : 0, 0),
-            child: const Text(
+            child: Text(
               "AIサポート",
               style: TextStyle(
-                color: Colors.black87,
+                color: textColor,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           centerTitle: false,
-          backgroundColor: Colors.white,
+          backgroundColor: cardColor,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
@@ -277,14 +274,12 @@ class _AiTestScreenState extends State<AiScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.history,
-                  color: Colors.black87,
+                  color: textColor,
                 ),
                 onPressed: () {
-                  // キーボードを閉じる
                   FocusScope.of(context).unfocus();
-
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const AiHistoryScreen()),
@@ -308,9 +303,9 @@ class _AiTestScreenState extends State<AiScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!_hasStartedChat) ...[
-                          Padding(
-                            padding: const EdgeInsets.only(left: 3),
-                            child: const Text(
+                          const Padding(
+                            padding: EdgeInsets.only(left: 3),
+                            child: Text(
                               "学習の悩みをAIに相談しよう",
                               style: TextStyle(
                                 fontSize: 20,
@@ -323,11 +318,11 @@ class _AiTestScreenState extends State<AiScreen> {
 
                           Padding(
                             padding: const EdgeInsets.only(left: 3),
-                            child: const Text(
+                            child: Text(
                               "勉強方法・問題解説・学習計画など、\nAIがあなたの学習をサポートします。",
                               style: TextStyle(
                                 fontSize: 15,
-                                color: Colors.black87,
+                                color: textColor,
                               ),
                             ),
                           ),
@@ -335,10 +330,10 @@ class _AiTestScreenState extends State<AiScreen> {
 
                           Card(
                             elevation: 0,
-                            color: Colors.white,
+                            color: cardColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
-                              side: const BorderSide(color: Color(0xFFE5E7EB)),
+                              side: BorderSide(color: borderColor),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.only(
@@ -350,19 +345,20 @@ class _AiTestScreenState extends State<AiScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Row(
+                                  Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.lightbulb_outline,
                                         color: Color(0xFF2196F3),
                                         size: 20,
                                       ),
-                                      SizedBox(width: 8),
+                                      const SizedBox(width: 8),
                                       Text(
                                         "質問例",
                                         style: TextStyle(
                                           fontSize: 15.6,
                                           fontWeight: FontWeight.bold,
+                                          color: textColor,
                                         ),
                                       ),
                                     ],
@@ -374,37 +370,18 @@ class _AiTestScreenState extends State<AiScreen> {
                                     height: 240,
                                     child: GridView.count(
                                       crossAxisCount: 2,
-                                      // 2列
                                       mainAxisSpacing: 10,
                                       crossAxisSpacing: 10,
                                       childAspectRatio: 2.3,
                                       physics:
-                                          const NeverScrollableScrollPhysics(),
+                                      const NeverScrollableScrollPhysics(),
                                       children: [
-                                        _questionChip(
-                                          Icons.menu_book_outlined,
-                                          "効率的な勉強方法を教えて",
-                                        ),
-                                        _questionChip(
-                                          Icons.quiz_outlined,
-                                          "この問題を解説して",
-                                        ),
-                                        _questionChip(
-                                          Icons.calendar_month_outlined,
-                                          "一週間の学習計画を立てて",
-                                        ),
-                                        _questionChip(
-                                          Icons.psychology_alt_outlined,
-                                          "暗記のコツを教えて",
-                                        ),
-                                        _questionChip(
-                                          Icons.trending_up_outlined,
-                                          "集中力を上げる方法は？",
-                                        ),
-                                        _questionChip(
-                                          Icons.local_fire_department_outlined,
-                                          "やる気を維持する方法は？",
-                                        ),
+                                        _questionChip(Icons.menu_book_outlined, "効率的な勉強方法を教えて", cardColor, borderColor, textColor),
+                                        _questionChip(Icons.quiz_outlined, "この問題を解説して", cardColor, borderColor, textColor),
+                                        _questionChip(Icons.calendar_month_outlined, "一週間の学習計画を立てて", cardColor, borderColor, textColor),
+                                        _questionChip(Icons.psychology_alt_outlined, "暗記のコツを教えて", cardColor, borderColor, textColor),
+                                        _questionChip(Icons.trending_up_outlined, "集中力を上げる方法は？", cardColor, borderColor, textColor),
+                                        _questionChip(Icons.local_fire_department_outlined, "やる気を維持する方法は？", cardColor, borderColor, textColor),
                                       ],
                                     ),
                                   ),
@@ -416,7 +393,7 @@ class _AiTestScreenState extends State<AiScreen> {
                           const SizedBox(height: 13),
                         ],
 
-                        _buildAnswerCard(),
+                        _buildAnswerCard(textColor),
                       ],
                     ),
                   ),
@@ -440,33 +417,34 @@ class _AiTestScreenState extends State<AiScreen> {
     );
   }
 
-  Widget _questionChip(IconData icon, String text) {
+  Widget _questionChip(IconData icon, String text, Color cardColor, Color borderColor, Color textColor) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
         setState(() {
           _textController.text = text;
         });
-
         FocusScope.of(context).requestFocus(FocusNode());
       },
       child: Container(
         padding: const EdgeInsets.only(left: 14, right: 14, top: 0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
           children: [
+            // const を削除
             Icon(icon, color: const Color(0xFF2196F3), size: 23),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w500,
+                  color: textColor,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -478,122 +456,120 @@ class _AiTestScreenState extends State<AiScreen> {
     );
   }
 
-  Widget _buildAnswerCard() {
+  Widget _buildAnswerCard(Color textColor) {
     return Padding(
       padding: const EdgeInsets.only(top: 0, right: 0, left: 0, bottom: 15),
       child: _messages.isEmpty
           ? Padding(
-              padding: const EdgeInsets.only(top: 77),
-              child: Center(
-                child: Text(
-                  "質問例をタップするか、\n下の入力欄から質問してみよう！",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    color: Colors.black54,
-                    height: 1.7,
+        padding: const EdgeInsets.only(top: 77),
+        child: Center(
+          child: Text(
+            "質問例をタップするか、\n下の入力欄から質問してみよう！",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 17,
+              color: textColor.withValues(alpha: 0.6),
+              height: 1.7,
+            ),
+          ),
+        ),
+      )
+          : Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ..._messages.map((message) {
+            if (message.isUser) {
+              return Align(
+                alignment: Alignment.centerRight,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 277),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 6, bottom: 17),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      message.text,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.5,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ..._messages.map((message) {
-                  if (message.isUser) {
-                    // ユーザーの質問
-                    return Align(
-                      alignment: Alignment.centerRight,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 277),
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 6, bottom: 17),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2196F3),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            message.text,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              height: 1.5,
+              );
+            }
+
+            return SizedBox(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.text,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      height: 1.6,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Transform.translate(
+                        offset: const Offset(-9, 2),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            splashColor: Colors.grey.withValues(alpha: 0.15),
+                            highlightColor: Colors.grey.withValues(alpha: 0.08),
+                            onTap: () async {
+                              await Clipboard.setData(
+                                ClipboardData(text: message.text),
+                              );
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Icon(
+                                Icons.content_copy_outlined,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    );
-                  }
-
-                  // AIの回答
-                  return SizedBox(
-                    width: double.infinity,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          message.text,
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontSize: 15,
-                            height: 1.6,
-                          ),
-                        ),
-
-                        Row(
-                          children: [
-                            Transform.translate(
-                              offset: const Offset(-9, 2),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(20),
-                                  splashColor: Colors.grey.withOpacity(0.15),
-                                  highlightColor: Colors.grey.withOpacity(0.08),
-                                  onTap: () async {
-                                    await Clipboard.setData(
-                                      ClipboardData(text: message.text),
-                                    );
-                                  },
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(8),
-                                    child: Icon(
-                                      Icons.content_copy_outlined,
-                                      size: 18,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-
-                if (_isLoading)
-                  Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        JumpingDots(
-                          color: Color(0xFF2196F3),
-                          radius: 5,
-                          numberOfDots: 3,
-                          animationDuration: Duration(milliseconds: 250),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
-              ],
+                ],
+              ),
+            );
+          }),
+
+          if (_isLoading)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  // const を削除
+                  JumpingDots(
+                    color: const Color(0xFF2196F3),
+                    radius: 5,
+                    numberOfDots: 3,
+                    animationDuration: const Duration(milliseconds: 250),
+                  ),
+                ],
+              ),
             ),
+        ],
+      ),
     );
   }
 }

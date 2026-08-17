@@ -24,9 +24,7 @@ class AiChatInputBar extends StatefulWidget {
 class _AiChatInputBarState extends State<AiChatInputBar>
     with TickerProviderStateMixin {
   final FocusNode _focusNode = FocusNode();
-
   final ScrollController _scrollController = ScrollController();
-
   final ImagePicker _picker = ImagePicker();
 
   File? _image;
@@ -34,7 +32,6 @@ class _AiChatInputBarState extends State<AiChatInputBar>
   @override
   void initState() {
     super.initState();
-
     widget.controller.addListener(() {
       if (mounted) {
         setState(() {});
@@ -51,13 +48,11 @@ class _AiChatInputBarState extends State<AiChatInputBar>
 
   Future<void> _pickImage() async {
     final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
-
     if (file == null) return;
 
     setState(() {
       _image = File(file.path);
     });
-
     widget.onImageSelected(_image);
   }
 
@@ -65,12 +60,16 @@ class _AiChatInputBarState extends State<AiChatInputBar>
     setState(() {
       _image = null;
     });
-
     widget.onImageSelected(null);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return SafeArea(
       top: false,
       child: Padding(
@@ -83,9 +82,9 @@ class _AiChatInputBarState extends State<AiChatInputBar>
               curve: Curves.easeOut,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardColor,
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+                border: Border.all(color: borderColor, width: 1),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -107,7 +106,6 @@ class _AiChatInputBarState extends State<AiChatInputBar>
                                 fit: BoxFit.cover,
                               ),
                             ),
-
                             Positioned(
                               top: -6,
                               right: -6,
@@ -146,10 +144,11 @@ class _AiChatInputBarState extends State<AiChatInputBar>
                           textInputAction: TextInputAction.newline,
                           minLines: 1,
                           maxLines: 10,
-                          style: const TextStyle(fontSize: 15.5, height: 1.4),
+                          style: TextStyle(fontSize: 15.5, height: 1.4, color: textColor),
                           cursorColor: const Color(0xFF2196F3),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: "質問を入力してください",
+                            hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
                             border: InputBorder.none,
                             isCollapsed: true,
                           ),
@@ -169,11 +168,11 @@ class _AiChatInputBarState extends State<AiChatInputBar>
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(22),
                                   onTap: _pickImage,
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8),
                                     child: Icon(
                                       Icons.image_outlined,
-                                      color: Colors.grey,
+                                      color: isDark ? Colors.white60 : Colors.grey,
                                       size: 26,
                                     ),
                                   ),
@@ -190,9 +189,7 @@ class _AiChatInputBarState extends State<AiChatInputBar>
                                 shape: const CircleBorder(),
                                 child: InkWell(
                                   customBorder: const CircleBorder(),
-                                  onTap: widget.isLoading
-                                      ? null
-                                      : widget.onSend,
+                                  onTap: widget.isLoading ? null : widget.onSend,
                                   child: Ink(
                                     width: 36,
                                     height: 36,

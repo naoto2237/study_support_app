@@ -16,54 +16,84 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
   final TextEditingController _descriptionController = TextEditingController();
 
   @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
+    final borderColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus(); // キーボードを閉じる
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: cardColor,
+          foregroundColor: textColor,
           elevation: 0,
+          surfaceTintColor: Colors.transparent,
           centerTitle: true,
-          title: const Text(
+          title: Text(
             "ルームを作る",
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: textColor),
           ),
         ),
 
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text(
+            Text(
               "ルーム設定",
-              style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: textColor),
             ),
 
             const SizedBox(height: 25),
-            const Text(
+            Text(
               "ルームのタイトル *",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
             ),
 
             const SizedBox(height: 10),
 
             TextField(
               controller: _titleController,
+              style: TextStyle(color: textColor),
+              cursorColor: const Color(0xFF3D96E8),
               decoration: InputDecoration(
                 hintText: "例）TOEIC800点を目指す仲間のルーム",
+                hintStyle: TextStyle(color: subtitleColor),
+                filled: true,
+                fillColor: cardColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                // 【修正】borderRadius と borderSide の間にカンマを追加
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(color: Color(0xFF3D96E8), width: 2),
                 ),
               ),
             ),
 
             const SizedBox(height: 25),
-            const Text(
+            Text(
               "ルームの説明（自由入力）",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
             ),
 
             const SizedBox(height: 10),
@@ -71,27 +101,43 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
             TextField(
               controller: _descriptionController,
               maxLines: 5,
+              style: TextStyle(color: textColor),
+              cursorColor: const Color(0xFF3D96E8),
               decoration: InputDecoration(
                 hintText: "このルームの目的や活動内容を入力してください",
+                hintStyle: TextStyle(color: subtitleColor),
+                filled: true,
+                fillColor: cardColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                // 【修正】borderRadius と borderSide の間にカンマを追加
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(color: Color(0xFF3D96E8), width: 2),
                 ),
               ),
             ),
 
             const SizedBox(height: 40),
-            const Text(
+            Text(
               "公開設定",
-              style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: textColor),
             ),
 
             const SizedBox(height: 20),
             Container(
               decoration: BoxDecoration(
+                color: cardColor,
                 border: Border.all(
                   color: _selectedVisibility == 0
                       ? const Color(0xFF3D96E8)
-                      : Colors.grey.shade300,
+                      : borderColor,
                   width: 2,
                 ),
                 borderRadius: BorderRadius.circular(15),
@@ -99,26 +145,28 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
               child: RadioListTile<int>(
                 value: 0,
                 groupValue: _selectedVisibility,
+                activeColor: const Color(0xFF3D96E8),
                 onChanged: (value) {
                   setState(() {
                     _selectedVisibility = value!;
                   });
                 },
-                title: const Text(
+                title: Text(
                   "🌐 全体公開",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                 ),
-                subtitle: const Text("すべてのユーザーが参加できます"),
+                subtitle: Text("すべてのユーザーが参加できます", style: TextStyle(color: subtitleColor)),
               ),
             ),
 
             const SizedBox(height: 15),
             Container(
               decoration: BoxDecoration(
+                color: cardColor,
                 border: Border.all(
                   color: _selectedVisibility == 1
                       ? const Color(0xFF3D96E8)
-                      : Colors.grey.shade300,
+                      : borderColor,
                   width: 2,
                 ),
                 borderRadius: BorderRadius.circular(15),
@@ -126,16 +174,17 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
               child: RadioListTile<int>(
                 value: 1,
                 groupValue: _selectedVisibility,
+                activeColor: const Color(0xFF3D96E8),
                 onChanged: (value) {
                   setState(() {
                     _selectedVisibility = value!;
                   });
                 },
-                title: const Text(
+                title: Text(
                   "🔒 非公開",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                 ),
-                subtitle: const Text("招待されたユーザーのみ参加できます"),
+                subtitle: Text("招待されたユーザーのみ参加できます", style: TextStyle(color: subtitleColor)),
               ),
             ),
 

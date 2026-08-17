@@ -17,18 +17,22 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _stopwatch.stop();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      appBar: _buildAppBar(context),
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        color: const Color(0xFFF7F7F7),
+        color: bgColor,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(17, 17, 17, 28),
           child: Column(
@@ -53,15 +57,21 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.black54;
+
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: cardColor,
       elevation: 0,
+      surfaceTintColor: Colors.transparent,
       centerTitle: true,
       automaticallyImplyLeading: false,
 
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, size: 24, color: Colors.black87),
+        icon: Icon(Icons.arrow_back, size: 24, color: textColor),
         onPressed: _showExitDialog,
       ),
 
@@ -70,21 +80,21 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         children: [
           Text(
             widget.roomTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: textColor,
             ),
           ),
           const SizedBox(height: 4),
           Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.public, size: 15, color: Colors.black54),
-              SizedBox(width: 4),
+            children: [
+              Icon(Icons.public, size: 15, color: subtitleColor),
+              const SizedBox(width: 4),
               Text(
                 "公開ルーム・3人参加中",
-                style: TextStyle(fontSize: 13, color: Colors.black54),
+                style: TextStyle(fontSize: 13, color: subtitleColor),
               ),
             ],
           ),
@@ -95,7 +105,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         Padding(
           padding: const EdgeInsets.only(right: 7),
           child: IconButton(
-            icon: const Icon(Icons.more_vert, size: 24, color: Colors.black87),
+            icon: Icon(Icons.more_vert, size: 24, color: textColor),
             onPressed: _showMenu,
           ),
         ),
@@ -104,6 +114,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildTopStudyCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return Container(
       width: double.infinity,
       height: 260,
@@ -112,12 +126,12 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         right: 15,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 5,
             spreadRadius: 0,
             offset: const Offset(0, 0),
@@ -138,7 +152,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               child: VerticalDivider(
                 width: 1,
                 thickness: 1,
-                color: const Color(0xFFE5E7EB),
+                color: borderColor,
               ),
             ),
 
@@ -153,6 +167,9 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildTimer() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     return SizedBox(
       width: 220,
       height: 220,
@@ -169,7 +186,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
                 value: 0.45,
                 strokeWidth: 7,
                 strokeCap: StrokeCap.round,
-                backgroundColor: const Color(0xFFBBDEFB),
+                backgroundColor: isDark ? Colors.blue.withValues(alpha: 0.2) : const Color(0xFFBBDEFB),
                 valueColor: const AlwaysStoppedAnimation(Color(0xFF2196F3)),
               ),
             ),
@@ -180,12 +197,12 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               children: [
                 Transform.translate(
                   offset: const Offset(0, 13),
-                  child: const Text(
+                  child: Text(
                     "学習タイマー",
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: textColor,
                     ),
                   ),
                 ),
@@ -240,7 +257,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Color(0xFF2196F3),
               shape: BoxShape.circle,
             ),
@@ -259,6 +276,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildResetButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return GestureDetector(
       onTap: _reset,
       child: Column(
@@ -267,9 +288,9 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+              border: Border.all(color: borderColor, width: 1.5),
             ),
             child: const Icon(
               Icons.refresh_rounded,
@@ -289,6 +310,9 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     required String value,
     required Color iconColor,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.only(left: 11, right: 0),
@@ -307,7 +331,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  style: TextStyle(fontSize: 12, color: textColor),
                 ),
               ],
             ),
@@ -318,10 +342,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               padding: const EdgeInsets.only(left: 24),
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: textColor,
                   letterSpacing: 1,
                 ),
               ),
@@ -333,6 +357,9 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildStudyInfoCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return SizedBox(
       height: 220,
       child: Column(
@@ -350,7 +377,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               padding: const EdgeInsets.only(right: 0),
               child: SizedBox(
                 width: 120,
-                child: const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                child: Divider(height: 1, color: dividerColor),
               ),
             ),
           ),
@@ -368,7 +395,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               padding: const EdgeInsets.only(right: 0),
               child: SizedBox(
                 width: 120,
-                child: const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                child: Divider(height: 1, color: dividerColor),
               ),
             ),
           ),
@@ -448,16 +475,21 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildActivity() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 5,
             spreadRadius: 0,
             offset: const Offset(0, 0),
@@ -467,12 +499,12 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "アクティビティ",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: textColor,
             ),
           ),
 
@@ -517,13 +549,18 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     required String text,
     required String time,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.black45;
+    final iconBgColor = isDark ? const Color(0xFF2196F3).withValues(alpha: 0.2) : const Color(0xFFEAF4FF);
+
     return Row(
       children: [
         Container(
           width: 36,
           height: 36,
-          decoration: const BoxDecoration(
-            color: Color(0xFFEAF4FF),
+          decoration: BoxDecoration(
+            color: iconBgColor,
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor, size: 19),
@@ -537,22 +574,22 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               children: [
                 TextSpan(
                   text: name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: textColor,
                   ),
                 ),
                 TextSpan(
                   text: "  $text",
-                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  style: TextStyle(fontSize: 13, color: textColor),
                 ),
               ],
             ),
           ),
         ),
 
-        Text(time, style: const TextStyle(fontSize: 10, color: Colors.black45)),
+        Text(time, style: TextStyle(fontSize: 10, color: subtitleColor)),
       ],
     );
   }
@@ -565,6 +602,13 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     required VoidCallback onTap,
     String? badge,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.black54;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+    final iconBgColor = isDark ? const Color(0xFF2196F3).withValues(alpha: 0.2) : const Color(0xFFEAF4FF);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -573,12 +617,12 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         child: Ink(
           height: 125,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+            border: Border.all(color: borderColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.035),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.035),
                 blurRadius: 5,
                 offset: const Offset(0, 2),
               ),
@@ -590,8 +634,8 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               Container(
                 width: 48,
                 height: 48,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEAF4FF),
+                decoration: BoxDecoration(
+                  color: iconBgColor,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: iconColor, size: 25),
@@ -601,10 +645,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: textColor,
                 ),
               ),
 
@@ -612,7 +656,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 10, color: Colors.black54),
+                style: TextStyle(fontSize: 10, color: subtitleColor),
               ),
             ],
           ),
@@ -643,77 +687,104 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   // チャット画面（仮）
   // =========================================================
   Widget _buildChatScreenContent() {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-            children: const [
-              _ChatBubble(
-                name: "A",
-                message: "おはよう！\n今日も一緒に頑張ろう！",
-                isMine: false,
-                time: "10:30",
+    return Builder(
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final textFieldBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF7F7F7);
+          final textColor = isDark ? Colors.white70 : Colors.black87;
+          final subtitleColor = isDark ? Colors.white60 : Colors.black45;
+
+          return Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                  children: const [
+                    _ChatBubble(
+                      name: "A",
+                      message: "おはよう！\n今日も一緒に頑張ろう！",
+                      isMine: false,
+                      time: "10:30",
+                    ),
+                    SizedBox(height: 12),
+                    _ChatBubble(
+                      name: "B",
+                      message: "おはよう！\n今日は数学を進めるよ！",
+                      isMine: true,
+                      time: "10:31",
+                    ),
+                    SizedBox(height: 12),
+                    _ChatBubble(
+                      name: "C",
+                      message: "私は英単語をやる予定！\n一緒に頑張ろう🔥",
+                      isMine: false,
+                      time: "10:32",
+                    ),
+                  ],
+                ),
               ),
-              SizedBox(height: 12),
-              _ChatBubble(
-                name: "B",
-                message: "おはよう！\n今日は数学を進めるよ！",
-                isMine: true,
-                time: "10:31",
-              ),
-              SizedBox(height: 12),
-              _ChatBubble(
-                name: "C",
-                message: "私は英単語をやる予定！\n一緒に頑張ろう🔥",
-                isMine: false,
-                time: "10:32",
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          style: TextStyle(color: textColor),
+                          cursorColor: const Color(0xFF2196F3),
+                          decoration: InputDecoration(
+                            hintText: "メッセージを入力...",
+                            hintStyle: TextStyle(color: subtitleColor),
+                            filled: true,
+                            fillColor: textFieldBg,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey.shade800 : Colors.transparent,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey.shade800 : Colors.transparent,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF2196F3),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2196F3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.send_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
-          ),
-        ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "メッセージを入力...",
-                      filled: true,
-                      fillColor: const Color(0xFFF7F7F7),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2196F3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.send_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+          );
+        }
     );
   }
 
@@ -734,41 +805,52 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildNoteTile(String title, String updatedAt) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: const BoxDecoration(
-            color: Color(0xFFEAF4FF),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.description_rounded,
-            color: Color(0xFF2196F3),
-          ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          updatedAt,
-          style: const TextStyle(fontSize: 12, color: Colors.black54),
-        ),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          color: Colors.black38,
-        ),
-      ),
+    return Builder(
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+          final textColor = isDark ? Colors.white70 : Colors.black87;
+          final subtitleColor = isDark ? Colors.white60 : Colors.black54;
+          final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+          final iconBgColor = isDark ? const Color(0xFF2196F3).withValues(alpha: 0.2) : const Color(0xFFEAF4FF);
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            elevation: 0,
+            color: cardColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: borderColor),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              leading: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.description_rounded,
+                  color: Color(0xFF2196F3),
+                ),
+              ),
+              title: Text(
+                title,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor),
+              ),
+              subtitle: Text(
+                updatedAt,
+                style: TextStyle(fontSize: 12, color: subtitleColor),
+              ),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: subtitleColor,
+              ),
+            ),
+          );
+        }
     );
   }
 
@@ -793,21 +875,31 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     showDialog(
       context: context,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final textColor = isDark ? Colors.white70 : Colors.black87;
+        final subtitleColor = isDark ? Colors.white60 : Colors.black54;
+
         return AlertDialog(
-          title: const Text("ルームを退出"),
-          content: const Text("このルームから退出しますか？"),
+          backgroundColor: cardColor,
+          title: Text("ルームを退出", style: TextStyle(color: textColor)),
+          content: Text("このルームから退出しますか？", style: TextStyle(color: subtitleColor)),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text("キャンセル"),
+              child: Text("キャンセル", style: TextStyle(color: subtitleColor)),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+                foregroundColor: Colors.white,
+              ),
               child: const Text("退出"),
             ),
           ],
@@ -856,32 +948,42 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       context: context,
       showDragHandle: true,
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text("ルーム情報を編集"),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.notifications),
-                title: const Text("通知設定"),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text("ルーム情報"),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ],
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final textColor = isDark ? Colors.white70 : Colors.black87;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.edit, color: textColor),
+                  title: Text("ルーム情報を編集", style: TextStyle(color: textColor)),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.notifications, color: textColor),
+                  title: Text("通知設定", style: TextStyle(color: textColor)),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.info_outline, color: textColor),
+                  title: Text("ルーム情報", style: TextStyle(color: textColor)),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -905,14 +1007,20 @@ class _RoomFeatureScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -922,8 +1030,8 @@ class _RoomFeatureScreen extends StatelessWidget {
             const SizedBox(width: 7),
             Text(
               title,
-              style: const TextStyle(
-                color: Colors.black87,
+              style: TextStyle(
+                color: textColor,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -954,31 +1062,39 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final myBubbleColor = isDark ? const Color(0xFF2196F3).withValues(alpha: 0.3) : const Color(0xFFDCEEFF);
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.black45;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+    final iconBgColor = isDark ? const Color(0xFF2196F3).withValues(alpha: 0.2) : const Color(0xFFEAF4FF);
+
     final bubble = Container(
       constraints: const BoxConstraints(maxWidth: 280),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: isMine ? const Color(0xFFDCEEFF) : Colors.white,
+        color: isMine ? myBubbleColor : cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             name,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: textColor,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             message,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: Colors.black87,
+              color: textColor,
               height: 1.4,
             ),
           ),
@@ -987,7 +1103,7 @@ class _ChatBubble extends StatelessWidget {
             alignment: Alignment.bottomRight,
             child: Text(
               time,
-              style: const TextStyle(fontSize: 10, color: Colors.black45),
+              style: TextStyle(fontSize: 10, color: subtitleColor),
             ),
           ),
         ],
@@ -1001,10 +1117,10 @@ class _ChatBubble extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!isMine) ...[
-          const CircleAvatar(
+          CircleAvatar(
             radius: 19,
-            backgroundColor: Color(0xFFEAF4FF),
-            child: Icon(Icons.person, color: Color(0xFF2196F3), size: 20),
+            backgroundColor: iconBgColor,
+            child: const Icon(Icons.person, color: Color(0xFF2196F3), size: 20),
           ),
           const SizedBox(width: 8),
         ],
@@ -1031,21 +1147,29 @@ class MemberTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.black54;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+    final iconBgColor = isDark ? const Color(0xFF2196F3).withValues(alpha: 0.2) : const Color(0xFFEAF4FF);
+
     return Card(
-      elevation: 1,
+      elevation: 0,
+      color: cardColor,
       shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+        side: BorderSide(color: borderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 24,
-              backgroundColor: Color(0xFFEAF4FF),
-              child: Icon(Icons.person, color: Color(0xFF2196F3)),
+              backgroundColor: iconBgColor,
+              child: const Icon(Icons.person, color: Color(0xFF2196F3)),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1054,15 +1178,16 @@ class MemberTile extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "今日 $time",
-                    style: const TextStyle(fontSize: 13, color: Colors.black54),
+                    style: TextStyle(fontSize: 13, color: subtitleColor),
                   ),
                 ],
               ),
@@ -1071,14 +1196,14 @@ class MemberTile extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: studying
-                    ? const Color(0xFFE8F5E9)
-                    : const Color(0xFFF3F4F6),
+                    ? (isDark ? Colors.green.withValues(alpha: 0.2) : const Color(0xFFE8F5E9))
+                    : (isDark ? Colors.grey.shade800 : const Color(0xFFF3F4F6)),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 studying ? "勉強中" : "休憩中",
                 style: TextStyle(
-                  color: studying ? Colors.green : Colors.grey,
+                  color: studying ? Colors.green : (isDark ? Colors.white60 : Colors.grey),
                   fontWeight: FontWeight.bold,
                 ),
               ),

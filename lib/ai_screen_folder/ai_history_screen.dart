@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'aihistory_chat_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'ai_screen.dart';
 
 class AiHistoryScreen extends StatelessWidget {
   const AiHistoryScreen({super.key});
@@ -18,12 +17,18 @@ class AiHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: bgColor,
 
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () {
             FocusScope.of(context).unfocus();
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -31,25 +36,26 @@ class AiHistoryScreen extends StatelessWidget {
         ),
         title: Transform.translate(
           offset: const Offset(-19, 0),
-          child: const Text(
+          child: Text(
             "履歴",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: textColor),
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: Icon(Icons.delete_outline, color: textColor),
               onPressed: () async {
                 final result = await showDialog<bool>(
                   context: context,
                   builder: (_) => AlertDialog(
-                    title: const Text("履歴を削除"),
-                    content: const Text("すべての履歴を削除しますか？"),
+                    backgroundColor: cardColor,
+                    title: Text("履歴を削除", style: TextStyle(color: textColor)),
+                    content: Text("すべての履歴を削除しますか？", style: TextStyle(color: textColor)),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
@@ -79,7 +85,7 @@ class AiHistoryScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text("履歴を読み込めませんでした"));
+            return Center(child: Text("履歴を読み込めませんでした", style: TextStyle(color: textColor)));
           }
 
           if (!snapshot.hasData) {
@@ -89,8 +95,8 @@ class AiHistoryScreen extends StatelessWidget {
           final docs = snapshot.data!.docs;
 
           if (docs.isEmpty) {
-            return const Center(
-              child: Text("履歴はありません", style: TextStyle(fontSize: 16)),
+            return Center(
+              child: Text("履歴はありません", style: TextStyle(fontSize: 16, color: textColor)),
             );
           }
 
@@ -103,15 +109,15 @@ class AiHistoryScreen extends StatelessWidget {
 
               return Card(
                 elevation: 0,
-                color: Colors.white,
+                color: cardColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                  side: BorderSide(color: borderColor),
                 ),
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEAF4FF),
-                    child: Icon(
+                  leading: CircleAvatar(
+                    backgroundColor: isDark ? Colors.blue.withValues(alpha: 0.2) : const Color(0xFFEAF4FF),
+                    child: const Icon(
                       Icons.chat_bubble_outline,
                       color: Color(0xFF2196F3),
                     ),
@@ -120,15 +126,14 @@ class AiHistoryScreen extends StatelessWidget {
                     data['title'] ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: textColor),
                   ),
-
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: Icon(Icons.chevron_right, color: isDark ? Colors.white60 : Colors.grey),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            AiHistoryChatScreen(chatId: docs[index].id),
+                        builder: (_) => AiHistoryChatScreen(chatId: docs[index].id),
                       ),
                     );
                   },

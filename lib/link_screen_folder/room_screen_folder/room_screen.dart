@@ -9,28 +9,34 @@ class RoomScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black;
+    final unselectedLabelColor = isDark ? Colors.white54 : const Color(0xFF9E9E9E);
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7),
 
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: cardColor,
           elevation: 0,
+          surfaceTintColor: Colors.transparent,
           centerTitle: false,
 
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () {
               Navigator.pop(context);
             },
           ),
           title: Transform.translate(
             offset: const Offset(-19, 0),
-            child: const Text(
+            child: Text(
               "ルーム",
               style: TextStyle(
-                color: Colors.black,
+                color: textColor,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
@@ -38,13 +44,13 @@ class RoomScreen extends StatelessWidget {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.notifications_none),
+              icon: Icon(Icons.notifications_none, color: textColor),
               onPressed: () {
                 // 通知画面へ
               },
             ),
             IconButton(
-              icon: const Icon(Icons.settings_outlined),
+              icon: Icon(Icons.settings_outlined, color: textColor),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -58,7 +64,7 @@ class RoomScreen extends StatelessWidget {
             indicatorColor: const Color(0xFF2196F3),
             indicatorWeight: 3,
             labelColor: const Color(0xFF2196F3),
-            unselectedLabelColor: Color(0xFF9E9E9E),
+            unselectedLabelColor: unselectedLabelColor,
 
             tabs: const [
               Tab(

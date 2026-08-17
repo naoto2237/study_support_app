@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/setting_screen.dart';
+import 'package:study_support_app/main.dart'; // ★ main.dart から共有の isDarkModeNotifier を読み込む
 
 class RecordScreen extends StatefulWidget {
   final int totalSeconds;
@@ -60,197 +62,210 @@ class _RecordScreenState extends State<RecordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String todayKey = formatDate(selectedDay);
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDark, child) {
+        final backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+        final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final textColor = isDark ? Colors.white70 : Colors.black87;
 
-    int currentDaySeconds = (studyRecords[todayKey] ?? 0);
-    int displaySeconds = widget.totalSeconds > 0 ? widget.totalSeconds : currentDaySeconds;
+        String todayKey = formatDate(selectedDay);
 
-    int totalMinutes = displaySeconds ~/ 60;
-    double totalHours = displaySeconds / 3600.0;
-    int streakDays = calculateStreak();
+        int currentDaySeconds = (studyRecords[todayKey] ?? 0);
+        int displaySeconds = widget.totalSeconds > 0 ? widget.totalSeconds : currentDaySeconds;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      appBar: AppBar(
-        title: const Text(
-          "学習グラフ",
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 19,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(left: 9),
-            child: IconButton(
-              icon: const Icon(Icons.notifications_none),
-              onPressed: () {},
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 7),
-            child: IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsPage(),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.lightBlue.shade300,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  infoRow("選択日の学習時間", "${totalMinutes}分 (${totalHours.toStringAsFixed(1)}時間)"),
-                  const SizedBox(height: 8),
-                  infoRow("累計学習時間", "${totalHours.toStringAsFixed(1)}時間"),
-                  const SizedBox(height: 8),
-                  infoRow("連続学習", "$streakDays日"),
-                ],
+        int totalMinutes = displaySeconds ~/ 60;
+        double totalHours = displaySeconds / 3600.0;
+        int streakDays = calculateStreak();
+
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          appBar: AppBar(
+            title: Text(
+              "学習グラフ",
+              style: TextStyle(
+                color: textColor,
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            // 週・日切り替え
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue),
-                borderRadius: BorderRadius.circular(30),
+            centerTitle: false,
+            backgroundColor: cardColor,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(left: 9),
+                child: IconButton(
+                  icon: Icon(Icons.notifications_none, color: textColor),
+                  onPressed: () {},
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          isWeek = true;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isWeek ? Colors.lightBlue : Colors.white,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(30),
-                            bottomLeft: Radius.circular(30),
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            "週",
-                            style: TextStyle(
-                              color: isWeek ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        ),
+              Padding(
+                padding: const EdgeInsets.only(right: 7),
+                child: IconButton(
+                  icon: Icon(Icons.settings_outlined, color: textColor),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsPage(),
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          isWeek = false;
-                          selectedDay = DateTime.now();
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isWeek ? Colors.white : Colors.lightBlue,
-                          borderRadius: const BorderRadius.only(
-                            topRight: Radius.circular(30),
-                            bottomRight: Radius.circular(30),
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            "日",
-                            style: TextStyle(
-                              color: isWeek ? Colors.black : Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 日付移動部分
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ],
+            iconTheme: IconThemeData(color: textColor),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios),
-                  onPressed: () {
-                    setState(() {
-                      if (isWeek) {
-                        selectedWeekStart = selectedWeekStart.subtract(
-                          const Duration(days: 7),
-                        );
-                      } else {
-                        selectedDay = selectedDay.subtract(
-                          const Duration(days: 1),
-                        );
-                      }
-                    });
-                  },
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E3A8A) : Colors.lightBlue.shade300,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      infoRow("選択日の学習時間", "${totalMinutes}分 (${totalHours.toStringAsFixed(1)}時間)"),
+                      const SizedBox(height: 8),
+                      infoRow("累計学習時間", "${totalHours.toStringAsFixed(1)}時間"),
+                      const SizedBox(height: 8),
+                      infoRow("連続学習", "$streakDays日"),
+                    ],
+                  ),
                 ),
-                Text(
-                  isWeek
-                      ? "${formatDate(selectedWeekStart)} ～ "
-                      "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
-                      : formatDate(selectedDay),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+
+                const SizedBox(height: 20),
+
+                // 週・日切り替え
+                Container(
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    border: Border.all(color: Colors.blue),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isWeek = true;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isWeek ? Colors.lightBlue : cardColor,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(30),
+                                bottomLeft: Radius.circular(30),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "週",
+                                style: TextStyle(
+                                  color: isWeek ? Colors.white : textColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isWeek = false;
+                              selectedDay = DateTime.now();
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isWeek ? cardColor : Colors.lightBlue,
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(30),
+                                bottomRight: Radius.circular(30),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "日",
+                                style: TextStyle(
+                                  color: isWeek ? textColor : Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.arrow_forward_ios),
-                  onPressed: () {
-                    setState(() {
-                      if (isWeek) {
-                        selectedWeekStart = selectedWeekStart.add(
-                          const Duration(days: 7),
-                        );
-                      } else {
-                        selectedDay = selectedDay.add(const Duration(days: 1));
-                      }
-                    });
-                  },
+
+                const SizedBox(height: 20),
+
+                // 日付移動部分
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back_ios, color: textColor),
+                      onPressed: () {
+                        setState(() {
+                          if (isWeek) {
+                            selectedWeekStart = selectedWeekStart.subtract(
+                              const Duration(days: 7),
+                            );
+                          } else {
+                            selectedDay = selectedDay.subtract(
+                              const Duration(days: 1),
+                            );
+                          }
+                        });
+                      },
+                    ),
+                    Text(
+                      isWeek
+                          ? "${formatDate(selectedWeekStart)} ～ "
+                          "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}"
+                          : formatDate(selectedDay),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.arrow_forward_ios, color: textColor),
+                      onPressed: () {
+                        setState(() {
+                          if (isWeek) {
+                            selectedWeekStart = selectedWeekStart.add(
+                              const Duration(days: 7),
+                            );
+                          } else {
+                            selectedDay = selectedDay.add(const Duration(days: 1));
+                          }
+                        });
+                      },
+                    ),
+                  ],
                 ),
+
+                const SizedBox(height: 20),
+
+                Expanded(child: BarChart(createChart(isDark, textColor))),
               ],
             ),
-
-            const SizedBox(height: 20),
-
-            Expanded(child: BarChart(createChart())),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -271,7 +286,9 @@ class _RecordScreenState extends State<RecordScreen> {
     );
   }
 
-  BarChartData createChart() {
+  BarChartData createChart(bool isDark, Color textColor) {
+    final gridColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+
     List<double> values = [];
 
     if (isWeek) {
@@ -288,7 +305,6 @@ class _RecordScreenState extends State<RecordScreen> {
         return seconds / 3600.0;
       });
     } else {
-      // 日表示の場合：現在の時間帯（0, 3, 6, 9, 12, 15, 18, 21時台）に自動で反映させる
       values = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
       double todayHours = widget.totalSeconds / 3600.0;
       if (todayHours > 0) {
@@ -303,7 +319,14 @@ class _RecordScreenState extends State<RecordScreen> {
     return BarChartData(
       maxY: 16,
       minY: 0,
-      gridData: FlGridData(show: true),
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        getDrawingHorizontalLine: (value) => FlLine(
+          color: gridColor,
+          strokeWidth: 1,
+        ),
+      ),
       borderData: FlBorderData(show: false),
       titlesData: FlTitlesData(
         leftTitles: AxisTitles(
@@ -311,6 +334,12 @@ class _RecordScreenState extends State<RecordScreen> {
             showTitles: true,
             reservedSize: 35,
             interval: 2,
+            getTitlesWidget: (value, meta) {
+              return Text(
+                value.toInt().toString(),
+                style: TextStyle(color: textColor, fontSize: 11),
+              );
+            },
           ),
         ),
         bottomTitles: AxisTitles(
@@ -327,7 +356,7 @@ class _RecordScreenState extends State<RecordScreen> {
                 child: Text(
                   labels[index],
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 11),
+                  style: TextStyle(fontSize: 11, color: textColor),
                 ),
               );
             },
@@ -352,5 +381,72 @@ class _RecordScreenState extends State<RecordScreen> {
         );
       }),
     );
+  }
+}
+
+class RecordService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // 学習記録を追加
+  Future<void> addRecord({
+    required String subject,
+    required int studyTime,
+    required String memo,
+  }) async {
+    await _firestore.collection("records").add({
+      "subject": subject,
+      "studyTime": studyTime,
+      "memo": memo,
+      "date": Timestamp.now(),
+    });
+  }
+
+  // 学習記録を取得
+  Stream<QuerySnapshot> getRecords() {
+    return _firestore
+        .collection("records")
+        .orderBy(
+      "date",
+      descending: true,
+    )
+        .snapshots();
+  }
+
+  // 学習記録を削除
+  Future<void> deleteRecord(String id) async {
+    await _firestore.collection("records").doc(id).delete();
+  }
+
+  // 学習時間の合計
+  Future<int> getTotalStudyTime() async {
+    final snapshot = await _firestore.collection("records").get();
+
+    int total = 0;
+
+    for (var doc in snapshot.docs) {
+      total += doc["studyTime"] as int;
+    }
+
+    return total;
+  }
+
+  // 指定した期間の学習記録取得
+  Future<List<QueryDocumentSnapshot>> getRecordsByDate(
+      DateTime start,
+      DateTime end,
+      ) async {
+    final snapshot = await _firestore
+        .collection("records")
+        .where(
+      "date",
+      isGreaterThanOrEqualTo: Timestamp.fromDate(start),
+    )
+        .where(
+      "date",
+      isLessThanOrEqualTo: Timestamp.fromDate(end),
+    )
+        .get();
+
+    return snapshot.docs;
   }
 }

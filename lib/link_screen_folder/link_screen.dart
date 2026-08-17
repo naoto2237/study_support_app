@@ -10,14 +10,22 @@ class LinkScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final subtitleColor = isDark ? Colors.white60 : Colors.black54;
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+    final trailingColor = isDark ? Colors.white60 : Colors.grey;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text(
+        backgroundColor: cardColor,
+        title: Text(
           'Link',
           style: TextStyle(
-            color: Colors.black87,
+            color: textColor,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -27,14 +35,14 @@ class LinkScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 9),
             child: IconButton(
-              icon: const Icon(Icons.notifications_none),
+              icon: Icon(Icons.notifications_none, color: textColor),
               onPressed: () {},
             ),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: const Icon(Icons.settings_outlined),
+              icon: Icon(Icons.settings_outlined, color: textColor),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -44,7 +52,9 @@ class LinkScreen extends StatelessWidget {
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.black87),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -56,6 +66,11 @@ class LinkScreen extends StatelessWidget {
               title: 'ユーザー検索',
               subtitle: '同じ目標を持つ学習仲間を探す',
               screen: const UserSearchScreen(),
+              cardColor: cardColor,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+              borderColor: borderColor,
+              trailingColor: trailingColor,
             ),
             const SizedBox(height: 16),
 
@@ -65,6 +80,11 @@ class LinkScreen extends StatelessWidget {
               title: 'Q&A',
               subtitle: '質問・回答で疑問を解決する',
               screen: QnAListPage(),
+              cardColor: cardColor,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+              borderColor: borderColor,
+              trailingColor: trailingColor,
             ),
             const SizedBox(height: 16),
 
@@ -74,6 +94,11 @@ class LinkScreen extends StatelessWidget {
               title: 'ルーム',
               subtitle: '同じ目標の仲間と交流する',
               screen: const RoomScreen(),
+              cardColor: cardColor,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+              borderColor: borderColor,
+              trailingColor: trailingColor,
             ),
           ],
         ),
@@ -82,29 +107,40 @@ class LinkScreen extends StatelessWidget {
   }
 
   Widget _buildMenuCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Widget screen,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required String subtitle,
+        required Widget screen,
+        required Color cardColor,
+        required Color textColor,
+        required Color subtitleColor,
+        required Color borderColor,
+        required Color trailingColor,
+      }) {
     return Card(
-      color: Colors.white,
+      color: cardColor,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-
-        side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
+        side: BorderSide(color: borderColor, width: 1),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: Icon(icon, size: 36, color: const Color(0xFF2196F3)),
         title: Text(
           title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
         ),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(color: subtitleColor),
+        ),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: trailingColor),
         onTap: () {
           Navigator.push(
             context,

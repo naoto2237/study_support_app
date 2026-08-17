@@ -14,33 +14,38 @@ class MypageScreen extends StatefulWidget {
 }
 
 class _MypageScreenState extends State<MypageScreen> {
-
   @override
   Widget build(BuildContext context) {
+    // ダークモードかどうかを判定
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: bgColor,
 
       appBar: AppBar(
         elevation: 0,
         centerTitle: false,
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor,
 
-        title: const Text(
+        title: Text(
           "マイページ",
           style: TextStyle(
-            color: Colors.black,
+            color: textColor,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
         ),
 
         actions: [
-
           Padding(
             padding: const EdgeInsets.only(left: 9),
             child: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.notifications_none,
+                color: textColor,
               ),
               onPressed: () {},
             ),
@@ -49,15 +54,15 @@ class _MypageScreenState extends State<MypageScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.settings_outlined,
+                color: textColor,
               ),
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                    const SettingsPage(),
+                    builder: (context) => const SettingsPage(),
                   ),
                 );
               },
@@ -65,8 +70,8 @@ class _MypageScreenState extends State<MypageScreen> {
           ),
         ],
 
-        iconTheme: const IconThemeData(
-          color: Colors.black,
+        iconTheme: IconThemeData(
+          color: textColor,
         ),
       ),
 
@@ -74,10 +79,8 @@ class _MypageScreenState extends State<MypageScreen> {
         stream: _getUserStream(),
 
         builder: (context, snapshot) {
-
           // 読み込み中
-          if (snapshot.connectionState ==
-          ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
             );
@@ -85,27 +88,30 @@ class _MypageScreenState extends State<MypageScreen> {
 
           // エラー
           if (snapshot.hasError) {
-            return const Center(
+            return Center(
               child: Text(
                 "ユーザー情報の取得に失敗しました",
+                style: TextStyle(color: textColor),
               ),
             );
           }
 
           // ログインしていない
           if (!snapshot.hasData) {
-            return const Center(
+            return Center(
               child: Text(
                 "ログインしてください",
+                style: TextStyle(color: textColor),
               ),
             );
           }
 
           // Firestoreにデータが存在しない
           if (!snapshot.data!.exists) {
-            return const Center(
+            return Center(
               child: Text(
                 "ユーザー情報が見つかりません",
+                style: TextStyle(color: textColor),
               ),
             );
           }
@@ -115,17 +121,11 @@ class _MypageScreenState extends State<MypageScreen> {
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-
             child: Column(
               children: [
-
-                ProfileCard(
-                  data: data,
-                ),
-
+                ProfileCard(data: data, isDark: isDark, cardColor: cardColor, textColor: textColor),
                 const SizedBox(height: 18),
-
-                const StudyTimeCard(),
+                StudyTimeCard(isDark: isDark, cardColor: cardColor, textColor: textColor),
               ],
             ),
           );
@@ -134,15 +134,11 @@ class _MypageScreenState extends State<MypageScreen> {
     );
   }
 
-
   // 現在ログインしているユーザーのFirestoreデータを取得
   Stream<DocumentSnapshot<Map<String, dynamic>>> _getUserStream() {
-
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-
-      // ログインしていない場合
       return const Stream.empty();
     }
 
@@ -159,100 +155,74 @@ class _MypageScreenState extends State<MypageScreen> {
 // ==============================
 
 class ProfileCard extends StatelessWidget {
-
   final Map<String, dynamic> data;
+  final bool isDark;
+  final Color cardColor;
+  final Color textColor;
 
   const ProfileCard({
     super.key,
     required this.data,
+    required this.isDark,
+    required this.cardColor,
+    required this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final String name = data["name"] ?? "名前未設定";
+    final String grade = data["grade"] ?? "未設定";
+    final String goal = data["goal"] ?? "未設定";
+    final String location = data["location"] ?? "未設定";
+    final String studyStyle = data["studyStyle"] ?? "未設定";
+    final String icon = data["icon"] ?? "";
 
-    // Firestoreから取得
-    final String name =
-    data["name"] ?? "名前未設定";
-
-    final String grade =
-    data["grade"] ?? "未設定";
-
-    final String goal =
-    data["goal"] ?? "未設定";
-
-    final String location =
-    data["location"] ?? "未設定";
-
-    final String studyStyle =
-    data["studyStyle"] ?? "未設定";
-
-    final String icon =
-    data["icon"] ?? "";
+    final dividerColor = isDark ? Colors.grey.shade800 : Colors.grey.shade200;
 
     return Card(
-      color: Colors.white,
+      color: cardColor,
       elevation: 2,
-
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
       ),
-
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: 15,
           vertical: 14,
         ),
-
         child: Column(
           children: [
-
- // ==========================
- // アイコン・名前
- // ==========================
-
+            // アイコン・名前
             Row(
               children: [
-
                 Stack(
                   children: [
-
-                    // アイコン
                     icon.isNotEmpty
-                    ? CircleAvatar(
+                        ? CircleAvatar(
                       radius: 45,
-                      backgroundImage:
-                      NetworkImage(icon),
+                      backgroundImage: NetworkImage(icon),
                     )
-                    : CircleAvatar(
+                        : CircleAvatar(
                       radius: 45,
-                      backgroundColor:
-                      MypageScreen.primaryBlue
-                          .withOpacity(0.12),
-
+                      backgroundColor: MypageScreen.primaryBlue.withValues(alpha: 0.12),
                       child: const Icon(
                         Icons.person,
                         size: 60,
-                        color:
-                        MypageScreen.primaryBlue,
+                        color: MypageScreen.primaryBlue,
                       ),
                     ),
 
-                    // カメラアイコン
                     Positioned(
                       right: 0,
                       bottom: 0,
-
                       child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: cardColor,
                           shape: BoxShape.circle,
                         ),
-
                         child: const CircleAvatar(
                           radius: 15,
-                          backgroundColor:
-                          MypageScreen.primaryBlue,
-
+                          backgroundColor: MypageScreen.primaryBlue,
                           child: Icon(
                             Icons.camera_alt,
                             color: Colors.white,
@@ -266,28 +236,21 @@ class ProfileCard extends StatelessWidget {
 
                 const SizedBox(width: 18),
 
-                // 名前
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
-
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       Text(
                         name,
-
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
+                          color: textColor,
                         ),
                       ),
-
                       const SizedBox(height: 6),
-
                       const Text(
                         "継続は力なり！一緒に頑張りましょう！",
-
                         style: TextStyle(
                           color: Colors.grey,
                         ),
@@ -299,41 +262,38 @@ class ProfileCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
+            Divider(color: dividerColor),
 
-            const Divider(),
-
-            // 学年・職種
             ProfileItem(
               icon: Icons.person,
               title: "学年・職種（任意）",
               value: grade,
+              textColor: textColor,
+              dividerColor: dividerColor,
             ),
 
-            const Divider(),
-
-            // 学習目標
             ProfileItem(
               icon: Icons.track_changes,
               title: "学習目標",
               value: goal,
+              textColor: textColor,
+              dividerColor: dividerColor,
             ),
 
-            const Divider(),
-
-            // 住んでいる場所
             ProfileItem(
               icon: Icons.location_on,
               title: "住んでいる場所（任意）",
               value: location,
+              textColor: textColor,
+              dividerColor: dividerColor,
             ),
 
-            const Divider(),
-
-            // 勉強スタイル
             ProfileItem(
               icon: Icons.schedule,
               title: "勉強スタイル",
               value: studyStyle,
+              textColor: textColor,
+              isLast: true,
             ),
           ],
         ),
@@ -348,75 +308,70 @@ class ProfileCard extends StatelessWidget {
 // ==============================
 
 class ProfileItem extends StatelessWidget {
-
   final IconData icon;
   final String title;
   final String value;
+  final Color textColor;
+  final Color? dividerColor;
+  final bool isLast;
 
   const ProfileItem({
     super.key,
     required this.icon,
     required this.title,
     required this.value,
+    required this.textColor,
+    this.dividerColor,
+    this.isLast = false,
   });
 
   @override
   Widget build(BuildContext context) {
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 0,
-        vertical: 7,
-      ),
-
-      child: Row(
-        children: [
-
-          CircleAvatar(
-            radius: 20,
-
-            backgroundColor:
-            MypageScreen.primaryBlue
-                .withOpacity(.12),
-
-            child: Icon(
-              icon,
-              color: MypageScreen.primaryBlue,
-            ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 0,
+            vertical: 7,
           ),
-
-          const SizedBox(width: 16),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
-
-              children: [
-
-                Text(
-                  title,
-
-                  style: const TextStyle(
-                    color: Colors.grey,
-                  ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: MypageScreen.primaryBlue.withValues(alpha: 0.12),
+                child: Icon(
+                  icon,
+                  color: MypageScreen.primaryBlue,
                 ),
-
-                const SizedBox(height: 5),
-
-                Text(
-                  value,
-
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                     Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: textColor,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        if (!isLast && dividerColor != null) Divider(color: dividerColor),
+      ],
     );
   }
 }
@@ -427,54 +382,49 @@ class ProfileItem extends StatelessWidget {
 // ==============================
 
 class StudyTimeCard extends StatelessWidget {
+  final bool isDark;
+  final Color cardColor;
+  final Color textColor;
 
-  const StudyTimeCard({super.key});
+  const StudyTimeCard({
+    super.key,
+    required this.isDark,
+    required this.cardColor,
+    required this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-
     return Card(
-      color: Colors.white,
+      color: cardColor,
       elevation: 2,
-
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
       ),
-
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: 15,
           vertical: 13,
         ),
-
         child: Column(
           children: [
-
             Row(
               children: [
-
                 CircleAvatar(
                   radius: 20,
-
-                  backgroundColor:
-                  MypageScreen.primaryBlue
-                      .withOpacity(.12),
-
+                  backgroundColor: MypageScreen.primaryBlue.withValues(alpha: 0.12),
                   child: const Icon(
                     Icons.schedule,
-                    color:
-                    MypageScreen.primaryBlue,
+                    color: MypageScreen.primaryBlue,
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
-                const Text(
+                Text(
                   "今週・今月の総学習時間",
-
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
+                    color: textColor,
                   ),
                 ),
               ],
@@ -484,26 +434,21 @@ class StudyTimeCard extends StatelessWidget {
 
             Row(
               children: [
-
                 Expanded(
                   child: Column(
                     children: [
-
                       const Text(
                         "今週の総学習時間",
                         style: TextStyle(
                           fontSize: 12,
+                          color: Colors.grey,
                         ),
                       ),
-
                       const SizedBox(height: 12),
-
-                      Text(
+                      const Text(
                         "12時間45分",
-
                         style: TextStyle(
-                          color:
-                          MypageScreen.primaryBlue,
+                          color: MypageScreen.primaryBlue,
                           fontSize: 20.5,
                           fontWeight: FontWeight.bold,
                         ),
@@ -515,28 +460,24 @@ class StudyTimeCard extends StatelessWidget {
                 Container(
                   height: 70,
                   width: 1,
-                  color: Colors.grey.shade300,
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
                 ),
 
                 Expanded(
                   child: Column(
                     children: [
-
                       const Text(
                         "今月の総学習時間",
                         style: TextStyle(
                           fontSize: 12,
+                          color: Colors.grey,
                         ),
                       ),
-
                       const SizedBox(height: 12),
-
-                      Text(
+                      const Text(
                         "58時間30分",
-
                         style: TextStyle(
-                          color:
-                          MypageScreen.primaryBlue,
+                          color: MypageScreen.primaryBlue,
                           fontSize: 20.5,
                           fontWeight: FontWeight.bold,
                         ),
@@ -551,7 +492,6 @@ class StudyTimeCard extends StatelessWidget {
 
             const Text(
               "※表示されている学習時間は、アプリ内での学習時間です。",
-
               style: TextStyle(
                 color: Colors.grey,
                 fontSize: 12,
@@ -563,4 +503,3 @@ class StudyTimeCard extends StatelessWidget {
     );
   }
 }
-

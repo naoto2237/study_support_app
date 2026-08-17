@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:study_support_app/setting_screen.dart';
+import 'package:study_support_app/main.dart' as app; // ← 'app' という名前のあだ名を付ける
 
 class HomeScreen extends StatefulWidget {
   // ★ 親から関数を受け取る窓口を追加
@@ -26,19 +27,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // ダークモードかどうかを自動で判定する
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+    final divColor1 = isDark ? Colors.grey.shade800 : const Color(0xFFB5BDC7);
+    final divColor2 = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
 
     return Scaffold(
       // ライトのときは元の薄い色、ダークのときは自動で真っ黒（#121212）にする
-      backgroundColor: isDark
-          ? const Color(0xFF121212)
-          : const Color(0xFFF7F7F7),
+      backgroundColor: bgColor,
       appBar: AppBar(
         centerTitle: false,
-        backgroundColor: Colors.white,
-        title: const Text(
+        backgroundColor: cardColor,
+        title: Text(
           "ホーム",
           style: TextStyle(
-            color: Colors.black87,
+            color: textColor,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -47,14 +51,14 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 9),
             child: IconButton(
-              icon: const Icon(Icons.notifications_none),
+              icon: Icon(Icons.notifications_none, color: textColor),
               onPressed: () {},
             ),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: const Icon(Icons.settings_outlined),
+              icon: Icon(Icons.settings_outlined, color: textColor),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -64,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -84,10 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                     Text(
                       getToday(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -118,14 +122,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // ★ 設定画面の目標時間とリアルタイム連動させるためのビルダー
               ValueListenableBuilder<double>(
-                valueListenable: dailyTargetHours,
+                valueListenable: app.dailyTargetHours,
                 builder: (context, targetHoursValue, child) {
                   // 設定された時間（例: 3.5時間）を Duration に変換
                   Duration goalTime = Duration(
                     hours: targetHoursValue.floor(),
                     minutes:
-                        ((targetHoursValue - targetHoursValue.floor()) * 60)
-                            .round(),
+                    ((targetHoursValue - targetHoursValue.floor()) * 60)
+                        .round(),
                   );
 
                   // 達成率の計算
@@ -142,11 +146,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       child: Card(
                         elevation: 0,
-                        color: Colors.white,
+                        color: cardColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                          side: BorderSide(
+                            color: divColor2,
                             width: 1,
                           ),
                         ),
@@ -163,18 +167,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(
+                                children: [
+                                  const Icon(
                                     Icons.flag_rounded,
                                     size: 24,
                                     color: Color(0xFFFF2D55),
                                   ),
-                                  SizedBox(width: 6),
+                                  const SizedBox(width: 6),
                                   Text(
                                     "今日の目標",
                                     style: TextStyle(
                                       fontSize: 15,
-                                      color: Colors.black87,
+                                      color: textColor,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -185,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               height: 1,
                               width: double.infinity,
-                              color: const Color(0xFFB5BDC7),
+                              color: divColor1,
                             ),
 
                             Padding(
@@ -199,9 +203,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Text(
                                     "${goalTime.inHours}時間${goalTime.inMinutes % 60}分",
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 18,
-                                      color: Colors.black87,
+                                      color: textColor,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1,
                                     ),
@@ -210,18 +214,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const SizedBox(height: 6),
 
                                   Row(
-                                    children: const [
-                                      Icon(
+                                    children: [
+                                      const Icon(
                                         Icons.trending_up_rounded,
                                         size: 19,
                                         color: Color(0xFF2196F3),
                                       ),
-                                      SizedBox(width: 6),
+                                      const SizedBox(width: 6),
                                       Text(
                                         "達成率",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.black87,
+                                          color: textColor,
                                         ),
                                       ),
                                     ],
@@ -239,17 +243,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                             9,
                                           ),
                                           color: const Color(0xFF42A5F5),
-                                          backgroundColor: const Color(
-                                            0xFFBBDEFB,
-                                          ),
+                                          backgroundColor: isDark
+                                              ? Colors.grey.shade800
+                                              : const Color(0xFFBBDEFB),
                                         ),
                                       ),
                                       const SizedBox(width: 10),
                                       Text(
                                         "${(progress * 100).toStringAsFixed(0)}%",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.black87,
+                                          color: textColor,
                                         ),
                                       ),
                                     ],
@@ -262,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               height: 1,
                               width: double.infinity,
-                              color: const Color(0xFFE5E7EB),
+                              color: divColor2,
                             ),
 
                             const SizedBox(height: 4),
@@ -281,19 +285,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                         color: Color(0xFF2196F3),
                                       ),
                                       const SizedBox(width: 6),
-                                      const Text(
+                                      Text(
                                         "今日の学習時間",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.black87,
+                                          color: textColor,
                                         ),
                                       ),
                                       const Spacer(),
                                       Text(
                                         "${todayTotal.inHours}時間${todayTotal.inMinutes % 60}分",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 15,
-                                          color: Colors.black87,
+                                          color: textColor,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -306,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               height: 1,
                               width: double.infinity,
-                              color: const Color(0xFFE5E7EB),
+                              color: divColor2,
                             ),
 
                             const SizedBox(height: 4),
@@ -326,11 +330,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                         color: Color(0xFF2196F3),
                                       ),
                                       const SizedBox(width: 6),
-                                      const Text(
+                                      Text(
                                         "目標まで残り",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.black87,
+                                          color: textColor,
                                         ),
                                       ),
                                       const Spacer(),
@@ -338,9 +342,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                         remainingTime.isNegative
                                             ? "達成済み！"
                                             : "${remainingTime.inHours}時間${remainingTime.inMinutes % 60}分",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 15,
-                                          color: Colors.black87,
+                                          color: textColor,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
