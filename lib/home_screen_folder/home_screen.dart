@@ -101,7 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: StopwatchWidget(
                     onStop: (time) {
                       setState(() {
-                        time -=  todayTotal;
                         todayTotal += time;
                       });
 

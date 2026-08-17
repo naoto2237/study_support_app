@@ -17,35 +17,59 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final gradeController = TextEditingController();
   final goalController = TextEditingController();
 
+
   Future<void> save() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
+    try {
+      // Firebase Authenticationのユーザーを取得
+      User? user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) {
-      return;
+      // ユーザーが存在しなければ匿名ログイン
+      if (user == null) {
+        final UserCredential credential =
+        await FirebaseAuth.instance.signInAnonymously();
+
+        user = credential.user;
+      }
+
+      // UIDを取得できなかった場合
+      if (user == null) {
+        return;
+      }
+
+
+      // Firestoreに保存
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .set({
+        "uid": user.uid,
+        "name": nameController.text.trim(),
+        "grade": gradeController.text.trim(),
+        "goal": goalController.text.trim(),
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MainNavigationScreen(),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("保存に失敗しました: $e"),
+        ),
+      );
     }
-
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.uid)
-        .set({
-      "name": nameController.text,
-      "grade": gradeController.text,
-      "goal": goalController.text,
-      "createdAt": FieldValue.serverTimestamp(),
-    });
-
-    if (!mounted) return;
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const MainNavigationScreen(),
-      ),
-    );
   }
 
   @override
