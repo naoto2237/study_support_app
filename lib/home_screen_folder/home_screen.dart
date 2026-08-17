@@ -382,6 +382,9 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
 
+  // 前回停止したときまでに、すでに記録した時間
+  Duration _lastRecordedTime = Duration.zero;
+
   void _start() {
     if (_stopwatch.isRunning) return;
 
@@ -398,13 +401,33 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   void _stop() {
     _stopwatch.stop();
     _timer?.cancel();
+    _timer = null;
 
-    widget.onStop(_stopwatch.elapsed);
+    // 今回の学習で新しく経過した時間だけ計算
+    final currentElapsed = _stopwatch.elapsed;
+    final sessionTime = currentElapsed - _lastRecordedTime;
+
+    // 今回までの累計時間を記録
+    _lastRecordedTime = currentElapsed;
+
+    // 今回の学習時間だけ親に渡す
+    if (sessionTime > Duration.zero) {
+      widget.onStop(sessionTime);
+    }
+
+    setState(() {});
   }
 
   void _reset() {
-    _stop();
+    _stopwatch.stop();
+    _timer?.cancel();
+    _timer = null;
+
     _stopwatch.reset();
+
+    // 記録済み時間もリセット
+    _lastRecordedTime = Duration.zero;
+
     setState(() {});
   }
 
@@ -430,9 +453,14 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
       elevation: 7,
       shadowColor: const Color(0xFF2196F3).withValues(alpha: 0.39),
       color: const Color(0xFF2196F3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 25,
+          vertical: 12,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -500,6 +528,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
                     ],
                   ),
                 ),
+
                 GestureDetector(
                   onTap: _reset,
                   child: Column(

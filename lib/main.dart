@@ -172,7 +172,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : null,
-      body: _screens[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: Material(
         color: barColor,
         child: Container(
