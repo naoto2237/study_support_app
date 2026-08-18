@@ -20,6 +20,8 @@ class ProfileEditScreen extends StatefulWidget {
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
   final TextEditingController _commentController = TextEditingController();
 
+  final TextEditingController _nameController = TextEditingController();
+
   File? _selectedImage;
 
   bool _isSaving = false;
@@ -30,12 +32,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
     _commentController.text = widget.data["comment"] ?? "";
 
+    _nameController.text = widget.data["name"] ?? "";
+
     _loadLatestProfile();
   }
 
   @override
   void dispose() {
     _commentController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -71,10 +76,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   // アイコンを選択
   // ======================================================
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
 
-    final image = await picker.pickImage(source: ImageSource.gallery);
+    final image = await picker.pickImage(source: source, imageQuality: 85);
 
     if (image == null) return;
 
@@ -88,7 +93,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       ),
     );
 
-    // キャンセルされた場合
     if (adjustedImage == null) return;
 
     setState(() {
@@ -194,10 +198,168 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return url.toString();
   }
 
+  Future<void> _editName() async {
+    _nameController.text = widget.data["name"] ?? "";
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: const Text(
+            "名前を変更",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          content: TextField(
+            controller: _nameController,
+            maxLength: 20,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: "名前を入力してください",
+              filled: true,
+              fillColor: const Color(0xFFF7F7F7),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("キャンセル", style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                final name = _nameController.text.trim();
+
+                if (name.isEmpty) return;
+
+                Navigator.pop(context, name);
+              },
+              child: const Text(
+                "変更",
+                style: TextStyle(
+                  color: Color(0xFF3D96E8),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || result == null) return;
+
+    setState(() {
+      widget.data["name"] = result;
+      _nameController.text = result;
+    });
+  }
+
+  Future<void> _showIconOptions() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 上のつまみ
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  "アイコンを変更",
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+
+                const SizedBox(height: 12),
+
+                ListTile(
+                  leading: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: Color(0xFF3D96E8),
+                  ),
+                  title: const Text("カメラで撮影"),
+                  onTap: _showIconOptions,
+                ),
+
+                ListTile(
+                  leading: const Icon(
+                    Icons.photo_library_outlined,
+                    color: Color(0xFF3D96E8),
+                  ),
+                  title: const Text("写真を選択"),
+                  onTap: () {
+                    Navigator.pop(context, "gallery");
+                  },
+                ),
+
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.red),
+                  title: const Text(
+                    "アイコンを削除",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context, "delete");
+                  },
+                ),
+
+                const SizedBox(height: 8),
+
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    "キャンセル",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || result == null) return;
+
+    if (result == "camera") {
+      await _pickImage(ImageSource.camera);
+    } else if (result == "gallery") {
+      await _pickImage(ImageSource.gallery);
+    } else if (result == "delete") {
+      setState(() {
+        _selectedImage = null;
+        widget.data["icon"] = "";
+      });
+    }
+  }
+
   // ======================================================
   // 保存
   // ======================================================
-
   Future<void> _saveProfile() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -236,6 +398,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       debugPrint("③ Firestoreへ保存開始");
 
       await FirebaseFirestore.instance.collection("users").doc(user.uid).set({
+        "name": _nameController.text.trim(),
         "icon": iconUrl ?? "",
         "comment": _commentController.text.trim(),
       }, SetOptions(merge: true));
@@ -348,7 +511,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           "プロフィールを編集",
           style: TextStyle(
             color: Colors.black87,
-            fontSize: 18,
+            fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -371,7 +534,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       ),
 
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+        padding: const EdgeInsets.fromLTRB(14, 24, 14, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -382,13 +545,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  _buildProfileIcon(),
-
+                  GestureDetector(
+                    onTap: _showIconOptions,
+                    child: _buildProfileIcon(),
+                  ),
                   Positioned(
                     right: -2,
                     bottom: -2,
                     child: GestureDetector(
-                      onTap: _pickImage,
+                      onTap: _showIconOptions,
                       child: Container(
                         width: 36,
                         height: 36,
@@ -412,12 +577,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             const SizedBox(height: 12),
 
             Center(
-              child: Text(
-                "アイコンを変更",
-                style: TextStyle(
-                  color: const Color(0xFF3D96E8),
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              child: GestureDetector(
+                onTap: _showIconOptions,
+                child: const Text(
+                  "アイコンを変更",
+                  style: TextStyle(
+                    color: Color(0xFF3D96E8),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -438,23 +606,39 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
             const SizedBox(height: 8),
 
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF7F7F7),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+            GestureDetector(
+              onTap: _editName,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F7F7),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 19,
+                      color: Colors.grey,
+                    ),
+                  ],
                 ),
               ),
             ),
-
             const SizedBox(height: 28),
 
             // ==========================================
@@ -481,15 +665,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 filled: true,
                 fillColor: const Color(0xFFF7F7F7),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: const BorderSide(
                     color: Color(0xFF3D96E8),
                     width: 1.5,

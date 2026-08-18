@@ -192,22 +192,24 @@ class ProfileHeader extends StatelessWidget {
                       child: ClipOval(
                         child: icon.isNotEmpty
                             ? Image.network(
-                          icon,
-                          width: 82,
-                          height: 82,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                        )
+                                icon,
+                                width: 82,
+                                height: 82,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                              )
                             : Container(
-                          width: 80,
-                          height: 80,
-                          color: const Color(0xFF3D96E8).withOpacity(0.12),
-                          child: const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Color(0xFF3D96E8),
-                          ),
-                        ),
+                                width: 80,
+                                height: 80,
+                                color: const Color(
+                                  0xFF3D96E8,
+                                ).withOpacity(0.12),
+                                child: const Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Color(0xFF3D96E8),
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -240,14 +242,18 @@ class ProfileHeader extends StatelessWidget {
           // ------------------------------------------
           // 名前
           // ------------------------------------------
+          // ------------------------------------------
+          // 名前・ユーザーID
+          // ------------------------------------------
           Positioned(
-            top: 289,
+            top: 286,
             left: 0,
             right: 0,
             child: Center(
-              child: Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // 名前
                   Text(
                     name,
                     style: const TextStyle(
@@ -256,9 +262,22 @@ class ProfileHeader extends StatelessWidget {
                       letterSpacing: -1,
                     ),
                   ),
+
+                  const SizedBox(height: 3),
+
+                  // ユーザーID
+                  Text(
+                    data["userId"] ?? "",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
+
           ),
         ],
       ),
@@ -292,9 +311,9 @@ class ProfileContent extends StatelessWidget {
           // ------------------------------------------
           // 一言コメント
           // ------------------------------------------
-          const Text(
-            "継続は力なり！一緒に頑張りましょう！",
-            style: TextStyle(color: Colors.grey, fontSize: 14),
+          Text(
+            data["comment"] ?? "",
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
 
           const SizedBox(height: 18),
