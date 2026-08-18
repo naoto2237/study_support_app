@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'profile_icon_adjust_screen.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -28,12 +29,42 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     super.initState();
 
     _commentController.text = widget.data["comment"] ?? "";
+
+    _loadLatestProfile();
   }
 
   @override
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLatestProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+
+      if (!snapshot.exists) return;
+
+      final latestData = snapshot.data();
+
+      if (latestData == null || !mounted) return;
+
+      setState(() {
+        widget.data.clear();
+        widget.data.addAll(latestData);
+
+        _commentController.text = latestData["comment"] ?? "";
+      });
+    } catch (e) {
+      debugPrint("プロフィール情報取得エラー: $e");
+    }
   }
 
   // ======================================================
@@ -43,15 +74,25 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _pickImage() async {
     final picker = ImagePicker();
 
-    final image = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+    final image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image == null) return;
 
+    final selectedFile = File(image.path);
+
+    // アイコン調整画面へ
+    final adjustedImage = await Navigator.push<File>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfileIconAdjustScreen(image: selectedFile),
+      ),
+    );
+
+    // キャンセルされた場合
+    if (adjustedImage == null) return;
+
     setState(() {
-      _selectedImage = File(image.path);
+      _selectedImage = adjustedImage;
     });
   }
 
@@ -62,15 +103,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       throw Exception("ユーザーがログインしていません");
     }
 
-    final fileName = "${user.uid}.jpg";
+    // 毎回違うファイル名にする
+    final fileName = "${user.uid}_${DateTime.now().millisecondsSinceEpoch}.png";
 
     // Cloudflare Worker
     const workerUrl =
         "https://study-support-imagekit.naototomita930.workers.dev/";
 
-    // ------------------------------------------
+    // ======================================================
     // ① WorkerからJWTを取得
-    // ------------------------------------------
+    // ======================================================
 
     final authResponse = await http.post(
       Uri.parse(workerUrl),
@@ -79,6 +121,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         "uploadPayload": {
           "fileName": fileName,
           "folder": "profile_icons",
+
+          // 毎回新しいファイルとして保存
           "useUniqueFileName": "false",
         },
       }),
@@ -99,6 +143,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       throw Exception("ImageKit tokenが取得できませんでした");
     }
 
+    // ======================================================
+    // ② ImageKitアップロード
+    // ======================================================
+
     final request = http.MultipartRequest(
       "POST",
       Uri.parse("https://upload.imagekit.io/api/v2/files/upload"),
@@ -111,13 +159,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
 
     request.fields["fileName"] = fileName;
-    request.fields["token"] = token;
+
+    request.fields["token"] = token.toString();
+
     request.fields["folder"] = "profile_icons";
+
     request.fields["useUniqueFileName"] = "false";
 
-    // ------------------------------------------
+    // ======================================================
     // ③ ImageKitへ送信
-    // ------------------------------------------
+    // ======================================================
 
     final response = await request.send();
 
@@ -138,6 +189,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       throw Exception("ImageKitから画像URLを取得できませんでした");
     }
 
+    debugPrint("ImageKit新URL: $url");
+
     return url.toString();
   }
 
@@ -148,7 +201,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _saveProfile() async {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) return;
+    if (user == null) {
+      debugPrint("保存失敗: ユーザーがログインしていません");
+      return;
+    }
 
     setState(() {
       _isSaving = true;
@@ -157,34 +213,76 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     try {
       String? iconUrl = widget.data["icon"];
 
-      // ------------------------------------------
+      // ==========================================
       // アイコンが変更されている場合
-      // ------------------------------------------
+      // ==========================================
+
       if (_selectedImage != null) {
+        debugPrint("① 調整済み画像をImageKitへアップロード開始");
+
         iconUrl = await _uploadImageToImageKit(_selectedImage!);
+
+        debugPrint("② ImageKit URL: $iconUrl");
+
+        if (iconUrl == null || iconUrl.isEmpty) {
+          throw Exception("ImageKitからURLが返ってきませんでした");
+        }
       }
 
-      // ------------------------------------------
+      // ==========================================
       // Firestoreへ保存
-      // ------------------------------------------
-      await FirebaseFirestore.instance.collection("users").doc(user.uid).update(
-        {"icon": iconUrl ?? "", "comment": _commentController.text.trim()},
-      );
+      // ==========================================
+
+      debugPrint("③ Firestoreへ保存開始");
+
+      await FirebaseFirestore.instance.collection("users").doc(user.uid).set({
+        "icon": iconUrl ?? "",
+        "comment": _commentController.text.trim(),
+      }, SetOptions(merge: true));
+
+      debugPrint("④ Firestore保存成功");
+
+      // ==========================================
+      // 現在の画面にも保存した画像を反映
+      // ==========================================
+
+      if (iconUrl != null && iconUrl.isNotEmpty) {
+        widget.data["icon"] = iconUrl;
+      }
+
+      widget.data["comment"] = _commentController.text.trim();
 
       if (!mounted) return;
 
-      Navigator.pop(context);
-    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("プロフィールを保存しました")));
+
+      // 少し表示してから戻る
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
+    } catch (e, stackTrace) {
       debugPrint("プロフィール保存エラー: $e");
+
+      debugPrint(stackTrace.toString());
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("保存に失敗しました\n$e"),
-          duration: const Duration(seconds: 5),
+          content: Text("プロフィールの保存に失敗しました\n$e"),
+          duration: const Duration(seconds: 4),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 
@@ -194,16 +292,30 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   Widget _buildProfileIcon() {
     if (_selectedImage != null) {
-      return CircleAvatar(
-        radius: 50,
-        backgroundImage: FileImage(_selectedImage!),
+      return ClipOval(
+        child: SizedBox(
+          width: 96,
+          height: 96,
+          child: Image.file(
+            _selectedImage!,
+            width: 96,
+            height: 96,
+            fit: BoxFit.fill,
+          ),
+        ),
       );
     }
 
     final icon = widget.data["icon"] ?? "";
 
     if (icon.isNotEmpty) {
-      return CircleAvatar(radius: 50, backgroundImage: NetworkImage(icon));
+      return ClipOval(
+        child: SizedBox(
+          width: 96,
+          height: 96,
+          child: Image.network(icon, width: 96, height: 96, fit: BoxFit.fill),
+        ),
+      );
     }
 
     return CircleAvatar(
@@ -331,7 +443,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: const Color(0xFFF7F7F7),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 name,

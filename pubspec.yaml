@@ -78,7 +78,6 @@ flutter:
   uses-material-design: true
   assets:
     - .env
-    - assets/images/haikei5.png
     - assets/images/haikei8.png
   # To add assets to your application, add an assets section, like this:
   # assets:

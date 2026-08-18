@@ -171,36 +171,48 @@ class ProfileHeader extends StatelessWidget {
           // プロフィール画像
           // ------------------------------------------
           Positioned(
-            top: 187,
+            top: 186,
             left: 0,
             right: 0,
             child: Center(
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
+                  // 白い外枠
                   Container(
-                    padding: const EdgeInsets.all(5),
+                    width: 96,
+                    height: 96,
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: icon.isNotEmpty
-                        ? CircleAvatar(
-                            radius: 43,
-                            backgroundImage: NetworkImage(icon),
-                          )
-                        : CircleAvatar(
-                            radius: 43,
-                            backgroundColor: MypageScreen.primaryBlue
-                                .withOpacity(0.12),
-                            child: const Icon(
-                              Icons.person,
-                              size: 65,
-                              color: MypageScreen.primaryBlue,
-                            ),
+
+                    child: Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: ClipOval(
+                        child: icon.isNotEmpty
+                            ? Image.network(
+                          icon,
+                          width: 82,
+                          height: 82,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                        )
+                            : Container(
+                          width: 80,
+                          height: 80,
+                          color: const Color(0xFF3D96E8).withOpacity(0.12),
+                          child: const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Color(0xFF3D96E8),
                           ),
+                        ),
+                      ),
+                    ),
                   ),
 
+                  // カメラアイコン
                   Positioned(
                     right: -2,
                     bottom: 2,
@@ -225,7 +237,6 @@ class ProfileHeader extends StatelessWidget {
               ),
             ),
           ),
-
           // ------------------------------------------
           // 名前
           // ------------------------------------------
@@ -317,9 +328,7 @@ class ProfileContent extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProfileEditScreen(
-                          data: data,
-                        ),
+                        builder: (context) => ProfileEditScreen(data: data),
                       ),
                     );
                   },
