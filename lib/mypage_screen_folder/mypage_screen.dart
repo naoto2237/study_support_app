@@ -15,63 +15,205 @@ class MypageScreen extends StatefulWidget {
 }
 
 class _MypageScreenState extends State<MypageScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  double _scrollOffset = 0;
+
+  // FirebaseのStreamはinitStateで1回だけ作成する。
+  // スクロールによるsetStateで再作成されないようにする。
+  late final Stream<DocumentSnapshot<Map<String, dynamic>>> _userStream;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      _userStream = FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .snapshots();
+    } else {
+      _userStream = const Stream.empty();
+    }
+
+    _scrollController.addListener(() {
+      if (!mounted) return;
+
+      setState(() {
+        _scrollOffset = _scrollController.offset;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: _getUserStream(),
-
+        stream: _userStream,
         builder: (context, snapshot) {
-          // 読み込み中
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // エラー
           if (snapshot.hasError) {
             return const Center(child: Text("ユーザー情報の取得に失敗しました"));
           }
 
-          // ログインしていない
           if (!snapshot.hasData) {
             return const Center(child: Text("ログインしてください"));
           }
 
-          // Firestoreにデータがない
           if (!snapshot.data!.exists) {
             return const Center(child: Text("ユーザー情報が見つかりません"));
           }
 
           final data = snapshot.data!.data()!;
 
-          return SingleChildScrollView(
-            child: Column(
-              children: [
-                ProfileHeader(data: data),
+          return Stack(
+            children: [
+              // ======================================================
+              // ① 背景画像
+              //    ここはスクロールの外に置くので動かない
+              // ======================================================
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 335,
+                child: Image.asset(
+                  'assets/images/haikei8.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                ),
+              ),
 
-                ProfileContent(data: data),
-              ],
-            ),
+              // ======================================================
+              // ③ 白い部分＋プロフィール内容
+              //    ここだけスクロールする
+              // ======================================================
+              SingleChildScrollView(
+                controller: _scrollController,
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  children: [
+                    // 背景画像を見せるための上部スペース
+                    const SizedBox(height: 236),
+
+                    // --------------------------------------------------
+                    // 白いプロフィールエリア
+                    // --------------------------------------------------
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          ProfileHeader(
+                            data: data,
+                            scrollOffset: _scrollOffset,
+                          ),
+                          ProfileContent(data: data),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ======================================================
+              // ④ スクロール時のAppBar
+              //    IgnorePointerでスクロール操作を邪魔しない
+              // ======================================================
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(child: _buildScrollAppBar(data)),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  // 現在ログインしているユーザーのFirestoreデータを取得
-  Stream<DocumentSnapshot<Map<String, dynamic>>> _getUserStream() {
-    final user = FirebaseAuth.instance.currentUser;
+  // ======================================================
+  // スクロール時のAppBar
+  // ======================================================
+  Widget _buildScrollAppBar(Map<String, dynamic> data) {
+    final String name = data["name"] ?? "名前未設定";
 
-    if (user == null) {
-      return const Stream.empty();
-    }
+    final bool showAppBar = _scrollOffset >= 222;
 
-    return FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.uid)
-        .snapshots();
+    return AppBar(
+      automaticallyImplyLeading: false,
+      centerTitle: true,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor: showAppBar ? Colors.white : Colors.transparent,
+
+      title: showAppBar
+          ? Text(
+              name,
+              style: const TextStyle(
+                fontSize: 17.5,
+                fontWeight: FontWeight.w900,
+                color: Colors.black87,
+                letterSpacing: -0.5,
+              ),
+            )
+          : null,
+
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(left: 9),
+          child: IconButton(
+            icon: Icon(
+              Icons.notifications_none,
+              color: showAppBar ? Colors.black87 : Colors.white,
+            ),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('通知をタップしました'),
+                  duration: Duration(milliseconds: 800),
+                ),
+              );
+            },
+          ),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.only(right: 7),
+          child: IconButton(
+            icon: Icon(
+              Icons.settings_outlined,
+              color: showAppBar ? Colors.black87 : Colors.white,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -81,210 +223,154 @@ class _MypageScreenState extends State<MypageScreen> {
 
 class ProfileHeader extends StatelessWidget {
   final Map<String, dynamic> data;
+  final double scrollOffset;
 
-  const ProfileHeader({super.key, required this.data});
+  const ProfileHeader({
+    super.key,
+    required this.data,
+    required this.scrollOffset,
+  });
 
   @override
   Widget build(BuildContext context) {
     final String name = data["name"] ?? "名前未設定";
     final String icon = data["icon"] ?? "";
 
+    // ------------------------------------------
+    // スクロールに合わせてアイコンを小さくする
+    // ------------------------------------------
+    final double iconProgress = (scrollOffset / 562).clamp(0.0, 1.0);
+
+    final double iconSize = 15.5 + (95 - 15.5) * (1 - iconProgress);
+
     return SizedBox(
-      height: 350,
+      height: 145,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           // ------------------------------------------
-          // 青い背景
-          // ------------------------------------------
-          Container(
-            height: 335,
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/haikei8.png'),
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-              ),
-            ),
-          ),
-
-          // ------------------------------------------
-          // 通知・設定
+          // アイコン・名前・ユーザーID
           // ------------------------------------------
           Positioned(
-            top: 56,
+            top: -47.5,
+            left: 0,
             right: 0,
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 9),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {},
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 7),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsPage(),
+                // ------------------------------------------
+                // プロフィールアイコン
+                // ------------------------------------------
+                Transform.translate(
+                  offset: const Offset(0, 0),
+                  child: SizedBox(
+                    width: iconSize,
+                    height: iconSize,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // ------------------------------------------
+                        // アイコン本体
+                        // ------------------------------------------
+                        Container(
+                          width: iconSize,
+                          height: iconSize,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(iconSize > 20 ? 3 : 0),
+                            child: ClipOval(
+                              child: icon.isNotEmpty
+                                  ? Image.network(
+                                      icon,
+                                      width: iconSize,
+                                      height: iconSize,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      color: const Color(
+                                        0xFF3D96E8,
+                                      ).withOpacity(0.12),
+                                      child: Icon(
+                                        Icons.person,
+                                        size: iconSize * 0.65,
+                                        color: const Color(0xFF3D96E8),
+                                      ),
+                                    ),
+                            ),
+                          ),
                         ),
-                      );
-                    },
+
+                        // ------------------------------------------
+                        // カメラアイコン
+                        // ------------------------------------------
+                        if (iconSize > 25)
+                          Positioned(
+                            right: -2,
+                            bottom: 2,
+                            child: Container(
+                              width: 38 * (iconSize / 94),
+                              height: 38 * (iconSize / 94),
+                              decoration: const BoxDecoration(
+                                color: MypageScreen.primaryBlue,
+                                shape: BoxShape.circle,
+                                border: Border.fromBorderSide(
+                                  BorderSide(color: Colors.white, width: 3),
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 19 * (iconSize / 94),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-
-          // ------------------------------------------
-          // 白いプロフィールエリア
-          // ------------------------------------------
-          Positioned(
-            top: 237,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 170,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-              ),
-            ),
-          ),
-
-          // ------------------------------------------
-          // プロフィール画像
-          // ------------------------------------------
-          Positioned(
-            top: 186,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // 白い外枠
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-
-                    child: Padding(
-                      padding: const EdgeInsets.all(3),
-                      child: ClipOval(
-                        child: icon.isNotEmpty
-                            ? Image.network(
-                                icon,
-                                width: 82,
-                                height: 82,
-                                fit: BoxFit.cover,
-                                alignment: Alignment.center,
-                              )
-                            : Container(
-                                width: 80,
-                                height: 80,
-                                color: const Color(
-                                  0xFF3D96E8,
-                                ).withOpacity(0.12),
-                                child: const Icon(
-                                  Icons.person,
-                                  size: 60,
-                                  color: Color(0xFF3D96E8),
-                                ),
-                              ),
-                      ),
-                    ),
-                  ),
-
-                  // カメラアイコン
-                  Positioned(
-                    right: -2,
-                    bottom: 2,
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: const BoxDecoration(
-                        color: MypageScreen.primaryBlue,
-                        shape: BoxShape.circle,
-                        border: Border.fromBorderSide(
-                          BorderSide(color: Colors.white, width: 3),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 19,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // ------------------------------------------
-          // 名前
-          // ------------------------------------------
           // ------------------------------------------
           // 名前・ユーザーID
           // ------------------------------------------
           Positioned(
-            top: 286,
+            top: 51.5,
             left: 0,
             right: 0,
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 名前
                   Text(
                     name,
                     style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -1,
+                      fontSize: 17.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
                     ),
                   ),
-
-                  const SizedBox(height: 3),
-
-                  // ユーザーID
+                  const SizedBox(height: 1),
                   Text(
                     data["userId"] ?? "",
                     style: const TextStyle(
                       fontSize: 13,
-                      color: Colors.grey,
+                      color: Colors.black54,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-
           ),
         ],
       ),
     );
   }
 }
-
 // ======================================================
 // プロフィール以下
 // ======================================================
@@ -380,7 +466,7 @@ class ProfileContent extends StatelessWidget {
           // ------------------------------------------
           const StudyTimeSection(),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 200),
         ],
       ),
     );
