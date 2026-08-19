@@ -9,12 +9,15 @@ class AiChatInputBar extends StatefulWidget {
   final bool isLoading;
   final ValueChanged<File?> onImageSelected;
 
+  final bool hasStartedChat;
+
   const AiChatInputBar({
     super.key,
     required this.controller,
     required this.onSend,
     required this.isLoading,
     required this.onImageSelected,
+    required this.hasStartedChat,
   });
 
   @override
@@ -88,8 +91,12 @@ class _AiChatInputBarState extends State<AiChatInputBar>
               curve: Curves.easeOut,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1E1E1E)
+                /* color: isDark
+                   ? const Color(0xFF1E1E1E)
+                    : const Color(0xFFF7F7F7),
+                */
+                color: widget.hasStartedChat
+                    ? Colors.white
                     : const Color(0xFFF7F7F7),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(

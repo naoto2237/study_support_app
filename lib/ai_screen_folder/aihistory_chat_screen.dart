@@ -226,6 +226,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
       onTap: () {
         FocusScope.of(context).unfocus();
       },
+
       child: Scaffold(
         backgroundColor: const Color(0xFFF7F7F7),
 
@@ -292,6 +293,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
                 controller: _textController,
                 onSend: askGemini,
                 isLoading: _isLoading,
+                hasStartedChat: _hasStartedChat,
                 onImageSelected: (image) {
                   setState(() {
                     _selectedImage = image;

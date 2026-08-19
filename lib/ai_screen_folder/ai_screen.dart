@@ -229,8 +229,7 @@ class _AiTestScreenState extends State<AiScreen> {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: bgColor,
-
+        backgroundColor: _hasStartedChat ? Color(0xFFF7F7F7) : Colors.white,
         appBar: AppBar(
           leadingWidth: 56,
           // デフォルトは56
@@ -266,17 +265,19 @@ class _AiTestScreenState extends State<AiScreen> {
 
           title: Transform.translate(
             offset: Offset(_hasStartedChat ? -19 : 0, 0),
-            child: const Text(
+            child: Text(
               "AIサポート",
               style: TextStyle(
-                color: Colors.white,
+                color: _hasStartedChat ? Colors.black87 : Colors.white,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           centerTitle: false,
-          backgroundColor: Color(0xFF258EDB),
+          backgroundColor: _hasStartedChat
+              ? Colors.white
+              : const Color(0xFF258EDB),
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
@@ -284,7 +285,10 @@ class _AiTestScreenState extends State<AiScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon: const Icon(Icons.history, color: Colors.white),
+                icon: Icon(
+                  Icons.history,
+                  color: _hasStartedChat ? Colors.black87 : Colors.white,
+                ),
                 onPressed: () {
                   // キーボードを閉じる
                   FocusScope.of(context).unfocus();
@@ -421,6 +425,7 @@ class _AiTestScreenState extends State<AiScreen> {
                 controller: _textController,
                 onSend: askGemini,
                 isLoading: _isLoading,
+                hasStartedChat: _hasStartedChat,
                 onImageSelected: (image) {
                   setState(() {
                     _selectedImage = image;
@@ -447,27 +452,17 @@ class _AiTestScreenState extends State<AiScreen> {
         FocusScope.of(context).requestFocus(FocusNode());
       },
       child: Container(
-        padding: const EdgeInsets.only(
-          left: 14,
-          right: 14,
-          top: 0,
-        ),
+        padding: const EdgeInsets.only(left: 14, right: 14, top: 0),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark
-                ? Colors.grey.shade800
-                : const Color(0xFFE5E7EB),
+            color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
           ),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: const Color(0xFF258EDB),
-              size: 23,
-            ),
+            Icon(icon, color: const Color(0xFF258EDB), size: 23),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -486,6 +481,7 @@ class _AiTestScreenState extends State<AiScreen> {
       ),
     );
   }
+
   Widget _buildAnswerCard() {
     return Padding(
       padding: const EdgeInsets.only(top: 0, right: 0, left: 0, bottom: 15),

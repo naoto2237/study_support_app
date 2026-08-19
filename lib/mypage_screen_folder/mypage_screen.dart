@@ -305,6 +305,7 @@ class ProfileHeader extends StatelessWidget {
                           ),
                         ),
 
+                        /*
                         // ------------------------------------------
                         // カメラアイコン
                         // ------------------------------------------
@@ -328,7 +329,7 @@ class ProfileHeader extends StatelessWidget {
                                 size: 19 * (iconSize / 94),
                               ),
                             ),
-                          ),
+                          ),*/
                       ],
                     ),
                   ),
