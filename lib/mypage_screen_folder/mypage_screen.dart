@@ -142,7 +142,7 @@ class _MypageScreenState extends State<MypageScreen> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: IgnorePointer(child: _buildScrollAppBar(data)),
+                child: _buildScrollAppBar(data),
               ),
             ],
           );
@@ -158,6 +158,8 @@ class _MypageScreenState extends State<MypageScreen> {
     final String name = data["name"] ?? "名前未設定";
 
     final bool showAppBar = _scrollOffset >= 222;
+
+    final double iconProgress = ((_scrollOffset - 150) / 72).clamp(0.0, 1.0);
 
     return AppBar(
       automaticallyImplyLeading: false,
@@ -184,7 +186,7 @@ class _MypageScreenState extends State<MypageScreen> {
           child: IconButton(
             icon: Icon(
               Icons.notifications_none,
-              color: showAppBar ? Colors.black87 : Colors.white,
+              color: Color.lerp(Colors.white, Colors.black87, iconProgress),
             ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -202,7 +204,7 @@ class _MypageScreenState extends State<MypageScreen> {
           child: IconButton(
             icon: Icon(
               Icons.settings_outlined,
-              color: showAppBar ? Colors.black87 : Colors.white,
+              color: Color.lerp(Colors.white, Colors.black87, iconProgress),
             ),
             onPressed: () {
               Navigator.push(
