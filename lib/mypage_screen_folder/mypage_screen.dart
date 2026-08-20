@@ -6,7 +6,6 @@ import 'package:study_support_app/setting_screen.dart';
 import 'profile_edit_screen.dart';
 import 'package:study_support_app/chat_list_screen.dart';
 
-
 class MypageScreen extends StatefulWidget {
   const MypageScreen({super.key});
 
@@ -183,49 +182,21 @@ class _MypageScreenState extends State<MypageScreen> {
           : null,
 
       actions: [
+
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.only(right: 7),
           child: IconButton(
-            icon: Icon(
-              Icons.notifications_none,
-              color: Color.lerp(Colors.white, Colors.black87, iconProgress),
-            ),
+            icon: const Icon(Icons.settings_outlined),
+            color: Color.lerp(Colors.white, Colors.black87, iconProgress),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('通知をタップしました'),
-                  duration: Duration(milliseconds: 800),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
               );
             },
           ),
         ),
-
-    Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 4),
-    child: IconButton(
-    icon: const Icon(Icons.settings_outlined),
-    onPressed: () {
-    Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => const SettingsPage()),
-    );
-    },
-    ),
-    ),
-    Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 4),
-    child: IconButton(
-    icon: const Icon(Icons.chat_bubble_outline), // 吹き出しアイコン
-    onPressed: () {
-    Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => const ChatListScreen()), // ※ファイル名に合わせて変更
-    );
-    },
-    ),
-    ),
-    ],
+      ],
     );
   }
 }

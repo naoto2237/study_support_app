@@ -49,34 +49,25 @@ class LinkScreen extends StatelessWidget {
 
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.only(left: 9),
             child: IconButton(
-              icon: const Icon(Icons.notifications_none),
+              icon: const Icon(Icons.chat_outlined),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChatListScreen(),
+                  ), // ※ファイル名に合わせて変更
+                );
+              },
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_none), // 吹き出しアイコン
               onPressed: () {},
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: IconButton(
-              icon: const Icon(Icons.chat_bubble_outline), // 吹き出しアイコン
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChatListScreen()), // ※ファイル名に合わせて変更
-                );
-              },
             ),
           ),
         ],

@@ -14,6 +14,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'splash_screen.dart';
 
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'timer_service.dart';
+
 // アプリ全体で共有するダークモードの状態変数（初期値: false = ライト）
 final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
 
@@ -28,11 +31,38 @@ final ValueNotifier<int> weeklyStudySeconds = ValueNotifier<int>(0);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Foreground ServiceとUI間の通信ポート
+  FlutterForegroundTask.initCommunicationPort();
+
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  initForegroundService();
+
   runApp(const MyApp());
+}
+
+void initForegroundService() {
+  FlutterForegroundTask.init(
+    androidNotificationOptions: AndroidNotificationOptions(
+      channelId: 'study_timer',
+      channelName: '学習タイマー',
+      channelDescription: '学習タイマーの実行状況を表示します。',
+      channelImportance: NotificationChannelImportance.LOW,
+      priority: NotificationPriority.LOW,
+      onlyAlertOnce: true,
+    ),
+    iosNotificationOptions: const IOSNotificationOptions(
+      showNotification: false,
+      playSound: false,
+    ),
+    foregroundTaskOptions: ForegroundTaskOptions(
+      eventAction: ForegroundTaskEventAction.repeat(1000),
+      allowWakeLock: true,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

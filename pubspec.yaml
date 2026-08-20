@@ -47,6 +47,8 @@ dependencies:
   shared_preferences: ^2.5.5
   image_picker: ^1.1.2
 
+  flutter_foreground_task: ^10.0.0
+
   fl_chart: ^0.68.0
   google_generative_ai: ^0.4.7
   jumping_dot: ^0.0.7

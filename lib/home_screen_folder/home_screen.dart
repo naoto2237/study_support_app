@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/setting_screen.dart';
-<<<<<<< HEAD
 import 'package:study_support_app/main.dart' as app; // ← 'app' という名前のあだ名を付ける
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/chat_list_screen.dart';
-=======
 import 'package:study_support_app/main.dart' as app;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
->>>>>>> d3cb9e7ae7a45598e90cbe6774ddc149fe14e7b9
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:study_support_app/timer_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,35 +67,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.only(left: 9),
             child: IconButton(
-              icon: const Icon(Icons.notifications_none),
-              onPressed: () {},
+              icon: const Icon(Icons.chat_outlined),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChatListScreen(),
+                  ), // ※ファイル名に合わせて変更
+                );
+              },
             ),
           ),
 
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: IconButton(
-              icon: const Icon(Icons.chat_bubble_outline), // 吹き出しアイコン
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChatListScreen()), // ※ファイル名に合わせて変更
-                );
-              },
+              icon: const Icon(Icons.notifications_none), // 吹き出しアイコン
+              onPressed: () {},
             ),
           ),
         ],
@@ -155,8 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // タイマー動作中の画面表示だけ更新
                     onTick: (sessionTime) {
                       app.todayStudySeconds.value =
-                          todayTotal.inSeconds +
-                              sessionTime.inSeconds;
+                          todayTotal.inSeconds + sessionTime.inSeconds;
                     },
 
                     // 停止・リセットしたときに確定
@@ -165,8 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         todayTotal += sessionTime;
                       });
 
-                      app.todayStudySeconds.value =
-                          todayTotal.inSeconds;
+                      app.todayStudySeconds.value = todayTotal.inSeconds;
                     },
                   ),
                 ),
@@ -519,6 +506,31 @@ class StopwatchWidget extends StatefulWidget {
 }
 
 class _StopwatchWidgetState extends State<StopwatchWidget> {
+  @override
+  void initState() {
+    super.initState();
+
+    FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
+  }
+
+  void _onReceiveTaskData(Object data) {
+    if (!mounted) return;
+
+    if (data is Map) {
+      final value = data['totalMilliseconds'];
+
+      if (value is int) {
+        setState(() {
+          _totalDisplayTime = Duration(milliseconds: value);
+
+          _currentSessionTime = _totalDisplayTime - _sessionStartTotal;
+        });
+
+        widget.onTick?.call(_currentSessionTime);
+      }
+    }
+  }
+
   // ==============================================================
   // 内部タイマー
   // ==============================================================
@@ -532,49 +544,49 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   // 現在のセッションで経過した時間
   Duration _currentSessionTime = Duration.zero;
 
-  // Stopwatch
   final Stopwatch _stopwatch = Stopwatch();
 
+  DateTime? _timerStartTime;
+
   Timer? _timer;
+
+  Future<void> _requestNotificationPermission() async {
+    final permission =
+        await FlutterForegroundTask.checkNotificationPermission();
+
+    if (permission != NotificationPermission.granted) {
+      await FlutterForegroundTask.requestNotificationPermission();
+    }
+  }
 
   // ==============================================================
   // 開始
   // ==============================================================
 
-  void _start() {
+  Future<void> _start() async {
     if (_stopwatch.isRunning) return;
 
-    // 今の累計時間を「今回の開始地点」として保存
+    await _requestNotificationPermission();
+
+    // 開始時点の累計時間
     _sessionStartTotal = _totalDisplayTime;
 
-    // 今回のセッションを0から開始
     _currentSessionTime = Duration.zero;
 
+    // Stopwatchは「開始中かどうか」の管理だけに使う
     _stopwatch.reset();
     _stopwatch.start();
 
-    _timer?.cancel();
+    // Foreground Service開始
+    await FlutterForegroundTask.startService(
+      notificationTitle: '学習中',
+      notificationText: _formatTime(),
+      callback: startCallback,
+    );
 
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      if (!_stopwatch.isRunning) {
-        timer.cancel();
-        return;
-      }
-
-      final elapsed = _stopwatch.elapsed;
-
-      setState(() {
-        _currentSessionTime = elapsed;
-
-        // 「開始時の累計時間」＋「今回の経過時間」
-        _totalDisplayTime = _sessionStartTotal + _currentSessionTime;
-      });
-      widget.onTick?.call(_currentSessionTime);
+    // 現在の累計時間だけServiceへ渡す
+    FlutterForegroundTask.sendDataToTask({
+      'baseMilliseconds': _sessionStartTotal.inMilliseconds,
     });
 
     setState(() {});
@@ -587,47 +599,34 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   Future<void> _stop() async {
     if (!_stopwatch.isRunning) return;
 
-    // まずタイマーを停止
     _stopwatch.stop();
 
-    _timer?.cancel();
-    _timer = null;
+    // Serviceを停止する前に、
+    // 最後に受け取った時間を現在値として使う
+    final sessionTime = _totalDisplayTime - _sessionStartTotal;
 
-    // 停止した瞬間の正確なセッション時間
-    final sessionTime = _stopwatch.elapsed;
+    await FlutterForegroundTask.stopService();
 
-    // 表示を停止した瞬間の値に確定
     _currentSessionTime = sessionTime;
-
-    _totalDisplayTime = _sessionStartTotal + sessionTime;
 
     if (mounted) {
       setState(() {});
     }
 
-    // ----------------------------------------
-    // Firestoreには今回のセッションだけ保存
-    // ----------------------------------------
-
     if (sessionTime > Duration.zero) {
       try {
         await widget.onSaveStudyTime(sessionTime.inSeconds);
 
-        // Home側の今日の学習時間にも今回分だけ追加
         widget.onStop(sessionTime);
       } catch (e) {
         debugPrint('学習時間の保存に失敗しました: $e');
       }
     }
 
-    // ----------------------------------------
-    // 内部タイマーだけリセット
-    // ----------------------------------------
-
     _stopwatch.reset();
     _currentSessionTime = Duration.zero;
 
-    // ★ _totalDisplayTime は絶対に変更しない
+    // _totalDisplayTime はそのまま
   }
 
   // ==============================================================
@@ -642,8 +641,11 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     _timer?.cancel();
     _timer = null;
 
+    // Foreground Serviceを停止
+    await FlutterForegroundTask.stopService();
+
     // リセット直前のセッション時間
-    final sessionTime = _stopwatch.elapsed;
+    final sessionTime = _totalDisplayTime - _sessionStartTotal;
 
     // ----------------------------------------
     // リセット前のセッションを保存
@@ -702,6 +704,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   void dispose() {
     _timer?.cancel();
     _stopwatch.stop();
+
+    FlutterForegroundTask.removeTaskDataCallback(_onReceiveTaskData);
 
     super.dispose();
   }
