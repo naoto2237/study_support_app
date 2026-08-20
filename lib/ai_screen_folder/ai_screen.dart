@@ -340,8 +340,8 @@ class _AiTestScreenState extends State<AiScreen> {
 
                           Padding(
                             padding: const EdgeInsets.only(
-                              left: 0,
-                              right: 0,
+                              left: 4,
+                              right: 4,
                               top: 11,
                               bottom: 11,
                             ),
@@ -487,7 +487,7 @@ class _AiTestScreenState extends State<AiScreen> {
       padding: const EdgeInsets.only(top: 0, right: 0, left: 0, bottom: 15),
       child: _messages.isEmpty
           ? Padding(
-              padding: const EdgeInsets.only(top: 70),
+              padding: const EdgeInsets.only(top: 73),
               child: Center(
                 child: Text(
                   "質問例をタップするか、\n下の入力欄から質問してみよう！",

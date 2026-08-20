@@ -12,7 +12,7 @@ class RoomScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white70 : Colors.black;
-    final unselectedLabelColor = isDark ? Colors.white54 : const Color(0xFF9E9E9E);
+    final unselectedLabelColor = isDark ? Colors.white54 :  Colors.black45;
 
     return DefaultTabController(
       length: 2,
