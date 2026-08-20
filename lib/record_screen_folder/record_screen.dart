@@ -3,6 +3,7 @@ import 'package:study_support_app/setting_screen.dart';
 
 import 'record_myrecord_screen.dart';
 import 'comparison_screen.dart';
+import 'package:study_support_app/chat_list_screen.dart';
 
 class RecordScreen extends StatelessWidget {
   final int totalSeconds;
@@ -44,23 +45,32 @@ class RecordScreen extends StatelessWidget {
 
           actions: [
             Padding(
-              padding: const EdgeInsets.only(left: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: IconButton(
                 icon: const Icon(Icons.notifications_none),
                 onPressed: () {},
               ),
             ),
-
             Padding(
-              padding: const EdgeInsets.only(right: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsPage(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const SettingsPage()),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: IconButton(
+                icon: const Icon(Icons.chat_bubble_outline), // 吹き出しアイコン
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ChatListScreen()), // ※ファイル名に合わせて変更
                   );
                 },
               ),

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/setting_screen.dart';
 import 'package:study_support_app/main.dart' as app; // ← 'app' という名前のあだ名を付ける
 import 'package:google_fonts/google_fonts.dart';
+import 'package:study_support_app/chat_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   // ★ 親から関数を受け取る窓口を追加
@@ -50,20 +51,32 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(left: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: IconButton(
               icon: const Icon(Icons.notifications_none),
               onPressed: () {},
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: IconButton(
               icon: const Icon(Icons.settings_outlined),
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: IconButton(
+              icon: const Icon(Icons.chat_bubble_outline), // 吹き出しアイコン
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChatListScreen()), // ※ファイル名に合わせて変更
                 );
               },
             ),

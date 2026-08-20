@@ -4,6 +4,7 @@ import 'package:study_support_app/setting_screen.dart';
 import 'user_search_screen.dart';
 import 'qanda_screen.dart';
 import 'room_screen_folder/room_screen.dart';
+import 'package:study_support_app/chat_list_screen.dart';
 
 class LinkScreen extends StatelessWidget {
   const LinkScreen({super.key});
@@ -33,6 +34,8 @@ class LinkScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: appBarColor,
 
+        iconTheme: const IconThemeData(color: Colors.white),
+
         title: Text(
           'Link',
           style: TextStyle(
@@ -46,29 +49,32 @@ class LinkScreen extends StatelessWidget {
 
         actions: [
           Padding(
-            padding: const EdgeInsets.only(left: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: IconButton(
-              icon: Icon(
-                Icons.notifications_none,
-                color: Colors.white,
-              ),
+              icon: const Icon(Icons.notifications_none),
               onPressed: () {},
             ),
           ),
-
           Padding(
-            padding: const EdgeInsets.only(right: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: IconButton(
-              icon: Icon(
-                Icons.settings_outlined,
-                color: Colors.white,
-              ),
+              icon: const Icon(Icons.settings_outlined),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsPage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: IconButton(
+              icon: const Icon(Icons.chat_bubble_outline), // 吹き出しアイコン
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChatListScreen()), // ※ファイル名に合わせて変更
                 );
               },
             ),
