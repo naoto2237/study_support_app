@@ -1,16 +1,75 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:study_support_app/main.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RecordMyRecordScreen extends StatefulWidget {
-  final int totalSeconds;
+  const RecordMyRecordScreen({super.key});
 
-  const RecordMyRecordScreen({super.key, required this.totalSeconds});
+  Future<int> getThisWeekStudySeconds() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return 0;
+    }
+
+    final now = DateTime.now();
+
+    // 月曜日を取得
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+
+    int totalSeconds = 0;
+
+    for (int i = 0; i < 7; i++) {
+      final date = monday.add(Duration(days: i));
+
+      final dateId =
+          "${date.year.toString().padLeft(4, '0')}-"
+          "${date.month.toString().padLeft(2, '0')}-"
+          "${date.day.toString().padLeft(2, '0')}";
+
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .collection("studyRecords")
+          .doc(dateId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data();
+
+        totalSeconds += (data?["studyTime"] as num?)?.toInt() ?? 0;
+      }
+    }
+
+    return totalSeconds;
+  }
 
   @override
   State<RecordMyRecordScreen> createState() => _RecordMyRecordScreenState();
 }
 
 class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    loadWeeklyStudyTime();
+  }
+
+  String formatStudyTime(int totalSeconds) {
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return "${hours}時間${minutes}分${seconds}秒";
+    }
+
+    return "${minutes}分${seconds}秒";
+  }
+
   // ==============================================================
   // 週 / 月 / 年
   // ==============================================================
@@ -30,24 +89,23 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   // ==============================================================
   final Map<String, int> studyRecords = {};
 
+  // 今週のFirestore上の学習時間
+  int weeklyFirestoreSeconds = 0;
+  int todayFirestoreSeconds = 0;
+
+  // 今週の学習時間を読み込み中か
+  bool isLoadingWeeklyTime = true;
+
   // ==============================================================
   // 学習時間
   // ==============================================================
 
   double get currentStudyHours {
-    return widget.totalSeconds / 3600.0;
+    return todayStudySeconds.value / 3600.0;
   }
 
   double get weeklyStudyHours {
-    double total = 0;
-
-    studyRecords.forEach((key, seconds) {
-      total += seconds / 3600.0;
-    });
-
-    total += currentStudyHours;
-
-    return total;
+    return weeklyFirestoreSeconds / 3600.0;
   }
 
   // ==============================================================
@@ -75,11 +133,76 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   // ==============================================================
 
   int calculateStreak() {
-    if (widget.totalSeconds > 0) {
+    if (todayStudySeconds.value > 0) {
       return 1;
     }
 
     return 0;
+  }
+
+  Future<void> loadWeeklyStudyTime() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          weeklyFirestoreSeconds = 0;
+          isLoadingWeeklyTime = false;
+        });
+      }
+      return;
+    }
+
+    final now = DateTime.now();
+
+    // 今週の月曜日
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+
+    int totalSeconds = 0;
+    int savedTodaySeconds = 0;
+
+    for (int i = 0; i < 7; i++) {
+      final date = monday.add(Duration(days: i));
+
+      final dateId =
+          "${date.year.toString().padLeft(4, '0')}-"
+          "${date.month.toString().padLeft(2, '0')}-"
+          "${date.day.toString().padLeft(2, '0')}";
+
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .collection("studyRecords")
+          .doc(dateId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data();
+
+        final studySeconds = (data?["studyTime"] as num?)?.toInt() ?? 0;
+
+        totalSeconds += studySeconds;
+
+        // 今日の保存済み時間
+        if (date.year == now.year &&
+            date.month == now.month &&
+            date.day == now.day) {
+          savedTodaySeconds = studySeconds;
+        }
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      weeklyFirestoreSeconds = totalSeconds;
+      todayFirestoreSeconds = savedTodaySeconds;
+      isLoadingWeeklyTime = false;
+    });
   }
 
   // ==============================================================
@@ -108,53 +231,53 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
 
     final secondaryColor = isDark ? Colors.white70 : const Color(0xFF666666);
 
-    return Container(
-      color: backgroundColor,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
-        child: Column(
-          children: [
-            // ======================================================
-            // 今週のサマリー
-            // ======================================================
-            _buildSummaryCard(cardColor, textColor, secondaryColor),
+    return ValueListenableBuilder<int>(
+      valueListenable: todayStudySeconds,
+      builder: (context, seconds, child) {
+        return Container(
+          color: backgroundColor,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+            child: Column(
+              children: [
+                _buildSummaryCard(cardColor, textColor, secondaryColor),
 
-            const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-            // ======================================================
-            // 学習記録の推移
-            // ======================================================
-            _buildChartCard(cardColor, textColor, secondaryColor),
+                _buildChartCard(cardColor, textColor, secondaryColor),
 
-            const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-            // ======================================================
-            // 週間目標
-            // ======================================================
-            _buildGoalCard(cardColor, textColor, secondaryColor),
+                _buildGoalCard(cardColor, textColor, secondaryColor),
 
-            const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-            // ======================================================
-            // 学習のふりかえり
-            // ======================================================
-            _buildReflectionCard(cardColor, textColor, secondaryColor),
+                _buildReflectionCard(cardColor, textColor, secondaryColor),
 
-            const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-            // ======================================================
-            // 最近の学習記録
-            // ======================================================
-            _buildRecentRecords(cardColor, textColor, secondaryColor),
-          ],
-        ),
-      ),
+                _buildRecentRecords(cardColor, textColor, secondaryColor),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
   // ==============================================================
   // 今週のサマリー
   // ==============================================================
+  String get _summaryTitle {
+    switch (selectedPeriod) {
+      case 1:
+        return "今月のサマリー";
+      case 2:
+        return "今年のサマリー";
+      default:
+        return "今週のサマリー";
+    }
+  }
 
   Widget _buildSummaryCard(
     Color cardColor,
@@ -170,7 +293,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "今週のサマリー",
+                _summaryTitle,
                 style: TextStyle(
                   color: textColor,
                   fontSize: 16,
@@ -193,10 +316,10 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
               Expanded(
                 child: _summaryItem(
                   title: "今日の学習時間",
-                  value: weeklyStudyHours.toStringAsFixed(1),
-                  unit: "時間",
-                  color: const Color(0xFF258EDB),
-                  bottomText: "目標 ${weeklyGoalHours.toStringAsFixed(1)} 時間",
+                  value: formatStudyTime(todayStudySeconds.value),
+                  unit: "",
+                  color: textColor,
+                  bottomText: '',
                 ),
               ),
 
@@ -205,11 +328,14 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
               Expanded(
                 child: _summaryItem(
                   title: "今週の学習時間",
-                  value: averageDailyGoal.toStringAsFixed(1),
-                  unit: "時間/日",
+                  value: formatStudyTime(
+                    weeklyFirestoreSeconds -
+                        todayFirestoreSeconds +
+                        todayStudySeconds.value,
+                  ),
+                  unit: "",
                   color: textColor,
                   bottomText: '',
-                //  bottomText: "※日によって異なります",
                 ),
               ),
 
@@ -222,7 +348,6 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                   unit: "日",
                   color: textColor,
                   bottomText: '',
-                  //bottomText: "目標に向けてコツコツ！",
                 ),
               ),
             ],
@@ -806,7 +931,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                 text: value,
                 style: TextStyle(
                   color: color,
-                  fontSize: 25,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),

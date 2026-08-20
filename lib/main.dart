@@ -20,6 +20,12 @@ final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
 // 目標時間も共有できるように保持
 final ValueNotifier<double> dailyTargetHours = ValueNotifier<double>(3.0);
 
+// 今日の学習時間
+final ValueNotifier<int> todayStudySeconds = ValueNotifier<int>(0);
+
+// 今週の学習時間
+final ValueNotifier<int> weeklyStudySeconds = ValueNotifier<int>(0);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -71,7 +77,8 @@ class MyApp extends StatelessWidget {
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(0xFF121212), // 全体の背景を黒ベースに
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            // 全体の背景を黒ベースに
 
             // ダークモード時のボトムナビゲーションの色を統一
             bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -108,23 +115,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
 
-  int todayTotalSeconds = 0;
-
   late AnimationController _controller;
   late Animation<double> _animation;
   int _animatedIndex = -1;
 
   List<Widget> get _screens => [
-    HomeScreen(
-      onStudyFinished: (seconds) {
-        setState(() {
-          todayTotalSeconds += seconds;
-        });
-      },
-    ),
+    const HomeScreen(),
+
     const AiScreen(),
     const LinkScreen(),
-    RecordScreen(totalSeconds: todayTotalSeconds),
+    const RecordScreen(),
     const MypageScreen(),
   ];
 
@@ -172,10 +172,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : null,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: Material(
         color: barColor,
         child: Container(
@@ -193,11 +190,36 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               height: 60,
               child: Row(
                 children: [
-                  navItem(icon: Icons.home, label: "ホーム", index: 0, isDark: isDark),
-                  navItem(icon: Icons.auto_awesome, label: "AIサポート", index: 1, isDark: isDark),
-                  navItem(icon: Icons.diversity_3, label: "Link", index: 2, isDark: isDark),
-                  navItem(icon: Icons.bar_chart, label: "学習記録", index: 3, isDark: isDark),
-                  navItem(icon: Icons.person, label: "マイページ", index: 4, isDark: isDark),
+                  navItem(
+                    icon: Icons.home,
+                    label: "ホーム",
+                    index: 0,
+                    isDark: isDark,
+                  ),
+                  navItem(
+                    icon: Icons.auto_awesome,
+                    label: "AIサポート",
+                    index: 1,
+                    isDark: isDark,
+                  ),
+                  navItem(
+                    icon: Icons.diversity_3,
+                    label: "Link",
+                    index: 2,
+                    isDark: isDark,
+                  ),
+                  navItem(
+                    icon: Icons.bar_chart,
+                    label: "学習記録",
+                    index: 3,
+                    isDark: isDark,
+                  ),
+                  navItem(
+                    icon: Icons.person,
+                    label: "マイページ",
+                    index: 4,
+                    isDark: isDark,
+                  ),
                 ],
               ),
             ),

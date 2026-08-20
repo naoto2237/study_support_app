@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:study_support_app/profile_screen.dart';
 
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
@@ -221,9 +222,13 @@ class UserList extends StatelessWidget {
                 ),
 
                 onTap: () {
-                  // ユーザーをタップしたときの処理
-                  print(
-                    "選択したユーザーID：${users[index].id}",
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfileScreen(
+                        userId: users[index].id,
+                      ),
+                    ),
                   );
                 },
               ),

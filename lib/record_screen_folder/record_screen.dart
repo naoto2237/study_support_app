@@ -6,15 +6,11 @@ import 'comparison_screen.dart';
 import 'package:study_support_app/chat_list_screen.dart';
 
 class RecordScreen extends StatelessWidget {
-  final int totalSeconds;
-
-  const RecordScreen({super.key, required this.totalSeconds});
+  const RecordScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     final textColor = isDark ? Colors.white70 : Colors.black;
 
@@ -95,32 +91,22 @@ class RecordScreen extends StatelessWidget {
 
                 tabs: const [
                   Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "自分の記録",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      "自分の記録",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
 
                   Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "他の人と比較",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      "他の人と比較",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ],
@@ -134,9 +120,8 @@ class RecordScreen extends StatelessWidget {
         // ========================================================
         body: TabBarView(
           children: [
-            RecordMyRecordScreen(totalSeconds: totalSeconds),
-
-            ComparisonScreen(totalSeconds: totalSeconds),
+            const RecordMyRecordScreen(),
+            ComparisonScreen(totalSeconds: 0),
           ],
         ),
       ),
