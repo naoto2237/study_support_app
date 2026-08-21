@@ -31,7 +31,47 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return "${now.year}年${now.month}月${now.day}日(${weeks[now.weekday - 1]})";
   }
+  @override
+  void initState() {
+    super.initState();
+    _loadTodayStudyTime();
+  }
+  Future<void> _loadTodayStudyTime() async {
+    final user = FirebaseAuth.instance.currentUser;
 
+    if (user == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+
+    final dateId =
+        "${now.year.toString().padLeft(4, '0')}-"
+        "${now.month.toString().padLeft(2, '0')}-"
+        "${now.day.toString().padLeft(2, '0')}";
+
+    final doc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .collection("studyRecords")
+        .doc(dateId)
+        .get();
+
+    if (!mounted) return;
+
+    if (doc.exists) {
+      final data = doc.data();
+
+      final savedSeconds =
+          (data?["studyTime"] as num?)?.toInt() ?? 0;
+
+      setState(() {
+        todayTotal = Duration(seconds: savedSeconds);
+      });
+
+      app.todayStudySeconds.value = savedSeconds;
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
