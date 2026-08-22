@@ -56,8 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (data == null) return;
 
-    final goaltime =
-    data['goaltime'] as Map<String, dynamic>?;
+    final goaltime = data['goaltime'] as Map<String, dynamic>?;
 
     if (goaltime == null) return;
 
@@ -71,14 +70,11 @@ class _HomeScreenState extends State<HomeScreen> {
       'sunday',
     ];
 
-    final todayKey =
-    weekdayKeys[DateTime.now().weekday - 1];
+    final todayKey = weekdayKeys[DateTime.now().weekday - 1];
 
-    final minutes =
-        (goaltime[todayKey] as num?)?.toInt() ?? 0;
+    final minutes = (goaltime[todayKey] as num?)?.toInt() ?? 0;
 
-    app.dailyTargetHours.value =
-        minutes / 60.0;
+    app.dailyTargetHours.value = minutes / 60.0;
   }
 
   Future<void> _loadTodayStudyTime() async {
@@ -485,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   child: Column(
                                     children: [
-                                       Row(
+                                      Row(
                                         children: [
                                           const Icon(
                                             Icons.hourglass_empty,
@@ -532,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-             const SizedBox(height: 10),
+              const SizedBox(height: 10),
 
               const WeekdayGoalButton(),
             ],
@@ -564,9 +560,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // その日の学習時間に加算
     // その日の学習時間に加算
     await studyRef.set({
-      "studyTime": FieldValue.increment(
-        seconds,
-      ),
+      "studyTime": FieldValue.increment(seconds),
       "date": dateId,
       "updatedAt": FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -618,7 +612,6 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     if (startTime == null) return;
 
-
     final elapsedMilliseconds =
         DateTime.now().millisecondsSinceEpoch - startTime;
 
@@ -647,11 +640,9 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
       if (value is int) {
         setState(() {
-          _totalDisplayTime =
-              Duration(milliseconds: value);
+          _totalDisplayTime = Duration(milliseconds: value);
 
-          _currentSessionTime =
-              _totalDisplayTime - _sessionStartTotal;
+          _currentSessionTime = _totalDisplayTime - _sessionStartTotal;
         });
 
         widget.onTick?.call(_currentSessionTime);
@@ -708,18 +699,11 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     // 開始時刻を保存
     final prefs = await SharedPreferences.getInstance();
 
-    final startTime =
-        DateTime.now().millisecondsSinceEpoch;
+    final startTime = DateTime.now().millisecondsSinceEpoch;
 
-    await prefs.setBool(
-      'studyTimerRunning',
-      true,
-    );
+    await prefs.setBool('studyTimerRunning', true);
 
-    await prefs.setInt(
-      'studyTimerStartTime',
-      startTime,
-    );
+    await prefs.setInt('studyTimerStartTime', startTime);
 
     await prefs.setInt(
       'studyTimerBaseMilliseconds',
@@ -731,30 +715,22 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     // ----------------------------------------------------------
     _timer?.cancel();
 
-    _timer = Timer.periodic(
-      const Duration(seconds: 1),
-          (_) {
-        if (!_stopwatch.isRunning) return;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!_stopwatch.isRunning) return;
 
-        final elapsedMilliseconds =
-            DateTime.now().millisecondsSinceEpoch -
-                startTime;
+      final elapsedMilliseconds =
+          DateTime.now().millisecondsSinceEpoch - startTime;
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        setState(() {
-          _currentSessionTime = Duration(
-            milliseconds: elapsedMilliseconds,
-          );
+      setState(() {
+        _currentSessionTime = Duration(milliseconds: elapsedMilliseconds);
 
-          _totalDisplayTime =
-              _sessionStartTotal +
-                  _currentSessionTime;
-        });
+        _totalDisplayTime = _sessionStartTotal + _currentSessionTime;
+      });
 
-        widget.onTick?.call(_currentSessionTime);
-      },
-    );
+      widget.onTick?.call(_currentSessionTime);
+    });
 
     // ----------------------------------------------------------
     // Foreground Service開始
@@ -766,9 +742,10 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     );
 
     // Serviceへ現在の累計時間を渡す
+    // Serviceへタイマー開始時刻と累計時間を渡す
     FlutterForegroundTask.sendDataToTask({
-      'baseMilliseconds':
-      _sessionStartTotal.inMilliseconds,
+      'startTimeMilliseconds': startTime,
+      'baseMilliseconds': _sessionStartTotal.inMilliseconds,
     });
 
     if (mounted) {
@@ -791,8 +768,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     // Serviceを停止する前に、
     // 最後の時間を確定
-    final sessionTime =
-        _totalDisplayTime - _sessionStartTotal;
+    final sessionTime = _totalDisplayTime - _sessionStartTotal;
 
     await FlutterForegroundTask.stopService();
 
@@ -804,36 +780,24 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     if (sessionTime > Duration.zero) {
       try {
-        await widget.onSaveStudyTime(
-          sessionTime.inSeconds,
-        );
+        await widget.onSaveStudyTime(sessionTime.inSeconds);
 
         widget.onStop(sessionTime);
       } catch (e) {
-        debugPrint(
-          '学習時間の保存に失敗しました: $e',
-        );
+        debugPrint('学習時間の保存に失敗しました: $e');
       }
     }
 
     _stopwatch.reset();
     _currentSessionTime = Duration.zero;
 
-    final prefs =
-    await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setBool(
-      'studyTimerRunning',
-      false,
-    );
+    await prefs.setBool('studyTimerRunning', false);
 
-    await prefs.remove(
-      'studyTimerStartTime',
-    );
+    await prefs.remove('studyTimerStartTime');
 
-    await prefs.remove(
-      'studyTimerBaseMilliseconds',
-    );
+    await prefs.remove('studyTimerBaseMilliseconds');
   }
 
   // ==============================================================

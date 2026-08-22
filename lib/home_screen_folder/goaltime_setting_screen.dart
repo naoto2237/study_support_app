@@ -261,23 +261,42 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
       // AppBar
       // ============================================================
       appBar: AppBar(
-        backgroundColor: primaryBlue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
         elevation: 0,
         titleSpacing: 0,
 
-        title: const Text(
-          '曜日ごとの目標設定',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        shape: const Border(
+          bottom: BorderSide(
+            color: Color(0xFFE5E5E5),
+            width: 1,
+          ),
         ),
 
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: Colors.black87,
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+
+        title: const Text(
+          '曜日ごとの目標設定',
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: _saveGoals,
             child: const Text(
               '保存',
               style: TextStyle(
-                color: Colors.white,
+                color: Colors.black87,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
@@ -290,7 +309,7 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
       // Body
       // ============================================================
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(14, 18, 14, 24),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

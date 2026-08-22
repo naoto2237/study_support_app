@@ -2,77 +2,106 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 @pragma('vm:entry-point')
 void startCallback() {
-  FlutterForegroundTask.setTaskHandler(StudyTimerTaskHandler());
+  FlutterForegroundTask.setTaskHandler(
+    StudyTimerTaskHandler(),
+  );
 }
 
 class StudyTimerTaskHandler extends TaskHandler {
-  DateTime? _startTime;
+  // HomeScreenと同じ開始時刻
+  int? _startTimeMilliseconds;
 
-  // Service開始時点までの累計時間
+  // 開始時点までの累計時間
   int _baseMilliseconds = 0;
 
   @override
-  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
-    _startTime = timestamp;
-
-    _updateTime(timestamp);
+  Future<void> onStart(
+      DateTime timestamp,
+      TaskStarter starter,
+      ) async {
+    // HomeScreenから開始時刻を受け取る
   }
 
   @override
   void onReceiveData(Object data) {
-    if (data is Map) {
-      final value = data['baseMilliseconds'];
+    if (data is! Map) return;
 
-      if (value is int) {
-        _baseMilliseconds = value;
+    // HomeScreenから開始時刻を受け取る
+    final startTime = data['startTimeMilliseconds'];
 
-        // ここでは時間計算をしない
-        // onRepeatEvent()で計算する
-        _updateNotification(Duration(milliseconds: _baseMilliseconds));
-
-        FlutterForegroundTask.sendDataToMain({
-          'totalMilliseconds': _baseMilliseconds,
-        });
-      }
+    if (startTime is int) {
+      _startTimeMilliseconds = startTime;
     }
+
+    // HomeScreenから開始前までの累計時間を受け取る
+    final baseTime = data['baseMilliseconds'];
+
+    if (baseTime is int) {
+      _baseMilliseconds = baseTime;
+    }
+
+    _updateTime();
   }
 
   @override
   void onRepeatEvent(DateTime timestamp) {
-    _updateTime(timestamp);
+    _updateTime();
   }
 
-  void _updateTime(DateTime timestamp) {
-    if (_startTime == null) return;
+  void _updateTime() {
+    if (_startTimeMilliseconds == null) return;
 
-    final elapsed = timestamp.difference(_startTime!).inMilliseconds;
+    final now =
+        DateTime.now().millisecondsSinceEpoch;
 
-    final totalMilliseconds = _baseMilliseconds + elapsed;
+    // HomeScreenと同じ計算
+    final elapsedMilliseconds =
+        now - _startTimeMilliseconds!;
+
+    final totalMilliseconds =
+        _baseMilliseconds + elapsedMilliseconds;
 
     // 通知を更新
-    _updateNotification(Duration(milliseconds: totalMilliseconds));
+    _updateNotification(
+      Duration(
+        milliseconds: totalMilliseconds,
+      ),
+    );
 
-    // Service → HomeScreen
+    // HomeScreenへ同じ時間を送る
     FlutterForegroundTask.sendDataToMain({
       'totalMilliseconds': totalMilliseconds,
     });
   }
 
   void _updateNotification(Duration duration) {
-    final hours = duration.inHours.toString().padLeft(2, '0');
+    final hours =
+    duration.inHours
+        .toString()
+        .padLeft(2, '0');
 
-    final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
+    final minutes =
+    (duration.inMinutes % 60)
+        .toString()
+        .padLeft(2, '0');
 
-    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    final seconds =
+    (duration.inSeconds % 60)
+        .toString()
+        .padLeft(2, '0');
 
     FlutterForegroundTask.updateService(
       notificationTitle: '学習中',
-      notificationText: '$hours:$minutes:$seconds',
+      notificationText:
+      '$hours:$minutes:$seconds',
     );
   }
 
   @override
-  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {}
+  Future<void> onDestroy(
+      DateTime timestamp,
+      bool isTimeout,
+      ) async {}
 
   @override
   void onNotificationButtonPressed(String id) {}
