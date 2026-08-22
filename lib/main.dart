@@ -7,7 +7,7 @@ import 'ai_screen_folder/ai_screen.dart';
 import 'link_screen_folder/link_screen.dart';
 import 'record_screen_folder/record_screen.dart';
 import 'mypage_screen_folder/mypage_screen.dart';
-
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,7 +21,7 @@ import 'timer_service.dart';
 final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
 
 // 目標時間も共有できるように保持
-final ValueNotifier<double> dailyTargetHours = ValueNotifier<double>(3.0);
+final ValueNotifier<double> dailyTargetHours = ValueNotifier<double>(0.0);
 
 // 今日の学習時間
 final ValueNotifier<int> todayStudySeconds = ValueNotifier<int>(0);
@@ -32,14 +32,17 @@ final ValueNotifier<int> weeklyStudySeconds = ValueNotifier<int>(0);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Foreground ServiceとUI間の通信ポート
-  FlutterForegroundTask.initCommunicationPort();
+  if (!kIsWeb) {
+    FlutterForegroundTask.initCommunicationPort();
+  }
 
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  initForegroundService();
+  if (!kIsWeb) {
+    initForegroundService();
+  }
 
   runApp(const MyApp());
 }

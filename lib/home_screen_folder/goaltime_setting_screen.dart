@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:study_support_app/main.dart' as app;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:study_support_app/main.dart' as app;
 
 class GoaltimeSettingScreen extends StatefulWidget {
   const GoaltimeSettingScreen({super.key});
@@ -39,12 +42,33 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
   // ==============================================================
 
   Future<void> _loadGoals() async {
-    final prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
 
-    final loadedGoals = List<int>.generate(
-      7,
-      (index) => prefs.getInt('weekdayGoalMinutes_${index + 1}') ?? 0,
-    );
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final data = doc.data();
+
+    if (data == null) return;
+
+    final goaltime =
+    data['goaltime'] as Map<String, dynamic>?;
+
+    if (goaltime == null) return;
+
+    final loadedGoals = [
+      (goaltime['monday'] as num?)?.toInt() ?? 0,
+      (goaltime['tuesday'] as num?)?.toInt() ?? 0,
+      (goaltime['wednesday'] as num?)?.toInt() ?? 0,
+      (goaltime['thursday'] as num?)?.toInt() ?? 0,
+      (goaltime['friday'] as num?)?.toInt() ?? 0,
+      (goaltime['saturday'] as num?)?.toInt() ?? 0,
+      (goaltime['sunday'] as num?)?.toInt() ?? 0,
+    ];
 
     if (!mounted) return;
 
@@ -189,16 +213,33 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
   // ==============================================================
 
   Future<void> _saveGoals() async {
-    final prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
 
-    for (int i = 0; i < 7; i++) {
-      await prefs.setInt('weekdayGoalMinutes_${i + 1}', goalMinutes[i]);
-    }
+    if (user == null) return;
 
-    // 今日の目標時間も更新
-    final todayMinutes = goalMinutes[DateTime.now().weekday - 1];
+    final goaltime = {
+      'monday': goalMinutes[0],
+      'tuesday': goalMinutes[1],
+      'wednesday': goalMinutes[2],
+      'thursday': goalMinutes[3],
+      'friday': goalMinutes[4],
+      'saturday': goalMinutes[5],
+      'sunday': goalMinutes[6],
+    };
 
-    app.dailyTargetHours.value = todayMinutes / 60.0;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .set({
+      'goaltime': goaltime,
+    }, SetOptions(merge: true));
+
+    // 今日の目標をすぐホーム画面にも反映
+    final todayMinutes =
+    goalMinutes[DateTime.now().weekday - 1];
+
+    app.dailyTargetHours.value =
+        todayMinutes / 60.0;
 
     if (!mounted) return;
 

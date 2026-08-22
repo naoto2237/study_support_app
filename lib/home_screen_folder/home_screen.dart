@@ -39,6 +39,46 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
 
     _loadTodayStudyTime();
+    _loadTodayGoal();
+  }
+
+  Future<void> _loadTodayGoal() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final data = doc.data();
+
+    if (data == null) return;
+
+    final goaltime =
+    data['goaltime'] as Map<String, dynamic>?;
+
+    if (goaltime == null) return;
+
+    const weekdayKeys = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
+
+    final todayKey =
+    weekdayKeys[DateTime.now().weekday - 1];
+
+    final minutes =
+        (goaltime[todayKey] as num?)?.toInt() ?? 0;
+
+    app.dailyTargetHours.value =
+        minutes / 60.0;
   }
 
   Future<void> _loadTodayStudyTime() async {
