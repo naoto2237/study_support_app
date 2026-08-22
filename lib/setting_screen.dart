@@ -1,8 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'main.dart'; // main.dart の isDarkModeNotifier を読み込む
-
-// ★ ホーム画面と共有する目標時間（初期値 3.0時間）
-final ValueNotifier<double> dailyTargetHours = ValueNotifier<double>(3.0);
+import 'main.dart'; // main.dart の isDarkModeNotifier などを読み込む
+import 'data_screen.dart'; // OnboardingScreen があるファイル
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -12,151 +11,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  // 通知設定の選択状態（'all' = すべての通知, 'off' = オフ）
-  String _selectedNotificationOption = 'all';
-
   // 学習記録の公開設定の選択状態（'public' = 公開, 'private' = 非公開）
   String _selectedPrivacyOption = 'public';
 
-  // 1日の目標時間を変更するダイアログ
-  void _showTargetTimeDialog(BuildContext context) {
-    // 現在の目標の数値を初期値としてテキストコントローラにセット
-    final TextEditingController controller = TextEditingController(
-      text: dailyTargetHours.value.toString(),
-    );
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('1日の目標時間の設定'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '1日の目標とする学習時間（時間）を入力してください。',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  hintText: '例: 3 または 3.5',
-                  suffixText: '時間',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('キャンセル', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () {
-                // ★ 入力されたテキストを数字（double）に変換して共有変数に保存
-                double? newTarget = double.tryParse(controller.text);
-                if (newTarget != null && newTarget > 0) {
-                  dailyTargetHours.value = newTarget;
-                }
-
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('目標時間を ${dailyTargetHours.value}時間 に設定しました')),
-                );
-              },
-              child: const Text('保存'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // 通知設定ダイアログ（ラジオボタン）
-  void _showNotificationSettingsDialog(BuildContext context) {
-    String tempSelectedOption = _selectedNotificationOption;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('通知設定'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  RadioListTile<String>(
-                    title: const Text('すべての通知を受け取る'),
-                    subtitle: const Text('リマインダーや他のユーザーからの通知'),
-                    value: 'all',
-                    groupValue: tempSelectedOption,
-                    activeColor: Colors.blue,
-                    onChanged: (String? value) {
-                      setDialogState(() {
-                        tempSelectedOption = value!;
-                      });
-                    },
-                  ),
-                  RadioListTile<String>(
-                    title: const Text('通知をオフにする'),
-                    subtitle: const Text('すべての通知を停止'),
-                    value: 'off',
-                    groupValue: tempSelectedOption,
-                    activeColor: Colors.blue,
-                    onChanged: (String? value) {
-                      setDialogState(() {
-                        tempSelectedOption = value!;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('キャンセル', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _selectedNotificationOption = tempSelectedOption;
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('通知設定を更新しました')),
-                    );
-                  },
-                  child: const Text('保存'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // ダークモード・ライトモード選択ダイアログ（★ここを修正）
+  // ダークモード・ライトモード選択ダイアログ
   void _showThemeSettingsDialog(BuildContext context) {
     bool tempThemeOption = isDarkModeNotifier.value;
 
@@ -209,7 +67,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () {
-                    // ★アプリ全体の状態を更新
                     isDarkModeNotifier.value = tempThemeOption;
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -299,7 +156,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // 使い方ガイドを表示するダイアログ
   void _showGuideDialog(BuildContext context) {
-    final bool isDark = isDarkModeNotifier.value; // ★notifierを参照
+    final bool isDark = isDarkModeNotifier.value;
     final dialogBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white70 : Colors.black87;
     final subTextColor = isDark ? Colors.white54 : Colors.grey;
@@ -322,7 +179,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 _guideItem(
                   icon: Icons.home,
                   title: '1. ホーム画面',
-                  description: 'ストップウォッチ機能を使って、毎日の学習時間を測ることができます。目標時間に向かって頑張りましょう！',
+                  description: 'ストップウォッチ機能を使って、毎日の学習時間を測ることができます。',
                   textColor: textColor,
                   subTextColor: subTextColor,
                 ),
@@ -354,7 +211,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 _guideItem(
                   icon: Icons.person,
                   title: '5. マイページ・設定',
-                  description: 'プロフィールの確認や、目標時間・ダークモード・通知などのアプリの設定を変更できます。',
+                  description: 'プロフィールの確認や、ダークモードなどのアプリの設定を変更できます。',
                   textColor: textColor,
                   subTextColor: subTextColor,
                 ),
@@ -377,7 +234,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ガイド内の項目を表示するためのパーツ用ウィジェット
   Widget _guideItem({
     required IconData icon,
     required String title,
@@ -406,7 +262,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // ★ValueListenableBuilderで全体を囲み、状態変化時に再ビルドさせる構造を維持
     return ValueListenableBuilder<bool>(
       valueListenable: isDarkModeNotifier,
       builder: (context, isDark, child) {
@@ -429,37 +284,6 @@ class _SettingsPageState extends State<SettingsPage> {
           body: ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
-              // --- ■ 学習・目標 ---
-              Padding(
-                padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
-                child: Text(
-                  '学習・目標',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: subTextColor),
-                ),
-              ),
-              Card(
-                elevation: 0,
-                color: cardColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-                ),
-                child: ValueListenableBuilder<double>(
-                  valueListenable: dailyTargetHours,
-                  builder: (context, targetValue, child) {
-                    return ListTile(
-                      leading: const Icon(Icons.flag_outlined, color: Colors.blue),
-                      title: Text('1日の目標時間', style: TextStyle(color: textColor)),
-                      subtitle: Text('現在の設定: ${targetValue}時間', style: TextStyle(fontSize: 12, color: subTextColor)),
-                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                      onTap: () => _showTargetTimeDialog(context),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
               // --- ■ アプリ設定 ---
               Padding(
                 padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
@@ -477,14 +301,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 child: Column(
                   children: [
-                    ListTile(
-                      leading: const Icon(Icons.notifications_outlined, color: Colors.blue),
-                      title: Text('通知設定', style: TextStyle(color: textColor)),
-                      subtitle: Text('タップして変更', style: TextStyle(fontSize: 12, color: subTextColor)),
-                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                      onTap: () => _showNotificationSettingsDialog(context),
-                    ),
-                    Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                     ListTile(
                       leading: const Icon(Icons.dark_mode_outlined, color: Colors.blue),
                       title: Text('ダークモード', style: TextStyle(color: textColor)),
@@ -531,11 +347,35 @@ class _SettingsPageState extends State<SettingsPage> {
 
               const SizedBox(height: 32),
 
-              // --- ログアウト・アカウント消去ボタン ---
+              // --- ログイン・ログアウト・アカウント消去ボタン ---
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 child: Column(
                   children: [
+                    // ログインボタン
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const OnboardingScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text('ログインする', style: TextStyle(fontSize: 16)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // ★ ログアウトボタン（ご指定の pushReplacement & OnboardingScreen を使用）
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
@@ -545,13 +385,31 @@ class _SettingsPageState extends State<SettingsPage> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        onPressed: () {
-                          // ログアウト処理
+                        onPressed: () async {
+                          try {
+                            // 1. Firebaseからサインアウト
+                            await FirebaseAuth.instance.signOut();
+
+                            if (!context.mounted) return;
+
+                            // 2. ご指定の画面遷移コード
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => const OnboardingScreen(),
+                              ),
+                            );
+                          } catch (e, stackTrace) {
+                            debugPrint('❌ エラー発生');
+                            debugPrint(e.toString());
+                            debugPrint(stackTrace.toString());
+                          }
                         },
                         child: const Text('ログアウトする'),
                       ),
                     ),
                     const SizedBox(height: 12),
+
+                    // アカウント消去ボタン
                     SizedBox(
                       width: double.infinity,
                       child: TextButton(
