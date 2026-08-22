@@ -1209,9 +1209,16 @@ class _RoomFeatureScreenState extends State<_RoomFeatureScreen> {
         ),
 
         actions: [
-          IconButton(
-            icon: const Icon(Icons.wallpaper, color: Colors.black87, size: 24),
-            onPressed: _changeWallpaper,
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: const Icon(
+                Icons.wallpaper,
+                color: Colors.black87,
+                size: 24,
+              ),
+              onPressed: _changeWallpaper,
+            ),
           ),
         ],
       ),

@@ -10,6 +10,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:study_support_app/timer_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'home_screen2.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,11 +33,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return "${now.year}年${now.month}月${now.day}日(${weeks[now.weekday - 1]})";
   }
+
   @override
   void initState() {
     super.initState();
+
     _loadTodayStudyTime();
   }
+
   Future<void> _loadTodayStudyTime() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -62,8 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (doc.exists) {
       final data = doc.data();
 
-      final savedSeconds =
-          (data?["studyTime"] as num?)?.toInt() ?? 0;
+      final savedSeconds = (data?["studyTime"] as num?)?.toInt() ?? 0;
 
       setState(() {
         todayTotal = Duration(seconds: savedSeconds);
@@ -72,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
       app.todayStudySeconds.value = savedSeconds;
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -440,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   child: Column(
                                     children: [
-                                      Row(
+                                       Row(
                                         children: [
                                           const Icon(
                                             Icons.hourglass_empty,
@@ -487,6 +492,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
+             const SizedBox(height: 10),
+
+              const WeekdayGoalButton(),
             ],
           ),
         ),
@@ -514,8 +522,11 @@ class _HomeScreenState extends State<HomeScreen> {
         .doc(dateId);
 
     // その日の学習時間に加算
+    // その日の学習時間に加算
     await studyRef.set({
-      "studyTime": FieldValue.increment(seconds),
+      "studyTime": FieldValue.increment(
+        seconds,
+      ),
       "date": dateId,
       "updatedAt": FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -551,6 +562,41 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     super.initState();
 
     FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
+    _restoreTimerState();
+  }
+
+  Future<void> _restoreTimerState() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final isRunning = prefs.getBool('studyTimerRunning') ?? false;
+
+    if (!isRunning) return;
+
+    final startTime = prefs.getInt('studyTimerStartTime');
+
+    final baseMilliseconds = prefs.getInt('studyTimerBaseMilliseconds') ?? 0;
+
+    if (startTime == null) return;
+
+
+    final elapsedMilliseconds =
+        DateTime.now().millisecondsSinceEpoch - startTime;
+
+    _sessionStartTotal = Duration(milliseconds: baseMilliseconds);
+
+    _totalDisplayTime = Duration(
+      milliseconds: baseMilliseconds + elapsedMilliseconds,
+    );
+
+    _currentSessionTime = Duration(milliseconds: elapsedMilliseconds);
+
+    _stopwatch.start();
+
+    if (!mounted) return;
+
+    setState(() {});
+
+    widget.onTick?.call(_currentSessionTime);
   }
 
   void _onReceiveTaskData(Object data) {
@@ -561,9 +607,11 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
       if (value is int) {
         setState(() {
-          _totalDisplayTime = Duration(milliseconds: value);
+          _totalDisplayTime =
+              Duration(milliseconds: value);
 
-          _currentSessionTime = _totalDisplayTime - _sessionStartTotal;
+          _currentSessionTime =
+              _totalDisplayTime - _sessionStartTotal;
         });
 
         widget.onTick?.call(_currentSessionTime);
@@ -613,23 +661,79 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     _currentSessionTime = Duration.zero;
 
-    // Stopwatchは「開始中かどうか」の管理だけに使う
+    // Stopwatchは開始中かどうかの管理だけ
     _stopwatch.reset();
     _stopwatch.start();
 
+    // 開始時刻を保存
+    final prefs = await SharedPreferences.getInstance();
+
+    final startTime =
+        DateTime.now().millisecondsSinceEpoch;
+
+    await prefs.setBool(
+      'studyTimerRunning',
+      true,
+    );
+
+    await prefs.setInt(
+      'studyTimerStartTime',
+      startTime,
+    );
+
+    await prefs.setInt(
+      'studyTimerBaseMilliseconds',
+      _sessionStartTotal.inMilliseconds,
+    );
+
+    // ----------------------------------------------------------
+    // 1秒ごとにタイマーを更新
+    // ----------------------------------------------------------
+    _timer?.cancel();
+
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+          (_) {
+        if (!_stopwatch.isRunning) return;
+
+        final elapsedMilliseconds =
+            DateTime.now().millisecondsSinceEpoch -
+                startTime;
+
+        if (!mounted) return;
+
+        setState(() {
+          _currentSessionTime = Duration(
+            milliseconds: elapsedMilliseconds,
+          );
+
+          _totalDisplayTime =
+              _sessionStartTotal +
+                  _currentSessionTime;
+        });
+
+        widget.onTick?.call(_currentSessionTime);
+      },
+    );
+
+    // ----------------------------------------------------------
     // Foreground Service開始
+    // ----------------------------------------------------------
     await FlutterForegroundTask.startService(
       notificationTitle: '学習中',
       notificationText: _formatTime(),
       callback: startCallback,
     );
 
-    // 現在の累計時間だけServiceへ渡す
+    // Serviceへ現在の累計時間を渡す
     FlutterForegroundTask.sendDataToTask({
-      'baseMilliseconds': _sessionStartTotal.inMilliseconds,
+      'baseMilliseconds':
+      _sessionStartTotal.inMilliseconds,
     });
 
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   // ==============================================================
@@ -641,9 +745,14 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     _stopwatch.stop();
 
+    // 1秒タイマーを停止
+    _timer?.cancel();
+    _timer = null;
+
     // Serviceを停止する前に、
-    // 最後に受け取った時間を現在値として使う
-    final sessionTime = _totalDisplayTime - _sessionStartTotal;
+    // 最後の時間を確定
+    final sessionTime =
+        _totalDisplayTime - _sessionStartTotal;
 
     await FlutterForegroundTask.stopService();
 
@@ -655,18 +764,36 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     if (sessionTime > Duration.zero) {
       try {
-        await widget.onSaveStudyTime(sessionTime.inSeconds);
+        await widget.onSaveStudyTime(
+          sessionTime.inSeconds,
+        );
 
         widget.onStop(sessionTime);
       } catch (e) {
-        debugPrint('学習時間の保存に失敗しました: $e');
+        debugPrint(
+          '学習時間の保存に失敗しました: $e',
+        );
       }
     }
 
     _stopwatch.reset();
     _currentSessionTime = Duration.zero;
 
-    // _totalDisplayTime はそのまま
+    final prefs =
+    await SharedPreferences.getInstance();
+
+    await prefs.setBool(
+      'studyTimerRunning',
+      false,
+    );
+
+    await prefs.remove(
+      'studyTimerStartTime',
+    );
+
+    await prefs.remove(
+      'studyTimerBaseMilliseconds',
+    );
   }
 
   // ==============================================================
@@ -688,13 +815,12 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     final sessionTime = _totalDisplayTime - _sessionStartTotal;
 
     // ----------------------------------------
-    // リセット前のセッションを保存
+    // リセット前の学習時間を保存
     // ----------------------------------------
 
     if (sessionTime > Duration.zero) {
       try {
         await widget.onSaveStudyTime(sessionTime.inSeconds);
-
         widget.onStop(sessionTime);
       } catch (e) {
         debugPrint('学習時間の保存に失敗しました: $e');
@@ -702,9 +828,20 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     }
 
     // ----------------------------------------
-    // 完全リセット
+    // タイマーの復元情報を完全に削除
     // ----------------------------------------
 
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove('studyTimerRunning');
+    await prefs.remove('studyTimerStartTime');
+    await prefs.remove('studyTimerBaseMilliseconds');
+
+    // ----------------------------------------
+    // タイマーを完全にリセット
+    // ----------------------------------------
+
+    _stopwatch.stop();
     _stopwatch.reset();
 
     _currentSessionTime = Duration.zero;

@@ -119,7 +119,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
               if (messages.isEmpty) {
                 return const Center(
                   child: Text(
-                    'まだチャットはありません',
+                    'まだメッセージはありません',
                     style: TextStyle(color: Colors.black45, fontSize: 14),
                   ),
                 );
@@ -238,7 +238,7 @@ class _ChatInputArea extends StatelessWidget {
                     style: const TextStyle(fontSize: 16, height: 1.4),
                     cursorColor: const Color(0xFF258EDB),
                     decoration: const InputDecoration(
-                      hintText: 'チャットを送る...',
+                      hintText: 'メッセージを送る...',
                       border: InputBorder.none,
                       isCollapsed: true,
                     ),

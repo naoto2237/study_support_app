@@ -12,12 +12,14 @@ class RoomScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white70 : Colors.black;
-    final unselectedLabelColor = isDark ? Colors.white54 :  Colors.black45;
+    final unselectedLabelColor = isDark ? Colors.white54 : Colors.black45;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7),
+        backgroundColor: isDark
+            ? const Color(0xFF121212)
+            : const Color(0xFFF7F7F7),
 
         appBar: AppBar(
           backgroundColor: cardColor,
@@ -61,8 +63,12 @@ class RoomScreen extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           bottom: TabBar(
-            indicatorColor: const Color(0xFF258EDB),
-            indicatorWeight: 3,
+            indicatorSize: TabBarIndicatorSize.tab,
+
+            indicator: const UnderlineTabIndicator(
+              borderSide: BorderSide(color: Color(0xFF258EDB), width: 3),
+            ),
+
             labelColor: const Color(0xFF258EDB),
             unselectedLabelColor: unselectedLabelColor,
 
@@ -83,6 +89,7 @@ class RoomScreen extends StatelessWidget {
                   ],
                 ),
               ),
+
               Tab(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
