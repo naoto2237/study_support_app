@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -144,6 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // プロフィール内容
                           OtherProfileContent(
                             data: data,
+                            otherUserId: widget.userId,
                           ),
                         ],
                       ),
@@ -391,28 +393,64 @@ class OtherProfileHeader extends StatelessWidget {
 // 他ユーザーのプロフィール内容
 // ======================================================
 
-class OtherProfileContent extends StatelessWidget {
+class OtherProfileContent extends StatefulWidget {
   final Map<String, dynamic> data;
+
+  // 表示している相手のFirebase UID
+  final String otherUserId;
 
   const OtherProfileContent({
     super.key,
     required this.data,
+    required this.otherUserId,
   });
+
+  @override
+  State<OtherProfileContent> createState() =>
+      _OtherProfileContentState();
+}
+
+class _OtherProfileContentState
+    extends State<OtherProfileContent> {
+
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instance;
+
+  final FirebaseAuth _auth =
+      FirebaseAuth.instance;
+
+  bool _processing = false;
+
+  // ==========================================================
+  // 自分のUID
+  // ==========================================================
+
+  String? get myUid {
+    return _auth.currentUser?.uid;
+  }
+
+  // ==========================================================
+  // 相手のUID
+  // ==========================================================
+
+  String get otherUid {
+    return widget.otherUserId;
+  }
 
   @override
   Widget build(BuildContext context) {
 
     final String grade =
-        data["grade"] ?? "未設定";
+        widget.data["grade"] ?? "未設定";
 
     final String goal =
-        data["goal"] ?? "未設定";
+        widget.data["goal"] ?? "未設定";
 
     final String location =
-        data["location"] ?? "未設定";
+        widget.data["location"] ?? "未設定";
 
     final String studyStyle =
-        data["studyStyle"] ?? "未設定";
+        widget.data["studyStyle"] ?? "未設定";
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -427,7 +465,7 @@ class OtherProfileContent extends StatelessWidget {
           // ======================================================
 
           Text(
-            data["comment"] ?? "",
+            widget.data["comment"] ?? "",
 
             style: const TextStyle(
               color: Colors.grey,
@@ -438,6 +476,18 @@ class OtherProfileContent extends StatelessWidget {
           ),
 
           const SizedBox(height: 18),
+
+          // ======================================================
+          // フレンドボタン
+          // ======================================================
+
+          SizedBox(
+            width: double.infinity,
+
+            child: _buildFriendButton(),
+          ),
+
+          const SizedBox(height: 12),
 
           // ======================================================
           // プロフィール分析
@@ -451,7 +501,7 @@ class OtherProfileContent extends StatelessWidget {
               text: "プロフィール分析",
 
               onTap: () {
-                // 後でプロフィール分析機能を追加
+                // 後で実装
               },
             ),
           ),
@@ -499,8 +549,583 @@ class OtherProfileContent extends StatelessWidget {
       ),
     );
   }
-}
 
+  // ==========================================================
+  // フレンド状態を監視
+  // ==========================================================
+
+  Stream<String> _friendStatusStream() async* {
+
+    final String? me = myUid;
+
+    final String other = otherUid;
+
+    // ログインしていない
+    if (me == null) {
+      yield "none";
+      return;
+    }
+
+    // 自分自身
+    if (me == other) {
+      yield "self";
+      return;
+    }
+
+    // ========================================================
+    // ① 自分 → 相手
+    // ========================================================
+
+    final sentSnapshot = await _firestore
+        .collection("friendRequests")
+        .where(
+      "fromUserId",
+      isEqualTo: me,
+    )
+        .where(
+      "toUserId",
+      isEqualTo: other,
+    )
+        .limit(1)
+        .get();
+
+    if (sentSnapshot.docs.isNotEmpty) {
+
+      final data =
+      sentSnapshot.docs.first.data();
+
+      if (data["status"] == "pending") {
+        yield "sent";
+        return;
+      }
+
+      if (data["status"] == "accepted") {
+        yield "friend";
+        return;
+      }
+    }
+
+    // ========================================================
+    // ② 相手 → 自分
+    // ========================================================
+
+    final receivedSnapshot = await _firestore
+        .collection("friendRequests")
+        .where(
+      "fromUserId",
+      isEqualTo: other,
+    )
+        .where(
+      "toUserId",
+      isEqualTo: me,
+    )
+        .limit(1)
+        .get();
+
+    if (receivedSnapshot.docs.isNotEmpty) {
+
+      final data =
+      receivedSnapshot.docs.first.data();
+
+      if (data["status"] == "pending") {
+        yield "received";
+        return;
+      }
+
+      if (data["status"] == "accepted") {
+        yield "friend";
+        return;
+      }
+    }
+
+    // ========================================================
+    // ③ 何もない
+    // ========================================================
+
+    yield "none";
+  }
+
+  // ==========================================================
+  // フレンドボタン
+  // ==========================================================
+
+  Widget _buildFriendButton() {
+
+    return StreamBuilder<String>(
+      stream: _friendStatusStream(),
+
+      builder: (context, snapshot) {
+
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
+
+          return Container(
+            height: 56,
+
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius:
+              BorderRadius.circular(30),
+            ),
+
+            child: const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+          );
+        }
+
+        final status =
+            snapshot.data ?? "none";
+
+        // ======================================================
+        // 自分自身
+        // ======================================================
+
+        if (status == "self") {
+
+          return _FriendButton(
+            icon: Icons.person,
+            text: "自分のプロフィール",
+            color: Colors.grey,
+            enabled: false,
+            onTap: () {},
+          );
+        }
+
+        // ======================================================
+        // フレンド
+        // ======================================================
+
+        if (status == "friend") {
+
+          return _FriendButton(
+            icon: Icons.people,
+            text: "フレンド",
+            color: Colors.grey,
+            enabled: false,
+            onTap: () {},
+          );
+        }
+
+        // ======================================================
+        // 自分から申請中
+        // ======================================================
+
+        if (status == "sent") {
+
+          return _FriendButton(
+            icon: Icons.hourglass_top,
+            text: "申請中",
+            color: Colors.grey,
+            enabled: true,
+
+            onTap: () {
+              _cancelFriendRequest();
+            },
+          );
+        }
+
+        // ======================================================
+        // 相手から申請されている
+        // ======================================================
+
+        if (status == "received") {
+
+          return _FriendButton(
+            icon: Icons.person_add,
+            text: "申請を承認する",
+            color: ProfileScreen.primaryBlue,
+            enabled: true,
+
+            onTap: () {
+              _acceptFriendRequest();
+            },
+          );
+        }
+
+        // ======================================================
+        // 未申請
+        // ======================================================
+
+        return _FriendButton(
+          icon: Icons.person_add_alt_1,
+          text: "フレンド申請",
+          color: ProfileScreen.primaryBlue,
+          enabled: true,
+
+          onTap: () {
+            _sendFriendRequest();
+          },
+        );
+      },
+    );
+  }
+
+  // ==========================================================
+  // フレンド申請
+  // ==========================================================
+
+  Future<void> _sendFriendRequest() async {
+
+    if (_processing) return;
+
+    final String? me = myUid;
+
+    final String other = otherUid;
+
+    if (me == null) {
+
+      _showMessage(
+        "ログインしてください",
+      );
+
+      return;
+    }
+
+    if (me == other) {
+
+      _showMessage(
+        "自分自身には申請できません",
+      );
+
+      return;
+    }
+
+    // ========================================================
+    // 確認ダイアログ
+    // ========================================================
+
+    final bool? result =
+    await showDialog<bool>(
+      context: context,
+
+      builder: (context) {
+
+        final name =
+            widget.data["name"] ?? "このユーザー";
+
+        return AlertDialog(
+
+          title: const Text(
+            "フレンド申請",
+          ),
+
+          content: Text(
+            "$nameさんにフレンド申請を送りますか？",
+          ),
+
+          actions: [
+
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  false,
+                );
+              },
+
+              child: const Text(
+                "キャンセル",
+              ),
+            ),
+
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  true,
+                );
+              },
+
+              child: const Text(
+                "申請する",
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != true) return;
+
+    setState(() {
+      _processing = true;
+    });
+
+    try {
+
+      // ========================================================
+      // 既に申請があるか確認
+      // ========================================================
+
+      final existing = await _firestore
+          .collection("friendRequests")
+          .where(
+        "fromUserId",
+        isEqualTo: me,
+      )
+          .where(
+        "toUserId",
+        isEqualTo: other,
+      )
+          .where(
+        "status",
+        isEqualTo: "pending",
+      )
+          .limit(1)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+
+        _showMessage(
+          "すでに申請しています",
+        );
+
+        return;
+      }
+
+      // ========================================================
+      // 相手からの申請がある場合
+      // ========================================================
+
+      final received = await _firestore
+          .collection("friendRequests")
+          .where(
+        "fromUserId",
+        isEqualTo: other,
+      )
+          .where(
+        "toUserId",
+        isEqualTo: me,
+      )
+          .where(
+        "status",
+        isEqualTo: "pending",
+      )
+          .limit(1)
+          .get();
+
+      if (received.docs.isNotEmpty) {
+
+        _showMessage(
+          "相手からすでにフレンド申請が届いています",
+        );
+
+        return;
+      }
+
+      // ========================================================
+      // 申請を作成
+      // ========================================================
+
+      await _firestore
+          .collection("friendRequests")
+          .add({
+
+        "fromUserId": me,
+
+        "toUserId": other,
+
+        "status": "pending",
+
+        "createdAt":
+        FieldValue.serverTimestamp(),
+      });
+
+      _showMessage(
+        "フレンド申請を送信しました",
+      );
+
+    } catch (e) {
+
+      _showMessage(
+        "申請に失敗しました",
+      );
+
+    } finally {
+
+      if (mounted) {
+
+        setState(() {
+          _processing = false;
+        });
+      }
+    }
+  }
+
+  // ==========================================================
+  // 申請を取り消す
+  // ==========================================================
+
+  Future<void> _cancelFriendRequest() async {
+
+    final String? me = myUid;
+
+    if (me == null) return;
+
+    try {
+
+      final snapshot = await _firestore
+          .collection("friendRequests")
+          .where(
+        "fromUserId",
+        isEqualTo: me,
+      )
+          .where(
+        "toUserId",
+        isEqualTo: otherUid,
+      )
+          .where(
+        "status",
+        isEqualTo: "pending",
+      )
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return;
+      }
+
+      final requestId =
+          snapshot.docs.first.id;
+
+      await _firestore
+          .collection("friendRequests")
+          .doc(requestId)
+          .delete();
+
+      _showMessage(
+        "フレンド申請を取り消しました",
+      );
+
+    } catch (e) {
+
+      _showMessage(
+        "申請の取り消しに失敗しました",
+      );
+    }
+  }
+
+  // ==========================================================
+  // フレンド申請を承認
+  // ==========================================================
+
+  Future<void> _acceptFriendRequest() async {
+
+    final String? me = myUid;
+
+    if (me == null) return;
+
+    try {
+
+      // ========================================================
+      // 相手から届いた申請を取得
+      // ========================================================
+
+      final snapshot = await _firestore
+          .collection("friendRequests")
+          .where(
+        "fromUserId",
+        isEqualTo: otherUid,
+      )
+          .where(
+        "toUserId",
+        isEqualTo: me,
+      )
+          .where(
+        "status",
+        isEqualTo: "pending",
+      )
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+
+        _showMessage(
+          "申請が見つかりません",
+        );
+
+        return;
+      }
+
+      final requestId =
+          snapshot.docs.first.id;
+
+      // ========================================================
+      // Transaction
+      // ========================================================
+
+      await _firestore.runTransaction(
+            (transaction) async {
+
+          final requestRef =
+          _firestore
+              .collection("friendRequests")
+              .doc(requestId);
+
+          final friendRef =
+          _firestore
+              .collection("friends")
+              .doc();
+
+          // 申請を承認済みにする
+          transaction.update(
+            requestRef,
+            {
+              "status": "accepted",
+              "acceptedAt":
+              FieldValue.serverTimestamp(),
+            },
+          );
+
+          // フレンド登録
+          transaction.set(
+            friendRef,
+            {
+              "user1": otherUid,
+              "user2": me,
+              "createdAt":
+              FieldValue.serverTimestamp(),
+            },
+          );
+        },
+      );
+
+      _showMessage(
+        "フレンドになりました！",
+      );
+
+    } catch (e) {
+
+      _showMessage(
+        "承認に失敗しました",
+      );
+    }
+  }
+
+  // ==========================================================
+  // SnackBar
+  // ==========================================================
+
+  void _showMessage(String message) {
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
+  }
+}
 
 // ======================================================
 // プロフィール分析ボタン
@@ -583,6 +1208,89 @@ class _OtherActionButton extends StatelessWidget {
   }
 }
 
+class _FriendButton extends StatelessWidget {
+
+  final IconData icon;
+  final String text;
+  final Color color;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _FriendButton({
+    required this.icon,
+    required this.text,
+    required this.color,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
+    return InkWell(
+      borderRadius:
+      BorderRadius.circular(30),
+
+      onTap: enabled
+          ? onTap
+          : null,
+
+      child: Container(
+        height: 56,
+
+        decoration: BoxDecoration(
+          color: enabled
+              ? color
+              : Colors.grey.shade100,
+
+          borderRadius:
+          BorderRadius.circular(30),
+
+          border: !enabled
+              ? Border.all(
+            color: Colors.grey.shade300,
+          )
+              : null,
+        ),
+
+        child: Row(
+          mainAxisAlignment:
+          MainAxisAlignment.center,
+
+          children: [
+
+            Icon(
+              icon,
+
+              color: enabled
+                  ? Colors.white
+                  : Colors.grey,
+
+              size: 23,
+            ),
+
+            const SizedBox(width: 8),
+
+            Text(
+              text,
+
+              style: TextStyle(
+                color: enabled
+                    ? Colors.white
+                    : Colors.grey,
+
+                fontSize: 14,
+
+                fontWeight:
+                FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 // ======================================================
 // プロフィール項目
@@ -872,3 +1580,4 @@ class _OtherStudyTimeBox extends StatelessWidget {
     );
   }
 }
+
