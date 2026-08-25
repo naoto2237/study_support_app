@@ -271,6 +271,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           : 0.0;
 
                       // 残り時間
+                      final hasGoal = goalTime.inSeconds > 0;
+
                       final remainingTime = goalTime - studyTime;
 
                       return Align(
@@ -340,18 +342,60 @@ class _HomeScreenState extends State<HomeScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      Text(
-                                        "${goalTime.inHours}時間"
-                                        "${goalTime.inMinutes % 60}分",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          color: textColor,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1,
-                                        ),
-                                      ),
-
+                                      !hasGoal
+                                          ? Text(
+                                              "未設定",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: textColor,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            )
+                                          : RichText(
+                                              textAlign: TextAlign.center,
+                                              text: TextSpan(
+                                                children: [
+                                                  TextSpan(
+                                                    text: "${goalTime.inHours}",
+                                                    style: GoogleFonts.roboto(
+                                                      color: textColor,
+                                                      fontSize: 25,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text: "時間",
+                                                    style: TextStyle(
+                                                      color: textColor,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text:
+                                                        "${goalTime.inMinutes % 60}",
+                                                    style: GoogleFonts.roboto(
+                                                      color: textColor,
+                                                      fontSize: 25,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text: "分",
+                                                    style: TextStyle(
+                                                      color: textColor,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                       const SizedBox(height: 6),
 
                                       Row(
@@ -446,13 +490,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                           const Spacer(),
 
-                                          Text(
-                                            "${studyTime.inHours}時間"
-                                            "${studyTime.inMinutes % 60}分",
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              color: textColor,
-                                              fontWeight: FontWeight.bold,
+                                          RichText(
+                                            textAlign: TextAlign.right,
+                                            text: TextSpan(
+                                              children: _buildTimeSpans(
+                                                "${studyTime.inHours}時間"
+                                                "${studyTime.inMinutes % 60}分",
+                                                textColor,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -501,17 +546,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                           const Spacer(),
 
-                                          Text(
-                                            remainingTime.isNegative
-                                                ? "達成済み！"
-                                                : "${remainingTime.inHours}時間"
+                                          !hasGoal
+                                              ? Text(
+                                                  "未設定",
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    color: textColor,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                )
+                                              : remainingTime.isNegative
+                                              ? Text(
+                                                  "達成済み！",
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    color: textColor,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                )
+                                              : RichText(
+                                                  textAlign: TextAlign.right,
+                                                  text: TextSpan(
+                                                    children: _buildTimeSpans(
+                                                      "${remainingTime.inHours}時間"
                                                       "${remainingTime.inMinutes % 60}分",
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              color: textColor,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                                      textColor,
+                                                    ),
+                                                  ),
+                                                ),
                                         ],
                                       ),
 
@@ -536,6 +598,82 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  List<TextSpan> _buildTimeSpans(String value, Color color) {
+    final spans = <TextSpan>[];
+    final regex = RegExp(r'(\d+(?:\.\d+)?)(時間|分|秒)');
+    final matches = regex.allMatches(value);
+
+    if (matches.isNotEmpty) {
+      for (final match in matches) {
+        final number = match.group(1)!;
+        final unit = match.group(2)!;
+
+        // 数字 → Roboto・25px
+        spans.add(
+          TextSpan(
+            text: number,
+            style: GoogleFonts.roboto(
+              color: color,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+
+        // 単位 → 14px
+        spans.add(
+          TextSpan(
+            text: unit,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      }
+
+      return spans;
+    }
+
+    return [
+      TextSpan(
+        text: value,
+        style: GoogleFonts.roboto(
+          color: color,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ];
+  }
+
+  String formatStudyTime(int totalSeconds) {
+    // 100時間以上 → 「123.8時間」
+    if (totalSeconds >= 100 * 3600) {
+      final tenthsOfHour = (totalSeconds * 10) ~/ 3600;
+
+      final wholeHours = tenthsOfHour ~/ 10;
+      final decimal = tenthsOfHour % 10;
+
+      return "$wholeHours.$decimal時間";
+    }
+
+    // 1時間未満 → 「30分45秒」
+    if (totalSeconds < 3600) {
+      final minutes = totalSeconds ~/ 60;
+      final seconds = totalSeconds % 60;
+
+      return "${minutes}分${seconds}秒";
+    }
+
+    // 1時間以上100時間未満 → 「2時間30分」
+    final wholeHours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+
+    return "${wholeHours}時間${minutes}分";
   }
 
   Future<void> saveTodayStudyTime(int seconds) async {
@@ -632,10 +770,45 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     widget.onTick?.call(_currentSessionTime);
   }
 
-  void _onReceiveTaskData(Object data) {
+  Future<void> _onReceiveTaskData(Object data) async {
     if (!mounted) return;
 
     if (data is Map) {
+      // ==========================================================
+      // 通知の「停止」ボタンが押された
+      // ==========================================================
+      if (data['stopTimer'] == true) {
+        await _stop();
+        return;
+      }
+
+      // ==========================================================
+      // タスクキル・Foreground Service終了
+      // ==========================================================
+      if (data['timerDestroyed'] == true) {
+        _timer?.cancel();
+        _timer = null;
+
+        _stopwatch.stop();
+
+        final prefs = await SharedPreferences.getInstance();
+
+        await prefs.setBool('studyTimerRunning', false);
+        await prefs.remove('studyTimerStartTime');
+        await prefs.remove('studyTimerBaseMilliseconds');
+
+        if (!mounted) return;
+
+        setState(() {
+          _currentSessionTime = Duration.zero;
+        });
+
+        return;
+      }
+
+      // ==========================================================
+      // 通常のタイマー更新
+      // ==========================================================
       final value = data['totalMilliseconds'];
 
       if (value is int) {
@@ -666,7 +839,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   final Stopwatch _stopwatch = Stopwatch();
 
   DateTime? _timerStartTime;
-
+  bool _sessionAlreadySaved = false;
   Timer? _timer;
 
   Future<void> _requestNotificationPermission() async {
@@ -685,6 +858,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   Future<void> _start() async {
     if (_stopwatch.isRunning) return;
 
+    _sessionAlreadySaved = false;
+
     await _requestNotificationPermission();
 
     // 開始時点の累計時間
@@ -700,6 +875,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     final prefs = await SharedPreferences.getInstance();
 
     final startTime = DateTime.now().millisecondsSinceEpoch;
+    _timerStartTime = DateTime.fromMillisecondsSinceEpoch(startTime);
 
     await prefs.setBool('studyTimerRunning', true);
 
@@ -739,8 +915,8 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
       notificationTitle: '学習中',
       notificationText: _formatTime(),
       callback: startCallback,
+      notificationButtons: [const NotificationButton(id: 'stop', text: '停止')],
     );
-
     // Serviceへ現在の累計時間を渡す
     // Serviceへタイマー開始時刻と累計時間を渡す
     FlutterForegroundTask.sendDataToTask({
@@ -783,13 +959,17 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
         await widget.onSaveStudyTime(sessionTime.inSeconds);
 
         widget.onStop(sessionTime);
+
+        _sessionAlreadySaved = true;
       } catch (e) {
         debugPrint('学習時間の保存に失敗しました: $e');
       }
     }
 
     _stopwatch.reset();
-    _currentSessionTime = Duration.zero;
+
+    // 停止した時点の表示時間は残す
+    _currentSessionTime = sessionTime;
 
     final prefs = await SharedPreferences.getInstance();
 
@@ -804,57 +984,73 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   // リセット
   // ==============================================================
   Future<void> _reset() async {
-    // 動いていたら停止
-    if (_stopwatch.isRunning) {
-      _stopwatch.stop();
+    // 現在動作中なら、今回のセッション時間を計算
+    Duration sessionTime = Duration.zero;
+
+    if (!_sessionAlreadySaved) {
+      sessionTime =
+          _totalDisplayTime - _sessionStartTotal;
     }
+
+    // タイマー停止
+    _stopwatch.stop();
 
     _timer?.cancel();
     _timer = null;
 
-    // Foreground Serviceを停止
+    // Foreground Service停止
     await FlutterForegroundTask.stopService();
 
-    // リセット直前のセッション時間
-    final sessionTime = _totalDisplayTime - _sessionStartTotal;
-
-    // ----------------------------------------
-    // リセット前の学習時間を保存
-    // ----------------------------------------
-
-    if (sessionTime > Duration.zero) {
+    // まだ保存されていない場合だけ保存
+    if (!_sessionAlreadySaved &&
+        sessionTime > Duration.zero) {
       try {
-        await widget.onSaveStudyTime(sessionTime.inSeconds);
+        await widget.onSaveStudyTime(
+          sessionTime.inSeconds,
+        );
+
         widget.onStop(sessionTime);
+
+        _sessionAlreadySaved = true;
       } catch (e) {
-        debugPrint('学習時間の保存に失敗しました: $e');
+        debugPrint(
+          '学習時間の保存に失敗しました: $e',
+        );
       }
     }
 
-    // ----------------------------------------
-    // タイマーの復元情報を完全に削除
-    // ----------------------------------------
+    // 保存情報を削除
+    final prefs =
+    await SharedPreferences.getInstance();
 
-    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(
+      'studyTimerRunning',
+      false,
+    );
 
-    await prefs.remove('studyTimerRunning');
-    await prefs.remove('studyTimerStartTime');
-    await prefs.remove('studyTimerBaseMilliseconds');
+    await prefs.remove(
+      'studyTimerStartTime',
+    );
 
-    // ----------------------------------------
-    // タイマーを完全にリセット
-    // ----------------------------------------
+    await prefs.remove(
+      'studyTimerBaseMilliseconds',
+    );
 
-    _stopwatch.stop();
+    // 完全リセット
     _stopwatch.reset();
 
     _currentSessionTime = Duration.zero;
     _sessionStartTotal = Duration.zero;
     _totalDisplayTime = Duration.zero;
+    _timerStartTime = null;
+
+    _sessionAlreadySaved = false;
 
     if (!mounted) return;
 
     setState(() {});
+
+    widget.onTick?.call(Duration.zero);
   }
 
   // ==============================================================

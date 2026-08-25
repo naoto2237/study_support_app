@@ -23,7 +23,7 @@ class WeekdayGoalButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FBFF),
+            color:  Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFF258EDB), width: 1.2),
           ),

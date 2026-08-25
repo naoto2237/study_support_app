@@ -62,7 +62,8 @@ void initForegroundService() {
       playSound: false,
     ),
     foregroundTaskOptions: ForegroundTaskOptions(
-      eventAction: ForegroundTaskEventAction.repeat(500),
+      eventAction: ForegroundTaskEventAction.repeat(100),
+      stopWithTask: false,
       allowWakeLock: true,
     ),
   );

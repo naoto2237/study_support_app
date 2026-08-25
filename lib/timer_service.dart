@@ -2,9 +2,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 @pragma('vm:entry-point')
 void startCallback() {
-  FlutterForegroundTask.setTaskHandler(
-    StudyTimerTaskHandler(),
-  );
+  FlutterForegroundTask.setTaskHandler(StudyTimerTaskHandler());
 }
 
 class StudyTimerTaskHandler extends TaskHandler {
@@ -51,8 +49,7 @@ class StudyTimerTaskHandler extends TaskHandler {
   void _updateTime() {
     if (_startTimeMilliseconds == null) return;
 
-    final now =
-        DateTime.now().millisecondsSinceEpoch;
+    final now = DateTime.now().millisecondsSinceEpoch;
 
     // HomeScreenと同じ計算
     final elapsedMilliseconds =
@@ -63,9 +60,7 @@ class StudyTimerTaskHandler extends TaskHandler {
 
     // 通知を更新
     _updateNotification(
-      Duration(
-        milliseconds: totalMilliseconds,
-      ),
+      Duration(milliseconds: totalMilliseconds),
     );
 
     // HomeScreenへ同じ時間を送る
@@ -76,9 +71,7 @@ class StudyTimerTaskHandler extends TaskHandler {
 
   void _updateNotification(Duration duration) {
     final hours =
-    duration.inHours
-        .toString()
-        .padLeft(2, '0');
+    duration.inHours.toString().padLeft(2, '0');
 
     final minutes =
     (duration.inMinutes % 60)
@@ -101,10 +94,22 @@ class StudyTimerTaskHandler extends TaskHandler {
   Future<void> onDestroy(
       DateTime timestamp,
       bool isTimeout,
-      ) async {}
+      ) async {
+    FlutterForegroundTask.sendDataToMain({
+      'timerDestroyed': true,
+    });
+  }
 
+  // 通知の「停止」ボタンが押されたとき
   @override
-  void onNotificationButtonPressed(String id) {}
+  void onNotificationButtonPressed(String id) {
+    if (id == 'stop') {
+      // HomeScreenへ停止命令を送る
+      FlutterForegroundTask.sendDataToMain({
+        'stopTimer': true,
+      });
+    }
+  }
 
   @override
   void onNotificationPressed() {}

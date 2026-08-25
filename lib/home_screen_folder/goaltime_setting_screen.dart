@@ -55,8 +55,7 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
 
     if (data == null) return;
 
-    final goaltime =
-    data['goaltime'] as Map<String, dynamic>?;
+    final goaltime = data['goaltime'] as Map<String, dynamic>?;
 
     if (goaltime == null) return;
 
@@ -104,97 +103,231 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
     required int currentMinutes,
     required ValueChanged<int> onSelected,
   }) async {
-    const options = <int>[
-      30,
-      60,
-      90,
-      120,
-      150,
-      180,
-      210,
-      240,
-      270,
-      300,
-      330,
-      360,
-      420,
-      480,
-      540,
-      600,
-      720,
-    ];
+    int selectedHours = currentMinutes ~/ 60;
+    int selectedMinutes = currentMinutes % 60;
 
-    final selected = await showModalBottomSheet<int>(
+    final result = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
+        int tempHours = selectedHours;
+        int tempMinutes = selectedMinutes;
 
-              Container(
-                width: 38,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
+        final hourController = FixedExtentScrollController(
+          initialItem: selectedHours,
+        );
 
-              const SizedBox(height: 14),
+        final minuteController = FixedExtentScrollController(
+          initialItem: selectedMinutes,
+        );
 
-              const Text(
-                '目標時間を選択',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 上のバー
+                    Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
 
-              const SizedBox(height: 8),
+                    const SizedBox(height: 16),
 
-              SizedBox(
-                height: 320,
-                child: ListView.builder(
-                  itemCount: options.length + 1,
-                  itemBuilder: (context, index) {
-                    // 未設定
-                    if (index == 0) {
-                      return ListTile(
-                        title: const Text('未設定'),
-                        trailing: currentMinutes == 0
-                            ? const Icon(Icons.check, color: primaryBlue)
-                            : null,
-                        onTap: () {
-                          Navigator.pop(context, 0);
+                    const Text(
+                      '目標時間を設定',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // ==================================================
+                    // 時間・分 Picker
+                    // ==================================================
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // 時間
+                        SizedBox(
+                          width: 90,
+                          height: 150,
+                          child: ListWheelScrollView.useDelegate(
+                            controller: hourController,
+                            itemExtent: 45,
+                            perspective: 0.002,
+                            diameterRatio: 1.5,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (index) {
+                              setModalState(() {
+                                tempHours = index;
+                              });
+                            },
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 25,
+                              builder: (context, index) {
+                                final isSelected = index == tempHours;
+
+                                return Center(
+                                  child: Text(
+                                    '$index',
+                                    style: TextStyle(
+                                      fontSize: isSelected ? 25 : 18,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? const Color(0xFF258EDB)
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 4),
+
+                        const Text(
+                          '時間',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(width: 18),
+
+                        // 分
+                        SizedBox(
+                          width: 90,
+                          height: 150,
+                          child: ListWheelScrollView.useDelegate(
+                            controller: minuteController,
+                            itemExtent: 45,
+                            perspective: 0.002,
+                            diameterRatio: 1.5,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (index) {
+                              setModalState(() {
+                                tempMinutes = index;
+                              });
+                            },
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 60,
+                              builder: (context, index) {
+                                final isSelected = index == tempMinutes;
+
+                                return Center(
+                                  child: Text(
+                                    '$index',
+                                    style: TextStyle(
+                                      fontSize: isSelected ? 25 : 18,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? const Color(0xFF258EDB)
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 4),
+
+                        const Text(
+                          '分',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // 選択中の時間
+                    Text(
+                      tempHours == 0 && tempMinutes == 0
+                          ? '未設定'
+                          : '$tempHours時間$tempMinutes分',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF258EDB),
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // 設定する
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context, tempHours * 60 + tempMinutes);
                         },
-                      );
-                    }
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF258EDB),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          '適用する',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
 
-                    final value = options[index - 1];
+                    const SizedBox(height: 4),
 
-                    return ListTile(
-                      title: Text(_formatTime(value)),
-                      trailing: currentMinutes == value
-                          ? const Icon(Icons.check, color: primaryBlue)
-                          : null,
-                      onTap: () {
-                        Navigator.pop(context, value);
+                    // 未設定
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context, 0);
                       },
-                    );
-                  },
+                      child: const Text(
+                        '目標時間を未設定にする',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
 
-    if (selected != null) {
-      onSelected(selected);
+    if (result != null) {
+      onSelected(result);
     }
   }
 
@@ -202,11 +335,11 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
   // 全曜日に同じ時間を設定
   // ==============================================================
 
-  void _applySameTime() {
+  /*void _applySameTime() {
     setState(() {
       goalMinutes = List<int>.filled(7, sameTimeMinutes);
     });
-  }
+  }*/
 
   // ==============================================================
   // 保存
@@ -227,19 +360,14 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
       'sunday': goalMinutes[6],
     };
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .set({
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
       'goaltime': goaltime,
     }, SetOptions(merge: true));
 
     // 今日の目標をすぐホーム画面にも反映
-    final todayMinutes =
-    goalMinutes[DateTime.now().weekday - 1];
+    final todayMinutes = goalMinutes[DateTime.now().weekday - 1];
 
-    app.dailyTargetHours.value =
-        todayMinutes / 60.0;
+    app.dailyTargetHours.value = todayMinutes / 60.0;
 
     if (!mounted) return;
 
@@ -255,7 +383,7 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
     final weeklyTotal = goalMinutes.fold<int>(0, (sum, value) => sum + value);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xFFF7F7F7),
 
       // ============================================================
       // AppBar
@@ -265,18 +393,8 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
         elevation: 0,
         titleSpacing: 0,
 
-        shape: const Border(
-          bottom: BorderSide(
-            color: Color(0xFFE5E5E5),
-            width: 1,
-          ),
-        ),
-
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: Colors.black87,
-          ),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -290,25 +408,13 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
             color: Colors.black87,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: _saveGoals,
-            child: const Text(
-              '保存',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
       ),
 
       // ============================================================
       // Body
       // ============================================================
       body: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -326,9 +432,9 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FBFF),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFCADFF2)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
 
               child: Row(
@@ -371,7 +477,7 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
 
                   // 時間選択
                   InkWell(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(16),
 
                     onTap: () {
                       _selectTime(
@@ -379,6 +485,7 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
                         onSelected: (value) {
                           setState(() {
                             sameTimeMinutes = value;
+                            goalMinutes = List<int>.filled(7, value);
                           });
                         },
                       );
@@ -394,8 +501,8 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
 
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE1E5EA)),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
                       ),
 
                       child: Row(
@@ -420,35 +527,6 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
                             color: Colors.grey,
                           ),
                         ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 7),
-
-                  // 設定ボタン
-                  SizedBox(
-                    height: 42,
-
-                    child: ElevatedButton(
-                      onPressed: _applySameTime,
-
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryBlue,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 13),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-
-                      child: const Text(
-                        '設定',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
                       ),
                     ),
                   ),
@@ -477,8 +555,8 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE1E5EA)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
 
               clipBehavior: Clip.antiAlias,
@@ -519,7 +597,7 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
                               ),
 
                               InkWell(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(16),
 
                                 onTap: () {
                                   _selectTime(
@@ -542,10 +620,10 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
                                   ),
 
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFCFCFC),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: const Color(0xFFE1E5EA),
+                                      color: const Color(0xFFE5E7EB),
                                     ),
                                   ),
 
@@ -579,7 +657,7 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
                       ),
 
                       if (index < 6)
-                        Container(height: 1, color: const Color(0xFFE1E5EA)),
+                        Container(height: 1, color: const Color(0xFFE5E7EB)),
                     ],
                   );
                 }),
@@ -596,8 +674,8 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
 
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE1E5EA)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
 
               child: Column(
@@ -657,7 +735,7 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
                   elevation: 0,
 
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
 
@@ -666,23 +744,6 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 10),
-
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-
-              children: [
-                Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey),
-
-                SizedBox(width: 5),
-
-                Text(
-                  '設定した目標時間はホームに反映されます。',
-                  style: TextStyle(fontSize: 11.5, color: Colors.black54),
-                ),
-              ],
             ),
           ],
         ),

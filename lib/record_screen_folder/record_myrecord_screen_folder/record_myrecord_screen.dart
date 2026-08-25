@@ -4,6 +4,7 @@ import 'package:study_support_app/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RecordMyRecordScreen extends StatefulWidget {
   const RecordMyRecordScreen({super.key});
@@ -56,7 +57,9 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   void initState() {
     super.initState();
 
-    loadWeeklyStudyTime();
+    _checkDateChange();
+    loadPeriodStudyTime();
+    calculateAchievedDays();
   }
 
   String formatStudyTime(int totalSeconds) {
@@ -86,6 +89,12 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
     return "${wholeHours}時間${minutes}分";
   }
 
+  String _dateId(DateTime date) {
+    return "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')}";
+  }
+
   // ==============================================================
   // 週 / 月 / 年
   // ==============================================================
@@ -106,8 +115,10 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   final Map<String, int> studyRecords = {};
 
   // 今週のFirestore上の学習時間
-  int weeklyFirestoreSeconds = 0;
   int todayFirestoreSeconds = 0;
+  int periodFirestoreSeconds = 0;
+
+  int achievedDays = 0;
 
   // 今週の学習時間を読み込み中か
   bool isLoadingWeeklyTime = true;
@@ -120,8 +131,8 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
     return todayStudySeconds.value / 3600.0;
   }
 
-  double get weeklyStudyHours {
-    return weeklyFirestoreSeconds / 3600.0;
+  double get periodStudyHours {
+    return periodFirestoreSeconds / 3600.0;
   }
 
   // ==============================================================
@@ -141,28 +152,219 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
       return 0;
     }
 
-    return (weeklyStudyHours / weeklyGoalHours * 100).round().clamp(0, 100);
+    return (periodStudyHours / weeklyGoalHours * 100).round().clamp(0, 100);
+  }
+
+  Future<void> _checkDateChange() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final lastDateString = prefs.getString('lastStudyDate');
+
+    // 初回起動
+    if (lastDateString == null) {
+      await prefs.setString('lastStudyDate', _dateId(today));
+      return;
+    }
+
+    final lastDate = DateTime.tryParse(lastDateString);
+
+    if (lastDate == null) {
+      await prefs.setString('lastStudyDate', _dateId(today));
+      return;
+    }
+
+    // 日付が変わっていない
+    if (!today.isAfter(lastDate)) {
+      return;
+    }
+
+    // 前回確認した日から昨日までを確定
+    DateTime date = lastDate;
+
+    while (date.isBefore(today)) {
+      await _saveDailyAchievement(date);
+
+      date = date.add(const Duration(days: 1));
+    }
+
+    // 最後に確認した日を今日に更新
+    await prefs.setString('lastStudyDate', _dateId(today));
+  }
+
+  Future<void> _saveDailyAchievement(DateTime date) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final dateId = _dateId(date);
+
+    final studyRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('studyRecords')
+        .doc(dateId);
+
+    final studyDoc = await studyRef.get();
+
+    int studySeconds = 0;
+
+    if (studyDoc.exists) {
+      final data = studyDoc.data();
+
+      studySeconds = (data?['studyTime'] as num?)?.toInt() ?? 0;
+
+      // すでに確定済みなら何もしない
+      if (data?['goalAchieved'] != null) {
+        return;
+      }
+    }
+
+    // ----------------------------------------------------------
+    // その日の目標
+    // ----------------------------------------------------------
+
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final userData = userDoc.data();
+
+    if (userData == null) return;
+
+    final goaltime = userData['goaltime'] as Map<String, dynamic>?;
+
+    if (goaltime == null) return;
+
+    const weekdayKeys = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
+
+    final goalMinutes =
+        (goaltime[weekdayKeys[date.weekday - 1]] as num?)?.toInt() ?? 0;
+
+    final goalSeconds = goalMinutes * 60;
+
+    final goalAchieved = goalMinutes > 0 && studySeconds >= goalSeconds;
+
+    // ----------------------------------------------------------
+    // その日の状態を確定保存
+    // ----------------------------------------------------------
+
+    await studyRef.set({
+      'goalMinutes': goalMinutes,
+      'goalAchieved': goalAchieved,
+      'goalFinalized': true,
+    }, SetOptions(merge: true));
   }
 
   // ==============================================================
   // 連続学習
   // ==============================================================
 
-  int calculateStreak() {
-    if (todayStudySeconds.value > 0) {
-      return 1;
-    }
-
-    return 0;
-  }
-
-  Future<void> loadWeeklyStudyTime() async {
+  Future<void> calculateAchievedDays() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       if (mounted) {
         setState(() {
-          weeklyFirestoreSeconds = 0;
+          achievedDays = 0;
+        });
+      }
+      return;
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    DateTime startDate;
+
+    // ==============================================================
+    // 今週
+    // ==============================================================
+    if (selectedPeriod == 0) {
+      startDate = today.subtract(Duration(days: today.weekday - 1));
+    }
+    // ==============================================================
+    // 今月
+    // ==============================================================
+    else if (selectedPeriod == 1) {
+      startDate = DateTime(today.year, today.month, 1);
+    }
+    // ==============================================================
+    // 今年
+    // ==============================================================
+    else {
+      startDate = DateTime(today.year, 1, 1);
+    }
+
+    // ==============================================================
+    // 日付一覧
+    // ==============================================================
+
+    final dates = <DateTime>[];
+
+    for (
+      DateTime date = startDate;
+      !date.isAfter(today);
+      date = date.add(const Duration(days: 1))
+    ) {
+      dates.add(date);
+    }
+
+    // ==============================================================
+    // 達成状況を取得
+    // ==============================================================
+
+    final futures = dates.map((date) async {
+      final dateId = _dateId(date);
+
+      final studyDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('studyRecords')
+          .doc(dateId)
+          .get();
+
+      if (!studyDoc.exists) {
+        return false;
+      }
+
+      final data = studyDoc.data();
+
+      // 保存済みの達成結果だけを見る
+      return data?['goalAchieved'] == true;
+    });
+
+    final results = await Future.wait(futures);
+
+    final count = results.where((achieved) => achieved).length;
+
+    if (!mounted) return;
+
+    setState(() {
+      achievedDays = count;
+    });
+  }
+
+  Future<void> loadPeriodStudyTime() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          studyRecords.clear();
+          periodFirestoreSeconds = 0;
+          todayFirestoreSeconds = 0;
           isLoadingWeeklyTime = false;
         });
       }
@@ -171,23 +373,65 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
 
     final now = DateTime.now();
 
-    // 今週の月曜日
-    final monday = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
+    DateTime startDate;
+    DateTime endDate;
+
+    // ==============================================================
+    // 週
+    // 選択されている週の7日間
+    // ==============================================================
+    if (selectedPeriod == 0) {
+      startDate = DateTime(
+        selectedWeekStart.year,
+        selectedWeekStart.month,
+        selectedWeekStart.day,
+      );
+
+      endDate = startDate.add(const Duration(days: 6));
+    }
+    // ==============================================================
+    // 月
+    // 今月の1日～今日
+    // ==============================================================
+    else if (selectedPeriod == 1) {
+      startDate = DateTime(now.year, now.month, 1);
+
+      endDate = DateTime(now.year, now.month, now.day);
+    }
+    // ==============================================================
+    // 年
+    // 今年の1月1日～今日
+    // ==============================================================
+    else {
+      startDate = DateTime(now.year, 1, 1);
+
+      endDate = DateTime(now.year, now.month, now.day);
+    }
 
     int totalSeconds = 0;
     int savedTodaySeconds = 0;
 
-    for (int i = 0; i < 7; i++) {
-      final date = monday.add(Duration(days: i));
+    // 今回の期間のデータだけ入れ直す
+    studyRecords.clear();
 
-      final dateId =
-          "${date.year.toString().padLeft(4, '0')}-"
-          "${date.month.toString().padLeft(2, '0')}-"
-          "${date.day.toString().padLeft(2, '0')}";
+    // ==============================================================
+    // 日付一覧を作成
+    // ==============================================================
+    final dates = <DateTime>[];
+
+    for (
+      DateTime date = startDate;
+      !date.isAfter(endDate);
+      date = date.add(const Duration(days: 1))
+    ) {
+      dates.add(date);
+    }
+
+    // ==============================================================
+    // Firestoreから各日の学習時間を取得
+    // ==============================================================
+    final futures = dates.map((date) async {
+      final dateId = _dateId(date);
 
       final doc = await FirebaseFirestore.instance
           .collection("users")
@@ -196,26 +440,44 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
           .doc(dateId)
           .get();
 
+      int studySeconds = 0;
+
       if (doc.exists) {
         final data = doc.data();
 
-        final studySeconds = (data?["studyTime"] as num?)?.toInt() ?? 0;
+        studySeconds = (data?["studyTime"] as num?)?.toInt() ?? 0;
+      }
 
-        totalSeconds += studySeconds;
+      return {"date": date, "studySeconds": studySeconds};
+    });
 
-        // 今日の保存済み時間
-        if (date.year == now.year &&
-            date.month == now.month &&
-            date.day == now.day) {
-          savedTodaySeconds = studySeconds;
-        }
+    final results = await Future.wait(futures);
+
+    // ==============================================================
+    // 取得したデータを保存
+    // ==============================================================
+    for (final result in results) {
+      final date = result["date"] as DateTime;
+      final studySeconds = result["studySeconds"] as int;
+
+      final key = "${date.year}/${date.month}/${date.day}";
+
+      studyRecords[key] = studySeconds;
+
+      totalSeconds += studySeconds;
+
+      // 今日の保存済み時間
+      if (date.year == now.year &&
+          date.month == now.month &&
+          date.day == now.day) {
+        savedTodaySeconds = studySeconds;
       }
     }
 
     if (!mounted) return;
 
     setState(() {
-      weeklyFirestoreSeconds = totalSeconds;
+      periodFirestoreSeconds = totalSeconds;
       todayFirestoreSeconds = savedTodaySeconds;
       isLoadingWeeklyTime = false;
     });
@@ -268,14 +530,18 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                   selectedWeekStart: selectedWeekStart,
                   studyRecords: studyRecords,
                   currentStudyHours: currentStudyHours,
-                  weeklyStudyHours: weeklyStudyHours,
+                  weeklyStudyHours: periodStudyHours,
                   weeklyGoalHours: weeklyGoalHours,
                   achievementRate: achievementRate,
 
                   onPeriodChanged: (value) {
                     setState(() {
                       selectedPeriod = value;
+                      isLoadingWeeklyTime = true;
                     });
+
+                    loadPeriodStudyTime();
+                    calculateAchievedDays();
                   },
 
                   onWeekChanged: (value) {
@@ -303,6 +569,27 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
         return "今年のサマリー";
       default:
         return "今週のサマリー";
+    }
+  }
+
+  String get _summaryDate {
+    final now = DateTime.now();
+
+    switch (selectedPeriod) {
+      case 1:
+        // 月
+        return "${now.year}年${now.month}月";
+
+      case 2:
+        // 年
+        return "${now.year}年";
+
+      default:
+        // 週
+        final weekStart = selectedWeekStart;
+        final weekEnd = selectedWeekStart.add(const Duration(days: 6));
+
+        return "${formatDate(weekStart)} - ${formatDate(weekEnd)}";
     }
   }
 
@@ -341,8 +628,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                     ),
 
                     Text(
-                      "${formatDate(selectedWeekStart)} - "
-                      "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}",
+                      _summaryDate,
                       style: TextStyle(color: secondaryColor, fontSize: 13),
                     ),
                   ],
@@ -381,10 +667,11 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                             ? "今月の学習時間"
                             : "今年の学習時間",
                         value: formatStudyTime(
-                          weeklyFirestoreSeconds -
+                          periodFirestoreSeconds -
                               todayFirestoreSeconds +
                               todayStudySeconds.value,
                         ),
+
                         unit: "",
                         color: textColor,
                         bottomText: '',
@@ -394,7 +681,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                     Expanded(
                       child: _summaryItem(
                         title: "目標達成日数",
-                        value: calculateStreak().toString(),
+                        value: achievedDays.toString(),
                         unit: "日",
                         color: textColor,
                         bottomText: '',

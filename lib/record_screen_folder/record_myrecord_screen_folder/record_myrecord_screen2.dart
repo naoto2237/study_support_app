@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'record_myrecord_screen3.dart';
 
 class RecordMyRecordScreen2 extends StatefulWidget {
   final Color cardColor;
@@ -51,6 +52,23 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
     return "${date.month}/${date.day}";
   }
 
+  String _periodDateText() {
+    final now = DateTime.now();
+
+    if (selectedPeriod == 0) {
+      final end = selectedWeekStart.add(const Duration(days: 6));
+
+      return "${formatDate(selectedWeekStart)} - "
+          "${formatDate(end)}";
+    }
+
+    if (selectedPeriod == 1) {
+      return "${now.year}年${now.month}月";
+    }
+
+    return "${now.year}年";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -61,22 +79,13 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
           widget.secondaryColor,
         ),
         const SizedBox(height: 14),
-        _buildGoalCard(
-          widget.cardColor,
-          widget.textColor,
-          widget.secondaryColor,
-        ),
-        const SizedBox(height: 14),
-        _buildReflectionCard(
-          widget.cardColor,
-          widget.textColor,
-          widget.secondaryColor,
-        ),
-        const SizedBox(height: 14),
-        _buildRecentRecords(
-          widget.cardColor,
-          widget.textColor,
-          widget.secondaryColor,
+        RecordMyRecordScreen3(
+          cardColor: widget.cardColor,
+          textColor: widget.textColor,
+          secondaryColor: widget.secondaryColor,
+          weeklyStudyHours: widget.weeklyStudyHours,
+          weeklyGoalHours: widget.weeklyGoalHours,
+          achievementRate: widget.achievementRate,
         ),
       ],
     );
@@ -108,32 +117,43 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
             children: [
               IconButton(
                 onPressed: () {
-                  setState(() {
-                    selectedWeekStart = selectedWeekStart.subtract(
-                      const Duration(days: 7),
-                    );
-                  });
+                  if (selectedPeriod == 0) {
+                    setState(() {
+                      selectedWeekStart = selectedWeekStart.subtract(
+                        const Duration(days: 7),
+                      );
+                    });
 
-                  widget.onWeekChanged(selectedWeekStart);
+                    widget.onWeekChanged(selectedWeekStart);
+                  }
                 },
-                icon: const Icon(Icons.chevron_left),
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: selectedPeriod == 0 ? textColor : Colors.transparent,
+                ),
               ),
+
               Text(
-                "${formatDate(selectedWeekStart)} - "
-                "${formatDate(selectedWeekStart.add(const Duration(days: 6)))}",
+                _periodDateText(),
                 style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
               ),
+
               IconButton(
                 onPressed: () {
-                  setState(() {
-                    selectedWeekStart = selectedWeekStart.add(
-                      const Duration(days: 7),
-                    );
-                  });
+                  if (selectedPeriod == 0) {
+                    setState(() {
+                      selectedWeekStart = selectedWeekStart.add(
+                        const Duration(days: 7),
+                      );
+                    });
 
-                  widget.onWeekChanged(selectedWeekStart);
+                    widget.onWeekChanged(selectedWeekStart);
+                  }
                 },
-                icon: const Icon(Icons.chevron_right),
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: selectedPeriod == 0 ? textColor : Colors.transparent,
+                ),
               ),
             ],
           ),
@@ -208,21 +228,117 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
   BarChartData _createChart() {
     final values = _chartValues();
 
+    // データに合わせて最大値を自動調整
+    final maxValue = values.isEmpty
+        ? 5.0
+        : values.reduce((a, b) => a > b ? a : b);
+
+    final maxY = maxValue <= 5 ? 5.0 : (maxValue / 5).ceil() * 5.0;
+
     return BarChartData(
-      maxY: 5,
+      barTouchData: BarTouchData(
+        enabled: true,
+        touchTooltipData: BarTouchTooltipData(
+          getTooltipColor: (_) => Colors.white,
+          tooltipRoundedRadius: 10,
+          tooltipPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+          tooltipMargin: 8,
+          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+            final labels = _chartLabels();
+
+            if (groupIndex < 0 || groupIndex >= labels.length) {
+              return null;
+            }
+
+            final label = labels[groupIndex];
+
+            String title;
+
+            if (selectedPeriod == 0) {
+              // 週
+              final date = selectedWeekStart.add(
+                Duration(days: groupIndex),
+              );
+
+              const weekdays = [
+                "月",
+                "火",
+                "水",
+                "木",
+                "金",
+                "土",
+                "日",
+              ];
+
+              title =
+              "${date.month}/${date.day}（${weekdays[date.weekday - 1]}）";
+            } else if (selectedPeriod == 1) {
+              // 月
+              title = label;
+            } else {
+              // 年
+              title = label;
+            }
+
+            final totalSeconds =
+            (rod.toY * 3600).round();
+
+            final hours = totalSeconds ~/ 3600;
+            final minutes =
+                (totalSeconds % 3600) ~/ 60;
+
+            String timeText;
+
+            if (hours > 0) {
+              timeText = "${hours}時間";
+              if (minutes > 0) {
+                timeText += "${minutes}分";
+              }
+            } else {
+              timeText = "${minutes}分";
+            }
+
+            return BarTooltipItem(
+              "$title\n",
+              const TextStyle(
+                color: Color(0xFF202124),
+                fontSize: 11,
+                fontWeight: FontWeight.normal,
+              ),
+              children: [
+                TextSpan(
+                  text: timeText,
+                  style: const TextStyle(
+                    color: Color(0xFF202124),
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      maxY: maxY,
       minY: 0,
+
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
-        horizontalInterval: 1,
+        horizontalInterval: maxY <= 10 ? 1 : 5,
       ),
+
       borderData: FlBorderData(show: false),
+
       titlesData: FlTitlesData(
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 28,
-            interval: 1,
+            reservedSize: 32,
+            interval: maxY <= 10 ? 1 : 5,
             getTitlesWidget: (value, meta) {
               return Text(
                 value.toInt().toString(),
@@ -231,6 +347,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
             },
           ),
         ),
+
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
@@ -254,18 +371,21 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
             },
           ),
         ),
+
         rightTitles: const AxisTitles(
           sideTitles: SideTitles(showTitles: false),
         ),
+
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
+
       barGroups: List.generate(values.length, (index) {
         return BarChartGroupData(
           x: index,
           barRods: [
             BarChartRodData(
               toY: values[index],
-              width: 17,
+              width: selectedPeriod == 2 ? 12 : 17,
               color: const Color(0xFF258EDB),
               borderRadius: BorderRadius.circular(5),
             ),
@@ -276,16 +396,21 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
   }
 
   List<double> _chartValues() {
+    // ==========================================================
+    // 週：7日分の日別学習時間
+    // ==========================================================
     if (selectedPeriod == 0) {
       final values = List<double>.filled(7, 0);
       final now = DateTime.now();
 
       for (int i = 0; i < 7; i++) {
         final date = selectedWeekStart.add(Duration(days: i));
+
         final key = "${date.year}/${date.month}/${date.day}";
 
         values[i] = (widget.studyRecords[key] ?? 0) / 3600.0;
 
+        // 今日の学習中の時間をリアルタイムで加算
         if (date.year == now.year &&
             date.month == now.month &&
             date.day == now.day) {
@@ -296,14 +421,94 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
       return values;
     }
 
+    // ==========================================================
+    // 月：カレンダーの週ごとに集計
+    // 日曜日～土曜日
+    // ==========================================================
     if (selectedPeriod == 1) {
-      return [2.0, 3.5, 4.0, 2.5];
+      final now = DateTime.now();
+
+      final firstDay = DateTime(now.year, now.month, 1);
+
+      final lastDay = DateTime(now.year, now.month + 1, 0);
+
+      // 月の1日が何曜日か
+      // DateTime.weekday:
+      // 月=1、火=2、...、土=6、日=7
+      // カレンダー上の日曜=0に変換
+      final firstDayOffset = firstDay.weekday % 7;
+
+      // カレンダーの第1週の日曜日
+      DateTime weekStart = firstDay.subtract(Duration(days: firstDayOffset));
+
+      final values = <double>[];
+
+      while (!weekStart.isAfter(lastDay)) {
+        double totalHours = 0;
+
+        // 日曜日～土曜日
+        for (int i = 0; i < 7; i++) {
+          final date = weekStart.add(Duration(days: i));
+
+          // 対象月以外の日は除外
+          if (date.month != now.month || date.year != now.year) {
+            continue;
+          }
+
+          final key = "${date.year}/${date.month}/${date.day}";
+
+          totalHours += (widget.studyRecords[key] ?? 0) / 3600.0;
+
+          // 今日のリアルタイム学習時間
+          if (date.year == now.year &&
+              date.month == now.month &&
+              date.day == now.day) {
+            totalHours += widget.currentStudyHours;
+          }
+        }
+
+        values.add(totalHours);
+
+        // 次の週へ
+        weekStart = weekStart.add(const Duration(days: 7));
+      }
+
+      return values;
     }
 
-    return [18, 24, 21, 28, 25, 31, 27, 30, 22, 26, 29, 32];
+    // ==========================================================
+    // 年：1月～12月の月別学習時間
+    // ==========================================================
+    final now = DateTime.now();
+
+    final values = List<double>.filled(12, 0);
+
+    for (int month = 1; month <= 12; month++) {
+      final daysInMonth = DateTime(now.year, month + 1, 0).day;
+
+      double totalHours = 0;
+
+      for (int day = 1; day <= daysInMonth; day++) {
+        final key = "${now.year}/$month/$day";
+
+        totalHours += (widget.studyRecords[key] ?? 0) / 3600.0;
+      }
+
+      // 今月ならリアルタイム時間も加算
+      if (month == now.month) {
+        totalHours += widget.currentStudyHours;
+      }
+
+      values[month - 1] = totalHours;
+    }
+
+    return values;
   }
 
   List<String> _chartLabels() {
+    // ==========================================================
+    // 週
+    // ==========================================================
     if (selectedPeriod == 0) {
       const week = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -315,257 +520,40 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
       });
     }
 
+    // ==========================================================
+    // 月
+    // カレンダーの週に合わせる
+    // ==========================================================
     if (selectedPeriod == 1) {
-      return ["1週目", "2週目", "3週目", "4週目"];
+      final now = DateTime.now();
+
+      final firstDay = DateTime(now.year, now.month, 1);
+
+      final lastDay = DateTime(now.year, now.month + 1, 0);
+
+      final firstDayOffset = firstDay.weekday % 7;
+
+      DateTime weekStart = firstDay.subtract(Duration(days: firstDayOffset));
+
+      final labels = <String>[];
+
+      int weekNumber = 1;
+
+      while (!weekStart.isAfter(lastDay)) {
+        labels.add("${weekNumber}週目");
+
+        weekNumber++;
+
+        weekStart = weekStart.add(const Duration(days: 7));
+      }
+
+      return labels;
     }
 
-    return [
-      "1月",
-      "2月",
-      "3月",
-      "4月",
-      "5月",
-      "6月",
-      "7月",
-      "8月",
-      "9月",
-      "10月",
-      "11月",
-      "12月",
-    ];
-  }
-
-  Widget _buildGoalCard(
-    Color cardColor,
-    Color textColor,
-    Color secondaryColor,
-  ) {
-    return _card(
-      cardColor,
-      Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: const BoxDecoration(
-              color: Color(0xFFEDE7FF),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.track_changes,
-              color: Color(0xFF258EDB),
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "週間目標",
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  "今週の目標合計",
-                  style: TextStyle(color: secondaryColor, fontSize: 12),
-                ),
-                Text(
-                  "${widget.weeklyGoalHours.toStringAsFixed(1)} 時間",
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(width: 1, height: 65, color: Colors.grey.shade300),
-          const SizedBox(width: 18),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "達成率",
-                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "${widget.achievementRate} %",
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                width: 105,
-                child: LinearProgressIndicator(
-                  value: widget.achievementRate / 100,
-                  minHeight: 7,
-                  backgroundColor: Colors.grey.shade300,
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFF258EDB)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReflectionCard(
-    Color cardColor,
-    Color textColor,
-    Color secondaryColor,
-  ) {
-    return _card(
-      cardColor,
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDE7FF),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.article_outlined, color: Color(0xFF258EDB)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "学習のふりかえり",
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  "今週は合計 "
-                  "${widget.weeklyStudyHours.toStringAsFixed(1)} "
-                  "時間学習しました！",
-                  style: TextStyle(color: textColor, fontSize: 13),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "目標まであと "
-                  "${(widget.weeklyGoalHours - widget.weeklyStudyHours).clamp(0, double.infinity).toStringAsFixed(1)} "
-                  "時間です。もう少しで達成できます！",
-                  style: TextStyle(color: secondaryColor, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentRecords(
-    Color cardColor,
-    Color textColor,
-    Color secondaryColor,
-  ) {
-    return _card(
-      cardColor,
-      Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "最近の学習記録",
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                "すべて見る  ›",
-                style: TextStyle(color: secondaryColor, fontSize: 13),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _recordItem(
-            "8/22（土）",
-            "数学 / 微分積分",
-            "1.5時間",
-            textColor,
-            secondaryColor,
-          ),
-          _recordItem(
-            "8/21（金）",
-            "英語 / 単語暗記",
-            "1.0時間",
-            textColor,
-            secondaryColor,
-          ),
-          _recordItem("8/20（木）", "物理 / 力学", "1.2時間", textColor, secondaryColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _recordItem(
-    String date,
-    String subject,
-    String time,
-    Color textColor,
-    Color secondaryColor,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 82,
-            child: Text(
-              date,
-              style: TextStyle(color: secondaryColor, fontSize: 12),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              subject,
-              style: TextStyle(color: textColor, fontSize: 13),
-            ),
-          ),
-          Text(time, style: TextStyle(color: textColor, fontSize: 13)),
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right, color: secondaryColor, size: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _card(Color color, Widget child) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: child,
-    );
+    // ==========================================================
+    // 年
+    // ==========================================================
+    return List.generate(12, (index) => "${index + 1}月");
   }
 
   Widget _legend(Color color, String text) {
@@ -580,6 +568,19 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
         const SizedBox(width: 5),
         Text(text, style: const TextStyle(fontSize: 11)),
       ],
+    );
+  }
+
+  Widget _card(Color color, Widget child) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: child,
     );
   }
 }
