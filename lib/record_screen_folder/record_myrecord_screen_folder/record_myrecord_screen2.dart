@@ -167,11 +167,6 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
           ),
           const SizedBox(height: 10),
           SizedBox(height: 270, child: BarChart(_createChart())),
-          const SizedBox(height: 5),
-          Text(
-            "※目標時間は日によって異なります",
-            style: TextStyle(color: secondaryColor, fontSize: 11),
-          ),
         ],
       ),
     );

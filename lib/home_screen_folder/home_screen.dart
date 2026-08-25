@@ -355,47 +355,101 @@ class _HomeScreenState extends State<HomeScreen> {
                                           : RichText(
                                               textAlign: TextAlign.center,
                                               text: TextSpan(
-                                                children: [
-                                                  TextSpan(
-                                                    text: "${goalTime.inHours}",
-                                                    style: GoogleFonts.roboto(
-                                                      color: textColor,
-                                                      fontSize: 25,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  TextSpan(
-                                                    text: "時間",
-                                                    style: TextStyle(
-                                                      color: textColor,
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  TextSpan(
-                                                    text:
-                                                        "${goalTime.inMinutes % 60}",
-                                                    style: GoogleFonts.roboto(
-                                                      color: textColor,
-                                                      fontSize: 25,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  TextSpan(
-                                                    text: "分",
-                                                    style: TextStyle(
-                                                      color: textColor,
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ],
+                                                children: goalTime.inHours == 0
+                                                    ? [
+                                                        TextSpan(
+                                                          text:
+                                                              "${goalTime.inMinutes}",
+                                                          style:
+                                                              GoogleFonts.roboto(
+                                                                color:
+                                                                    const Color(
+                                                                      0xFF258EDB,
+                                                                    ),
+                                                                // 数字
+                                                                fontSize: 25,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                        ),
+                                                        TextSpan(
+                                                          text: "分",
+                                                          style:
+                                                              const TextStyle(
+                                                                color: Color(
+                                                                  0xFF258EDB,
+                                                                ), // 単位
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                        ),
+                                                      ]
+                                                    : [
+                                                        TextSpan(
+                                                          text:
+                                                              "${goalTime.inHours}",
+                                                          style:
+                                                              GoogleFonts.roboto(
+                                                                color:
+                                                                    const Color(
+                                                                      0xFF258EDB,
+                                                                    ),
+                                                                // 数字
+                                                                fontSize: 25,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                        ),
+                                                        TextSpan(
+                                                          text: "時間",
+                                                          style:
+                                                              const TextStyle(
+                                                                color: Color(
+                                                                  0xFF258EDB,
+                                                                ), // 単位
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                        ),
+                                                        TextSpan(
+                                                          text:
+                                                              "${goalTime.inMinutes % 60}",
+                                                          style:
+                                                              GoogleFonts.roboto(
+                                                                color:
+                                                                    const Color(
+                                                                      0xFF258EDB,
+                                                                    ),
+                                                                // 数字
+                                                                fontSize: 25,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                        ),
+                                                        TextSpan(
+                                                          text: "分",
+                                                          style:
+                                                              const TextStyle(
+                                                                color: Color(
+                                                                  0xFF258EDB,
+                                                                ), // 単位
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                        ),
+                                                      ],
                                               ),
                                             ),
+
                                       const SizedBox(height: 6),
 
                                       Row(
@@ -494,8 +548,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                             textAlign: TextAlign.right,
                                             text: TextSpan(
                                               children: _buildTimeSpans(
-                                                "${studyTime.inHours}時間"
-                                                "${studyTime.inMinutes % 60}分",
+                                                studyTime.inHours == 0
+                                                    ? "${studyTime.inMinutes}分"
+                                                    : "${studyTime.inHours}時間"
+                                                          "${studyTime.inMinutes % 60}分",
                                                 textColor,
                                               ),
                                             ),
@@ -568,8 +624,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   textAlign: TextAlign.right,
                                                   text: TextSpan(
                                                     children: _buildTimeSpans(
-                                                      "${remainingTime.inHours}時間"
-                                                      "${remainingTime.inMinutes % 60}分",
+                                                      remainingTime.inHours == 0
+                                                          ? "${remainingTime.inMinutes}分"
+                                                          : "${remainingTime.inHours}時間"
+                                                                "${remainingTime.inMinutes % 60}分",
                                                       textColor,
                                                     ),
                                                   ),
@@ -988,8 +1046,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     Duration sessionTime = Duration.zero;
 
     if (!_sessionAlreadySaved) {
-      sessionTime =
-          _totalDisplayTime - _sessionStartTotal;
+      sessionTime = _totalDisplayTime - _sessionStartTotal;
     }
 
     // タイマー停止
@@ -1002,39 +1059,26 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     await FlutterForegroundTask.stopService();
 
     // まだ保存されていない場合だけ保存
-    if (!_sessionAlreadySaved &&
-        sessionTime > Duration.zero) {
+    if (!_sessionAlreadySaved && sessionTime > Duration.zero) {
       try {
-        await widget.onSaveStudyTime(
-          sessionTime.inSeconds,
-        );
+        await widget.onSaveStudyTime(sessionTime.inSeconds);
 
         widget.onStop(sessionTime);
 
         _sessionAlreadySaved = true;
       } catch (e) {
-        debugPrint(
-          '学習時間の保存に失敗しました: $e',
-        );
+        debugPrint('学習時間の保存に失敗しました: $e');
       }
     }
 
     // 保存情報を削除
-    final prefs =
-    await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setBool(
-      'studyTimerRunning',
-      false,
-    );
+    await prefs.setBool('studyTimerRunning', false);
 
-    await prefs.remove(
-      'studyTimerStartTime',
-    );
+    await prefs.remove('studyTimerStartTime');
 
-    await prefs.remove(
-      'studyTimerBaseMilliseconds',
-    );
+    await prefs.remove('studyTimerBaseMilliseconds');
 
     // 完全リセット
     _stopwatch.reset();

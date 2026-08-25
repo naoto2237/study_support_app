@@ -89,6 +89,31 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
     return "${wholeHours}時間${minutes}分";
   }
 
+  String formatPeriodStudyTime(int totalSeconds) {
+    // 100時間以上
+    if (totalSeconds >= 100 * 3600) {
+      final tenthsOfHour = (totalSeconds * 10) ~/ 3600;
+
+      final wholeHours = tenthsOfHour ~/ 10;
+      final decimal = tenthsOfHour % 10;
+
+      return "$wholeHours.$decimal時間";
+    }
+
+    // 1時間未満
+    if (totalSeconds < 3600) {
+      final minutes = totalSeconds ~/ 60;
+
+      return "${minutes}分";
+    }
+
+    // 1時間以上100時間未満
+    final wholeHours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+
+    return "${wholeHours}時間${minutes}分";
+  }
+
   String _dateId(DateTime date) {
     return "${date.year.toString().padLeft(4, '0')}-"
         "${date.month.toString().padLeft(2, '0')}-"
@@ -505,9 +530,9 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
 
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
-    final textColor = isDark ? Colors.white : const Color(0xFF202124);
+    final textColor = isDark ? Colors.white : Colors.black87;
 
-    final secondaryColor = isDark ? Colors.white70 : const Color(0xFF666666);
+    final secondaryColor = isDark ? Colors.white70 : Colors.black54;
 
     return ValueListenableBuilder<int>(
       valueListenable: todayStudySeconds,
@@ -519,6 +544,17 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
             child: Column(
               children: [
                 _buildSummaryCard(cardColor, textColor, secondaryColor),
+
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      "目標達成日数は、日付が変わると更新されます",
+                      style: TextStyle(color: secondaryColor, fontSize: 11),
+                    ),
+                  ),
+                ),
 
                 const SizedBox(height: 14),
 
@@ -666,7 +702,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                             : selectedPeriod == 1
                             ? "今月の学習時間"
                             : "今年の学習時間",
-                        value: formatStudyTime(
+                        value: formatPeriodStudyTime(
                           periodFirestoreSeconds -
                               todayFirestoreSeconds +
                               todayStudySeconds.value,
