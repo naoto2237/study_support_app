@@ -243,7 +243,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? const Color(0xFF258EDB) : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
             title,

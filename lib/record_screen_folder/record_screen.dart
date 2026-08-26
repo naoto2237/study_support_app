@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:study_support_app/setting_screen.dart';
 
 import 'record_myrecord_screen_folder/record_myrecord_screen.dart';
-import 'comparison_screen.dart';
+import 'comparision_screen_folder/comparison_screen.dart';
 import 'package:study_support_app/chat_list_screen.dart';
 
 class RecordScreen extends StatelessWidget {
