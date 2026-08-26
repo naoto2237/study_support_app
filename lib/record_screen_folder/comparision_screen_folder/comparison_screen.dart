@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'comparison_screen2.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ComparisonScreen extends StatefulWidget {
   final int totalSeconds;
 
-  const ComparisonScreen({
-    super.key,
-    required this.totalSeconds,
-  });
+  const ComparisonScreen({super.key, required this.totalSeconds});
 
   @override
   State<ComparisonScreen> createState() => _ComparisonScreenState();
 }
 
 class _ComparisonScreenState extends State<ComparisonScreen> {
-  String comparisonTarget = "全体のユーザー（平均）";
+  String comparisonTarget = "全体のユーザー";
+
+  // ユーザー数
+  int userCount = 0;
+  bool isUserCountLoading = true;
 
   // 週・月・年
   String selectedPeriod = "週";
@@ -23,39 +25,56 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   String selectedDate = "8/16（日）- 8/22（土）";
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserCount();
+  }
+
+  Future<void> _loadUserCount() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("users")
+          .count()
+          .get();
+
+      if (!mounted) return;
+
+      setState(() {
+        userCount = snapshot.count ?? 0;
+        isUserCountLoading = false;
+      });
+    } catch (e) {
+      debugPrint("ユーザー数の取得に失敗しました: $e");
+
+      if (!mounted) return;
+
+      setState(() {
+        isUserCountLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isDark =
-        Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final backgroundColor = isDark
         ? const Color(0xFF121212)
         : const Color(0xFFF8F8FC);
 
-    final cardColor =
-    isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
-    final textColor =
-    isDark ? Colors.white : const Color(0xFF202124);
+    final textColor = isDark ? Colors.white : const Color(0xFF202124);
 
-    final secondaryColor =
-    isDark ? Colors.white70 : const Color(0xFF666666);
+    final secondaryColor = isDark ? Colors.white70 : const Color(0xFF666666);
 
     return Container(
       color: backgroundColor,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          14,
-          16,
-          24,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         child: Column(
           children: [
-            _buildConditionCard(
-              cardColor,
-              textColor,
-              secondaryColor,
-            ),
+            _buildConditionCard(cardColor, textColor, secondaryColor),
 
             const SizedBox(height: 14),
 
@@ -87,29 +106,19 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(
-                  vertical: 14,
-                ),
+                padding: EdgeInsets.symmetric(vertical: 14),
                 child: Text(
                   "期間を選択",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
 
               // 週
               ListTile(
                 title: const Text("週"),
-                subtitle: selectedPeriod == "週"
-                    ? Text(selectedDate)
-                    : null,
+                subtitle: selectedPeriod == "週" ? Text(selectedDate) : null,
                 trailing: selectedPeriod == "週"
-                    ? const Icon(
-                  Icons.check,
-                  color: Color(0xFF258EDB),
-                )
+                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
                     : null,
                 onTap: () async {
                   Navigator.pop(bottomSheetContext);
@@ -121,14 +130,9 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
               // 月
               ListTile(
                 title: const Text("月"),
-                subtitle: selectedPeriod == "月"
-                    ? Text(selectedDate)
-                    : null,
+                subtitle: selectedPeriod == "月" ? Text(selectedDate) : null,
                 trailing: selectedPeriod == "月"
-                    ? const Icon(
-                  Icons.check,
-                  color: Color(0xFF258EDB),
-                )
+                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
                     : null,
                 onTap: () async {
                   Navigator.pop(bottomSheetContext);
@@ -140,14 +144,9 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
               // 年
               ListTile(
                 title: const Text("年"),
-                subtitle: selectedPeriod == "年"
-                    ? Text(selectedDate)
-                    : null,
+                subtitle: selectedPeriod == "年" ? Text(selectedDate) : null,
                 trailing: selectedPeriod == "年"
-                    ? const Icon(
-                  Icons.check,
-                  color: Color(0xFF258EDB),
-                )
+                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
                     : null,
                 onTap: () async {
                   Navigator.pop(bottomSheetContext);
@@ -180,9 +179,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
     setState(() {
       selectedPeriod = "週";
-      selectedDate = _formatSelectedWeek(
-        pickedDate,
-      );
+      selectedDate = _formatSelectedWeek(pickedDate);
     });
   }
 
@@ -204,8 +201,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
     setState(() {
       selectedPeriod = "月";
-      selectedDate =
-      "${pickedDate.year}年${pickedDate.month}月";
+      selectedDate = "${pickedDate.year}年${pickedDate.month}月";
     });
   }
 
@@ -227,8 +223,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
     setState(() {
       selectedPeriod = "年";
-      selectedDate =
-      "${pickedDate.year}年";
+      selectedDate = "${pickedDate.year}年";
     });
   }
 
@@ -240,13 +235,9 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     // 日曜日を週の開始日にする
     final daysFromSunday = date.weekday % 7;
 
-    final startDate = date.subtract(
-      Duration(days: daysFromSunday),
-    );
+    final startDate = date.subtract(Duration(days: daysFromSunday));
 
-    final endDate = startDate.add(
-      const Duration(days: 6),
-    );
+    final endDate = startDate.add(const Duration(days: 6));
 
     return "${startDate.year}/${startDate.month}/${startDate.day}"
         " ～ "
@@ -266,50 +257,30 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: const Text(
-                  "全体のユーザー（平均）",
-                ),
-                trailing:
-                comparisonTarget ==
-                    "全体のユーザー（平均）"
-                    ? const Icon(
-                  Icons.check,
-                  color: Color(0xFF258EDB),
-                )
+                title: const Text("全体のユーザー"),
+                trailing: comparisonTarget == "全体のユーザー"
+                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
                     : null,
                 onTap: () {
                   setState(() {
-                    comparisonTarget =
-                    "全体のユーザー（平均）";
+                    comparisonTarget = "全体のユーザー";
                   });
 
-                  Navigator.pop(
-                    bottomSheetContext,
-                  );
+                  Navigator.pop(bottomSheetContext);
                 },
               ),
 
               ListTile(
-                title: const Text(
-                  "特定のユーザー",
-                ),
-                trailing:
-                comparisonTarget ==
-                    "特定のユーザー"
-                    ? const Icon(
-                  Icons.check,
-                  color: Color(0xFF258EDB),
-                )
+                title: const Text("特定のユーザー"),
+                trailing: comparisonTarget == "特定のユーザー"
+                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
                     : null,
                 onTap: () {
                   setState(() {
-                    comparisonTarget =
-                    "特定のユーザー";
+                    comparisonTarget = "特定のユーザー";
                   });
 
-                  Navigator.pop(
-                    bottomSheetContext,
-                  );
+                  Navigator.pop(bottomSheetContext);
                 },
               ),
             ],
@@ -324,15 +295,14 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   // ============================================================
 
   Widget _buildConditionCard(
-      Color cardColor,
-      Color textColor,
-      Color secondaryColor,
-      ) {
+    Color cardColor,
+    Color textColor,
+    Color secondaryColor,
+  ) {
     return _card(
       cardColor,
       Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             "比較条件",
@@ -348,8 +318,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
           // 期間
           _dropdown(
             title: "期間",
-            value:
-            "$selectedPeriod：$selectedDate",
+            value: "$selectedPeriod：$selectedDate",
             textColor: textColor,
             onTap: _showPeriodAndDateSelector,
           ),
@@ -367,58 +336,71 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
           const SizedBox(height: 16),
 
           // ユーザー数
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: const Color(0xFF258EDB),
+          // 全体のユーザーを選択しているときだけ表示
+          if (comparisonTarget == "全体のユーザー") ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFF258EDB)),
+                borderRadius: BorderRadius.circular(16),
               ),
-              borderRadius:
-              BorderRadius.circular(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.groups, color: Color(0xFF258EDB), size: 44),
+
+                  const SizedBox(width: 14),
+
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "全体のユーザー数",
+                        style: TextStyle(color: textColor, fontSize: 13),
+                      ),
+
+                      const SizedBox(height: 3),
+
+                      Text(
+                        isUserCountLoading ? "読み込み中..." : "$userCount 人",
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 21,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const Spacer(),
+
+                  Icon(Icons.info_outline, color: Color(0xFF258EDB)),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.groups,
-                  color: Color(0xFF258EDB),
-                  size: 44,
+
+            const SizedBox(height: 14),
+          ],
+
+          // 比較するボタン
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () {
+                // 比較処理
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF258EDB),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-
-                const SizedBox(width: 14),
-
-                Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "全体のユーザー数",
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 13,
-                      ),
-                    ),
-
-                    const SizedBox(height: 3),
-
-                    Text(
-                      "12,345 人",
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 21,
-                        fontWeight:
-                        FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const Spacer(),
-
-                Icon(
-                  Icons.info_outline,
-                  color: secondaryColor,
-                ),
-              ],
+              ),
+              child: const Text(
+                "比較する",
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
@@ -430,20 +412,14 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   // カード
   // ============================================================
 
-  Widget _card(
-      Color color,
-      Widget child,
-      ) {
+  Widget _card(Color color, Widget child) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: color,
-        borderRadius:
-        BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE5E7EB),
-        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: child,
     );
@@ -460,15 +436,9 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     VoidCallback? onTap,
   }) {
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 12,
-          ),
-        ),
+        Text(title, style: const TextStyle(fontSize: 12)),
 
         const SizedBox(height: 7),
 
@@ -476,17 +446,10 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
           onTap: onTap,
           child: Container(
             height: 48,
-            padding:
-            const EdgeInsets.symmetric(
-              horizontal: 10,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              border: Border.all(
-                color:
-                const Color(0xFFE5E7EB),
-              ),
-              borderRadius:
-              BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
@@ -494,19 +457,12 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                   child: Text(
                     value,
                     maxLines: 1,
-                    overflow:
-                    TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 12,
-                    ),
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: textColor, fontSize: 12),
                   ),
                 ),
 
-                const Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 20,
-                ),
+                const Icon(Icons.keyboard_arrow_down, size: 20),
               ],
             ),
           ),

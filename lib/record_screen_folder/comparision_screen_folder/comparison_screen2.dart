@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'comparison_screen3.dart';
 
 class ComparisonScreen2 extends StatefulWidget {
   final int totalSeconds;
@@ -18,8 +18,6 @@ class ComparisonScreen2 extends StatefulWidget {
 }
 
 class _ComparisonScreen2State extends State<ComparisonScreen2> {
-  int selectedPeriod = 0;
-
   double get weeklyStudyHours {
     return widget.totalSeconds / 3600.0;
   }
@@ -32,38 +30,20 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
 
     final textColor = isDark ? Colors.white : const Color(0xFF202124);
 
-    final secondaryColor = isDark ? Colors.white70 : const Color(0xFF666666);
-
     return Column(
       children: [
         _buildAverageCard(cardColor, textColor),
 
         const SizedBox(height: 14),
 
-        _buildComparisonChart(cardColor, textColor, secondaryColor),
-
-        Padding(
-          padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
-          child: Text(
-            "※グラフの表示には時間がかかる場合があります",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: secondaryColor,
-              fontSize: 11,
-            ),
-          ),
+        ComparisonScreen3(
+          totalSeconds: widget.totalSeconds,
+          comparisonTarget: widget.comparisonTarget,
+          onComparisonTargetChanged: widget.onComparisonTargetChanged,
         ),
-
-        const SizedBox(height: 14),
-
-        _buildUserChangeCard(cardColor, textColor, secondaryColor),
       ],
     );
   }
-
-  // ==============================================================
-  // 平均との比較
-  // ==============================================================
 
   Widget _buildAverageCard(Color cardColor, Color textColor) {
     const averageHours = 8.6;
@@ -137,345 +117,6 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
     );
   }
 
-  // ==============================================================
-  // 比較グラフ
-  // ==============================================================
-
-  Widget _buildComparisonChart(
-    Color cardColor,
-    Color textColor,
-    Color secondaryColor,
-  ) {
-    return _card(
-      cardColor,
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "学習時間の比較グラフ",
-            style: TextStyle(
-              color: textColor,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          _buildPeriodSelector(),
-
-          const SizedBox(height: 12),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _legend(const Color(0xFF258EDB), "あなた"),
-
-              const SizedBox(width: 14),
-
-              _legend(const Color(0xFFBDBDBD), "全体平均"),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          SizedBox(height: 270, child: BarChart(_createChart())),
-
-        ],
-      ),
-    );
-  }
-
-  // ==============================================================
-  // 週 / 月 / 年
-  // ==============================================================
-
-  Widget _buildPeriodSelector() {
-    return Container(
-      height: 33,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F7),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          _periodButton("週", 0),
-          _periodButton("月", 1),
-          _periodButton("年", 2),
-        ],
-      ),
-    );
-  }
-
-  Widget _periodButton(String title, int index) {
-    final selected = selectedPeriod == index;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedPeriod = index;
-          });
-        },
-        child: Container(
-          margin: const EdgeInsets.all(2),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF258EDB) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(
-            title,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.black87,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ==============================================================
-  // ユーザー変更
-  // ==============================================================
-
-  Widget _buildUserChangeCard(
-    Color cardColor,
-    Color textColor,
-    Color secondaryColor,
-  ) {
-    return _card(
-      cardColor,
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 45,
-                height: 45,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.people_alt_outlined,
-                  color: Color(0xFF258EDB),
-                ),
-              ),
-
-              const SizedBox(width: 14),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "比較するユーザーを変更",
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 5),
-
-                    Text(
-                      "特定のユーザーと比較して、"
-                      "モチベーションを高めましょう！",
-                      style: TextStyle(color: secondaryColor, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: _selectUser,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF258EDB),
-                side: const BorderSide(color: Color(0xFF258EDB)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                "ユーザーを選択して比較する",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==============================================================
-  // グラフ
-  // ==============================================================
-
-  BarChartData _createChart() {
-    final myValues = _myValues();
-
-    const averageValues = [0.4, 0.9, 1.6, 2.3, 1.4, 1.6, 0.4];
-
-    return BarChartData(
-      maxY: 5,
-      minY: 0,
-
-      gridData: FlGridData(
-        show: true,
-        drawVerticalLine: false,
-        horizontalInterval: 1,
-      ),
-
-      borderData: FlBorderData(show: false),
-
-      titlesData: FlTitlesData(
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 28,
-            interval: 1,
-            getTitlesWidget: (value, meta) {
-              return Text(
-                value.toInt().toString(),
-                style: const TextStyle(fontSize: 10),
-              );
-            },
-          ),
-        ),
-
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 42,
-            getTitlesWidget: (value, meta) {
-              final index = value.toInt();
-
-              const labels = [
-                "日\n8/16",
-                "月\n8/17",
-                "火\n8/18",
-                "水\n8/19",
-                "木\n8/20",
-                "金\n8/21",
-                "土\n8/22",
-              ];
-
-              if (index < 0 || index >= labels.length) {
-                return const SizedBox();
-              }
-
-              return Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  labels[index],
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 10),
-                ),
-              );
-            },
-          ),
-        ),
-
-        rightTitles: const AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      ),
-
-      barGroups: List.generate(7, (index) {
-        return BarChartGroupData(
-          x: index,
-          barsSpace: 3,
-          barRods: [
-            BarChartRodData(
-              toY: myValues[index],
-              width: 10,
-              color: const Color(0xFF258EDB),
-              borderRadius: BorderRadius.circular(4),
-            ),
-
-            BarChartRodData(
-              toY: averageValues[index],
-              width: 10,
-              color: const Color(0xFFBDBDBD),
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ],
-        );
-      }),
-    );
-  }
-
-  List<double> _myValues() {
-    final hours = weeklyStudyHours;
-
-    return [
-      hours * 0.04,
-      hours * 0.10,
-      hours * 0.17,
-      hours * 0.30,
-      hours * 0.15,
-      hours * 0.20,
-      hours * 0.04,
-    ];
-  }
-
-  // ==============================================================
-  // ユーザー選択
-  // ==============================================================
-
-  void _selectUser() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("比較するユーザー"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.groups, color: Color(0xFF258EDB)),
-                title: const Text("全体のユーザー（平均）"),
-                onTap: () {
-                  widget.onComparisonTargetChanged("全体のユーザー（平均）");
-
-                  Navigator.pop(context);
-                },
-              ),
-
-              ListTile(
-                leading: const Icon(Icons.search),
-                title: const Text("ユーザーを検索する"),
-                onTap: () {
-                  Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("ユーザー検索は後で実装します")),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ==============================================================
-  // 共通
-  // ==============================================================
-
   Widget _card(Color color, Widget child) {
     return Container(
       width: double.infinity,
@@ -483,7 +124,7 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE5E7EB)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: child,
     );
@@ -516,7 +157,6 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               TextSpan(
                 text: " $unit",
                 style: TextStyle(
@@ -534,22 +174,5 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
 
   Widget _divider() {
     return Container(width: 1, height: 65, color: Colors.grey.shade300);
-  }
-
-  Widget _legend(Color color, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-
-        const SizedBox(width: 5),
-
-        Text(text, style: const TextStyle(fontSize: 11)),
-      ],
-    );
   }
 }

@@ -309,7 +309,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
                 0,
               );
 
-              final firstDayOffset = firstDay.weekday % 7;
+              final firstDayOffset = firstDay.weekday - 1;
 
               DateTime weekStart = firstDay.subtract(
                 Duration(days: firstDayOffset),
@@ -475,7 +475,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
 
     // ==========================================================
     // 月：カレンダーの週ごとに集計
-    // 日曜日～土曜日
+    // 月曜日～日曜日
     // ==========================================================
     if (selectedPeriod == 1) {
       final targetMonth = selectedMonth;
@@ -488,18 +488,18 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
       // 月の1日が何曜日か
       // DateTime.weekday:
       // 月=1、火=2、...、土=6、日=7
-      // カレンダー上の日曜=0に変換
-      final firstDayOffset = firstDay.weekday % 7;
+      // カレンダーの第1週の月曜日
+      final firstDayOffset = firstDay.weekday - 1;
 
-      // カレンダーの第1週の日曜日
-      DateTime weekStart = firstDay.subtract(Duration(days: firstDayOffset));
+      DateTime weekStart =
+      firstDay.subtract(Duration(days: firstDayOffset));
 
       final values = <double>[];
 
       while (!weekStart.isAfter(lastDay)) {
         double totalHours = 0;
 
-        // 日曜日～土曜日
+        // 月曜日～日曜日
         for (int i = 0; i < 7; i++) {
           final date = weekStart.add(Duration(days: i));
 
@@ -564,12 +564,12 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
     // 週
     // ==========================================================
     if (selectedPeriod == 0) {
-      const week = ["日", "月", "火", "水", "木", "金", "土"];
+      const week = ["月", "火", "水", "木", "金", "土", "日"];
 
       return List.generate(7, (index) {
         final date = selectedWeekStart.add(Duration(days: index));
 
-        return "${week[date.weekday % 7]}\n"
+        return "${week[date.weekday - 1]}\n"
             "${date.month}/${date.day}";
       });
     }
@@ -586,7 +586,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
 
       final lastDay = DateTime(targetMonth.year, targetMonth.month + 1, 0);
 
-      final firstDayOffset = firstDay.weekday % 7;
+      final firstDayOffset = firstDay.weekday - 1;
 
       DateTime weekStart = firstDay.subtract(Duration(days: firstDayOffset));
 

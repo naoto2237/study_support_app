@@ -146,7 +146,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   // ==============================================================
 
   DateTime selectedWeekStart = DateTime.now().subtract(
-    Duration(days: DateTime.now().weekday % 7),
+    Duration(days: DateTime.now().weekday - 1),
   );
 
   // ==============================================================
