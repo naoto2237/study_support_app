@@ -119,15 +119,20 @@ class NotificationScreen extends StatelessWidget {
               final fromUserId =
                   data["fromUserId"] ?? "";
 
+              final requestId =
+                  data["requestId"] ?? "";
+
               return _NotificationTile(
                 title: title,
                 message: message,
                 type: type,
                 read: read,
                 fromUserId: fromUserId,
+                requestId: requestId,
                 notificationId: doc.id,
               );
             },
+
           );
         },
       ),
@@ -141,6 +146,7 @@ class _NotificationTile extends StatelessWidget {
   final String type;
   final bool read;
   final String fromUserId;
+  final String requestId;
   final String notificationId;
 
   const _NotificationTile({
@@ -149,6 +155,7 @@ class _NotificationTile extends StatelessWidget {
     required this.type,
     required this.read,
     required this.fromUserId,
+    required this.requestId,
     required this.notificationId,
   });
 
@@ -156,12 +163,19 @@ class _NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () async {
+        // 通知を既読にする
         await FirebaseFirestore.instance
             .collection("notifications")
             .doc(notificationId)
             .update({
           "read": true,
         });
+
+        // フレンド申請の場合
+        if (type == "friend_request" &&
+            requestId.isNotEmpty) {
+          _showFriendRequestDialog(context);
+        }
       },
 
       child: Container(
@@ -226,7 +240,7 @@ class _NotificationTile extends StatelessWidget {
                   const SizedBox(height: 5),
 
                   const Text(
-                    "新しい通知",
+                    "タップして確認",
                     style: TextStyle(
                       fontSize: 11,
                       color: Colors.grey,
@@ -249,5 +263,172 @@ class _NotificationTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // ==========================================================
+  // フレンド申請ダイアログ
+  // ==========================================================
+
+  void _showFriendRequestDialog(
+      BuildContext context) {
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            "フレンド申請",
+          ),
+
+          content: const Text(
+            "このユーザーからフレンド申請が届いています。",
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text(
+                "閉じる",
+              ),
+            ),
+
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                await _acceptFriendRequest(
+                  context,
+                );
+              },
+              child: const Text(
+                "承認する",
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ==========================================================
+  // フレンド申請を承認
+  // ==========================================================
+
+  Future<void> _acceptFriendRequest(
+      BuildContext context) async {
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return;
+    }
+
+    final myUid = user.uid;
+
+    try {
+      await FirebaseFirestore.instance
+          .runTransaction(
+            (transaction) async {
+
+          // ------------------------------------------
+          // フレンド申請
+          // ------------------------------------------
+
+          final requestRef =
+          FirebaseFirestore.instance
+              .collection("friendRequests")
+              .doc(requestId);
+
+          final requestSnapshot =
+          await transaction.get(requestRef);
+
+          if (!requestSnapshot.exists) {
+            throw Exception(
+              "申請が存在しません",
+            );
+          }
+
+          final requestData =
+          requestSnapshot.data();
+
+          if (requestData == null) {
+            throw Exception(
+              "申請データがありません",
+            );
+          }
+
+          if (requestData["status"] != "pending") {
+            throw Exception(
+              "この申請はすでに処理されています",
+            );
+          }
+
+          // ------------------------------------------
+          // フレンド
+          // ------------------------------------------
+
+          final friendRef =
+          FirebaseFirestore.instance
+              .collection("friends")
+              .doc();
+
+          // ------------------------------------------
+          // 申請をacceptedに変更
+          // ------------------------------------------
+
+          transaction.update(
+            requestRef,
+            {
+              "status": "accepted",
+              "acceptedAt":
+              FieldValue.serverTimestamp(),
+            },
+          );
+
+          // ------------------------------------------
+          // フレンド登録
+          // ------------------------------------------
+
+          transaction.set(
+            friendRef,
+            {
+              "user1": fromUserId,
+              "user2": myUid,
+              "createdAt":
+              FieldValue.serverTimestamp(),
+            },
+          );
+        },
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "フレンドになりました！",
+          ),
+        ),
+      );
+
+    } catch (e) {
+      debugPrint(
+        "フレンド承認エラー: $e",
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "フレンド申請の承認に失敗しました",
+          ),
+        ),
+      );
+    }
   }
 }
