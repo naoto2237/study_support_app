@@ -18,15 +18,14 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   int userCount = 0;
   bool isUserCountLoading = true;
 
-  // 週・月・年
   String selectedPeriod = "週";
-
-  // 選択した期間
-  String selectedDate = "8/16（日）- 8/22（土）";
+  String selectedDate = "";
+  bool isCompared = false;
 
   @override
   void initState() {
     super.initState();
+
     _loadUserCount();
   }
 
@@ -81,6 +80,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             ComparisonScreen2(
               totalSeconds: widget.totalSeconds,
               comparisonTarget: comparisonTarget,
+              isCompared: isCompared,
               onComparisonTargetChanged: (value) {
                 setState(() {
                   comparisonTarget = value;
@@ -91,157 +91,6 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
         ),
       ),
     );
-  }
-
-  // ============================================================
-  // 期間選択
-  // ============================================================
-
-  void _showPeriodAndDateSelector() {
-    showModalBottomSheet(
-      context: context,
-      builder: (bottomSheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text(
-                  "期間を選択",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-
-              // 週
-              ListTile(
-                title: const Text("週"),
-                subtitle: selectedPeriod == "週" ? Text(selectedDate) : null,
-                trailing: selectedPeriod == "週"
-                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
-                    : null,
-                onTap: () async {
-                  Navigator.pop(bottomSheetContext);
-
-                  await _selectWeek();
-                },
-              ),
-
-              // 月
-              ListTile(
-                title: const Text("月"),
-                subtitle: selectedPeriod == "月" ? Text(selectedDate) : null,
-                trailing: selectedPeriod == "月"
-                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
-                    : null,
-                onTap: () async {
-                  Navigator.pop(bottomSheetContext);
-
-                  await _selectMonth();
-                },
-              ),
-
-              // 年
-              ListTile(
-                title: const Text("年"),
-                subtitle: selectedPeriod == "年" ? Text(selectedDate) : null,
-                trailing: selectedPeriod == "年"
-                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
-                    : null,
-                onTap: () async {
-                  Navigator.pop(bottomSheetContext);
-
-                  await _selectYear();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // 週を選択
-  // ============================================================
-
-  Future<void> _selectWeek() async {
-    final now = DateTime.now();
-
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 1),
-    );
-
-    if (pickedDate == null) return;
-
-    setState(() {
-      selectedPeriod = "週";
-      selectedDate = _formatSelectedWeek(pickedDate);
-    });
-  }
-
-  // ============================================================
-  // 月を選択
-  // ============================================================
-
-  Future<void> _selectMonth() async {
-    final now = DateTime.now();
-
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 1),
-    );
-
-    if (pickedDate == null) return;
-
-    setState(() {
-      selectedPeriod = "月";
-      selectedDate = "${pickedDate.year}年${pickedDate.month}月";
-    });
-  }
-
-  // ============================================================
-  // 年を選択
-  // ============================================================
-
-  Future<void> _selectYear() async {
-    final now = DateTime.now();
-
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 1),
-    );
-
-    if (pickedDate == null) return;
-
-    setState(() {
-      selectedPeriod = "年";
-      selectedDate = "${pickedDate.year}年";
-    });
-  }
-
-  // ============================================================
-  // 週の表示
-  // ============================================================
-
-  String _formatSelectedWeek(DateTime date) {
-    // 日曜日を週の開始日にする
-    final daysFromSunday = date.weekday % 7;
-
-    final startDate = date.subtract(Duration(days: daysFromSunday));
-
-    final endDate = startDate.add(const Duration(days: 6));
-
-    return "${startDate.year}/${startDate.month}/${startDate.day}"
-        " ～ "
-        "${endDate.year}/${endDate.month}/${endDate.day}";
   }
 
   // ============================================================
@@ -256,6 +105,14 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                child: Text(
+                  "比較する相手を選択",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+
               ListTile(
                 title: const Text("全体のユーザー"),
                 trailing: comparisonTarget == "全体のユーザー"
@@ -315,22 +172,17 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
           const SizedBox(height: 18),
 
-          // 期間
-          _dropdown(
-            title: "期間",
-            value: "$selectedPeriod：$selectedDate",
-            textColor: textColor,
-            onTap: _showPeriodAndDateSelector,
-          ),
-
-          const SizedBox(height: 12),
-
-          // 比較する相手
-          _dropdown(
-            title: "比較する相手",
-            value: comparisonTarget,
-            textColor: textColor,
-            onTap: _showComparisonTargetSelector,
+          Row(
+            children: [
+              Expanded(
+                child: _dropdown(
+                  title: "比較する相手",
+                  value: comparisonTarget,
+                  textColor: textColor,
+                  onTap: _showComparisonTargetSelector,
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 16),
@@ -387,7 +239,9 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             height: 48,
             child: ElevatedButton(
               onPressed: () {
-                // 比較処理
+                setState(() {
+                  isCompared = true;
+                });
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF258EDB),

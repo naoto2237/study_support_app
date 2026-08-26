@@ -839,16 +839,16 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   }
 
   // ==============================================================
-  // 今週のサマリー
+  // 学習時間のサマリー
   // ==============================================================
   String get _summaryTitle {
     switch (summaryPeriod) {
       case 1:
-        return "今月のサマリー";
+        return "学習時間のサマリー (月)";
       case 2:
-        return "今年のサマリー";
+        return "学習時間のサマリー (年)";
       default:
-        return "今週のサマリー";
+        return "学習時間のサマリー (週)";
     }
   }
 
@@ -926,7 +926,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                "今週",
+                                "週",
                                 style: TextStyle(
                                   color: textColor,
                                   fontSize: 14,
@@ -954,7 +954,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                "今月",
+                                "月",
                                 style: TextStyle(
                                   color: textColor,
                                   fontSize: 14,
@@ -982,7 +982,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                "今年",
+                                "年",
                                 style: TextStyle(
                                   color: textColor,
                                   fontSize: 14,

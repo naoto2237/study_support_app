@@ -1223,32 +1223,38 @@ class _RoomFeatureScreenState extends State<_RoomFeatureScreen> {
         ],
       ),
 
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // ==========================================
-          // 背景画像
-          // 完全に固定する
-          // ==========================================
-          if (_selectedBackground != null)
-            Positioned.fill(
-              child: ClipRect(
-                child: Transform.translate(
-                  offset: _backgroundOffset,
-                  child: Transform.scale(
-                    scale: _backgroundScale,
-                    alignment: Alignment.center,
-                    child: Image.file(_selectedBackground!, fit: BoxFit.cover),
+      body: Container(
+        color: const Color(0xFFF7F7F7),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // ==========================================
+            // 背景画像
+            // 完全に固定する
+            // ==========================================
+            if (_selectedBackground != null)
+              Positioned.fill(
+                child: ClipRect(
+                  child: Transform.translate(
+                    offset: _backgroundOffset,
+                    child: Transform.scale(
+                      scale: _backgroundScale,
+                      alignment: Alignment.center,
+                      child: Image.file(
+                        _selectedBackground!,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
 
-          // ==========================================
-          // 背景の上にチャット画面
-          // ==========================================
-          Positioned.fill(child: widget.child),
-        ],
+            // ==========================================
+            // 背景の上にチャット画面
+            // ==========================================
+            Positioned.fill(child: widget.child),
+          ],
+        ),
       ),
     );
   }
