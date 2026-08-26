@@ -879,7 +879,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Color(0xFFE5E7EB)),
       ),
       child: Column(
         children: [
@@ -1110,23 +1110,6 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   }
 
   // ==============================================================
-  // 共通カード
-  // ==============================================================
-
-  Widget _card(Color color, Widget child) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: child,
-    );
-  }
-
-  // ==============================================================
   // サマリー項目
   // ==============================================================
 
@@ -1225,13 +1208,5 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
         ),
       ),
     ];
-  }
-
-  // ==============================================================
-  // 区切り線
-  // ==============================================================
-
-  Widget _divider() {
-    return Container(width: 1, height: 45, color: Colors.grey.shade300);
   }
 }

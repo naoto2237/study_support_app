@@ -88,14 +88,22 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
           widget.textColor,
           widget.secondaryColor,
         ),
+
+        Padding(
+          padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
+          child: Text(
+            "グラフの表示には時間がかかる場合があります",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: widget.secondaryColor, fontSize: 11),
+          ),
+        ),
+
         const SizedBox(height: 14),
+
         RecordMyRecordScreen3(
           cardColor: widget.cardColor,
           textColor: widget.textColor,
           secondaryColor: widget.secondaryColor,
-          weeklyStudyHours: widget.weeklyStudyHours,
-          weeklyGoalHours: widget.weeklyGoalHours,
-          achievementRate: widget.achievementRate,
         ),
       ],
     );
@@ -291,7 +299,39 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
                   "${date.month}/${date.day}（${weekdays[date.weekday - 1]}）";
             } else if (selectedPeriod == 1) {
               // 月
-              title = label;
+              final targetMonth = selectedMonth;
+
+              final firstDay = DateTime(targetMonth.year, targetMonth.month, 1);
+
+              final lastDay = DateTime(
+                targetMonth.year,
+                targetMonth.month + 1,
+                0,
+              );
+
+              final firstDayOffset = firstDay.weekday % 7;
+
+              DateTime weekStart = firstDay.subtract(
+                Duration(days: firstDayOffset),
+              );
+
+              // タップしたバーの週まで進める
+              weekStart = weekStart.add(Duration(days: groupIndex * 7));
+
+              DateTime weekEnd = weekStart.add(const Duration(days: 6));
+
+              // 月の範囲内だけ表示
+              final displayStart = weekStart.isBefore(firstDay)
+                  ? firstDay
+                  : weekStart;
+
+              final displayEnd = weekEnd.isAfter(lastDay) ? lastDay : weekEnd;
+
+              title =
+                  "${groupIndex + 1}週目\n"
+                  "${displayStart.month}/${displayStart.day}"
+                  "～"
+                  "${displayEnd.month}/${displayEnd.day}";
             } else {
               // 年
               title = label;
@@ -593,7 +633,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Color(0xFFE5E7EB)),
       ),
       child: child,
     );

@@ -1,162 +1,100 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'all_study_records_screen.dart';
 
-class RecordMyRecordScreen3 extends StatelessWidget {
+class RecordMyRecordScreen3 extends StatefulWidget {
   final Color cardColor;
   final Color textColor;
   final Color secondaryColor;
-  final double weeklyStudyHours;
-  final double weeklyGoalHours;
-  final int achievementRate;
 
   const RecordMyRecordScreen3({
     super.key,
     required this.cardColor,
     required this.textColor,
     required this.secondaryColor,
-    required this.weeklyStudyHours,
-    required this.weeklyGoalHours,
-    required this.achievementRate,
   });
 
   @override
+  State<RecordMyRecordScreen3> createState() => _RecordMyRecordScreen3State();
+}
+
+class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
+  List<Map<String, dynamic>> recentRecords = [];
+
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentRecords();
+  }
+
+  Future<void> _loadRecentRecords() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+
+      return;
+    }
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .collection("studyRecords")
+          .get();
+
+      final records = snapshot.docs.map((doc) {
+        final data = doc.data();
+
+        return {
+          "date": doc.id,
+          "studyTime": (data["studyTime"] as num?)?.toInt() ?? 0,
+        };
+      }).toList();
+
+      // 日付が新しい順に並べる
+      records.sort((a, b) {
+        final dateA = DateTime.parse(
+          a["date"] as String,
+        );
+
+        final dateB = DateTime.parse(
+          b["date"] as String,
+        );
+
+        return dateB.compareTo(dateA);
+      });
+
+      // 最新3件だけ
+      final latestRecords = records.take(3).toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        recentRecords = latestRecords;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("最近の学習記録の取得に失敗しました: $e");
+
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildGoalCard(),
-        const SizedBox(height: 14),
-        _buildReflectionCard(),
-        const SizedBox(height: 14),
-        _buildRecentRecords(),
-      ],
-    );
-  }
-
-  Widget _buildGoalCard() {
-    return _card(
-      Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: const BoxDecoration(
-              color: Color(0xFFEDE7FF),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.track_changes,
-              color: Color(0xFF258EDB),
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "週間目標",
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  "今週の目標合計",
-                  style: TextStyle(color: secondaryColor, fontSize: 12),
-                ),
-                Text(
-                  "${weeklyGoalHours.toStringAsFixed(1)} 時間",
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(width: 1, height: 65, color: Colors.grey.shade300),
-          const SizedBox(width: 18),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "達成率",
-                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "$achievementRate %",
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                width: 105,
-                child: LinearProgressIndicator(
-                  value: achievementRate / 100,
-                  minHeight: 7,
-                  backgroundColor: Colors.grey.shade300,
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFF258EDB)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReflectionCard() {
-    return _card(
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDE7FF),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.article_outlined, color: Color(0xFF258EDB)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "学習のふりかえり",
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  "今週は合計 "
-                  "${weeklyStudyHours.toStringAsFixed(1)} "
-                  "時間学習しました！",
-                  style: TextStyle(color: textColor, fontSize: 13),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "目標まであと "
-                  "${(weeklyGoalHours - weeklyStudyHours).clamp(0, double.infinity).toStringAsFixed(1)} "
-                  "時間です。もう少しで達成できます！",
-                  style: TextStyle(color: secondaryColor, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return _buildRecentRecords();
   }
 
   Widget _buildRecentRecords() {
@@ -169,53 +107,151 @@ class RecordMyRecordScreen3 extends StatelessWidget {
               Text(
                 "最近の学習記録",
                 style: TextStyle(
-                  color: textColor,
-                  fontSize: 17,
+                  color: widget.textColor,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(
-                "すべて見る  ›",
-                style: TextStyle(color: secondaryColor, fontSize: 13),
+              InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AllStudyRecordsScreen(
+                        cardColor: widget.cardColor,
+                        textColor: widget.textColor,
+                        secondaryColor: widget.secondaryColor,
+                      ),
+                    ),
+                  );
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "すべて見る",
+                      style: TextStyle(
+                        color: widget.secondaryColor,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 1),
+                    Icon(
+                      Icons.chevron_right,
+                      color: widget.secondaryColor,
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
+
           const SizedBox(height: 10),
-          _recordItem("8/22（土）", "数学 / 微分積分", "1.5時間"),
-          _recordItem("8/21（金）", "英語 / 単語暗記", "1.0時間"),
-          _recordItem("8/20（木）", "物理 / 力学", "1.2時間"),
+
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else if (recentRecords.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                "まだ学習記録がありません",
+                style: TextStyle(color: widget.secondaryColor, fontSize: 13),
+              ),
+            )
+          else
+            ...recentRecords.asMap().entries.map((entry) {
+              final index = entry.key;
+              final record = entry.value;
+              final studyTime = (record["studyTime"] as num?)?.toInt() ?? 0;
+
+              return _recordItem(
+                _formatDate(record["date"] as String),
+                "未設定",
+                _formatStudyTime(studyTime),
+                showDivider: index != recentRecords.length - 1,
+              );
+            }),
         ],
       ),
     );
   }
 
-  Widget _recordItem(String date, String subject, String time) {
+  Widget _recordItem(
+    String date,
+    String subject,
+    String time, {
+    bool showDivider = true,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
+      decoration: showDivider
+          ? BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+            )
+          : null,
       child: Row(
         children: [
           SizedBox(
             width: 82,
             child: Text(
               date,
-              style: TextStyle(color: secondaryColor, fontSize: 12),
+              style: TextStyle(color: widget.secondaryColor, fontSize: 12),
             ),
           ),
+
           Expanded(
             child: Text(
               subject,
-              style: TextStyle(color: textColor, fontSize: 13),
+              style: TextStyle(color: widget.textColor, fontSize: 13),
             ),
           ),
-          Text(time, style: TextStyle(color: textColor, fontSize: 13)),
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right, color: secondaryColor, size: 20),
+
+          Text(time, style: TextStyle(color: widget.textColor, fontSize: 13)),
+
+         // const SizedBox(width: 4),
+
+        //  Icon(Icons.chevron_right, color: widget.secondaryColor, size: 20),
         ],
       ),
     );
+  }
+
+  String _formatDate(String date) {
+    final dateTime = DateTime.parse(date);
+
+    const weekdays = [
+      "月",
+      "火",
+      "水",
+      "木",
+      "金",
+      "土",
+      "日",
+    ];
+
+    return "${dateTime.month}/${dateTime.day}"
+        "（${weekdays[dateTime.weekday - 1]}）";
+  }
+
+
+  String _formatStudyTime(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+
+    if (hours > 0) {
+      if (minutes > 0) {
+        return "$hours時間$minutes分";
+      }
+
+      return "$hours時間";
+    }
+
+    return "$minutes分";
   }
 
   Widget _card(Widget child) {
@@ -223,9 +259,9 @@ class RecordMyRecordScreen3 extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: widget.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Color(0xFFE5E7EB)),
       ),
       child: child,
     );

@@ -400,16 +400,18 @@ class _GoaltimeSettingScreenState extends State<GoaltimeSettingScreen> {
           },
         ),
 
-        title: const Text(
-          '曜日ごとの目標設定',
-          style: TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+        title: Transform.translate(
+          offset: const Offset(-2, 0),
+          child: const Text(
+            '曜日ごとの目標設定',
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
         ),
       ),
-
       // ============================================================
       // Body
       // ============================================================
