@@ -7,7 +7,9 @@ import 'profile_edit_screen.dart';
 import 'package:study_support_app/chat_list_screen.dart';
 
 class MypageScreen extends StatefulWidget {
-  const MypageScreen({super.key});
+  final String? targetUserId; // 他人のプロフィールを表示する場合のUID（省略時は自分）
+
+  const MypageScreen({super.key, this.targetUserId});
 
   static const Color primaryBlue = Color(0xFF3D96E8);
 
@@ -23,17 +25,31 @@ class _MypageScreenState extends State<MypageScreen> {
   // FirebaseのStreamはinitStateで1回だけ作成する。
   // スクロールによるsetStateで再作成されないようにする。
   late final Stream<DocumentSnapshot<Map<String, dynamic>>> _userStream;
+  bool _isMyPage = true;
 
   @override
   void initState() {
     super.initState();
 
-    final user = FirebaseAuth.instance.currentUser;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUid = currentUser?.uid;
 
-    if (user != null) {
+    // 表示する対象のUIDを決定（指定がなければ自分のUID）
+    final String uidToFetch = (widget.targetUserId != null && widget.targetUserId!.isNotEmpty)
+        ? widget.targetUserId!
+        : (currentUid ?? '');
+
+    // 自分のマイページかどうかの判定
+    if (widget.targetUserId == null || widget.targetUserId!.isEmpty || (currentUid != null && widget.targetUserId == currentUid)) {
+      _isMyPage = true;
+    } else {
+      _isMyPage = (currentUid != null && uidToFetch == currentUid);
+    }
+
+    if (uidToFetch.isNotEmpty) {
       _userStream = FirebaseFirestore.instance
           .collection("users")
-          .doc(user.uid)
+          .doc(uidToFetch)
           .snapshots();
     } else {
       _userStream = const Stream.empty();
@@ -127,7 +143,10 @@ class _MypageScreenState extends State<MypageScreen> {
                             data: data,
                             scrollOffset: _scrollOffset,
                           ),
-                          ProfileContent(data: data),
+                          ProfileContent(
+                            data: data,
+                            isMyPage: _isMyPage, // 自分のページかどうかのフラグを渡す
+                          ),
                         ],
                       ),
                     ),
@@ -163,7 +182,8 @@ class _MypageScreenState extends State<MypageScreen> {
     final double iconProgress = ((_scrollOffset - 150) / 72).clamp(0.0, 1.0);
 
     return AppBar(
-      automaticallyImplyLeading: false,
+      // 他人のプロフィールを表示しているときは戻るボタン（←）を自動で出す
+      automaticallyImplyLeading: !_isMyPage,
       centerTitle: true,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -171,31 +191,32 @@ class _MypageScreenState extends State<MypageScreen> {
 
       title: showAppBar
           ? Text(
-              name,
-              style: const TextStyle(
-                fontSize: 17.5,
-                fontWeight: FontWeight.w900,
-                color: Colors.black87,
-                letterSpacing: -0.5,
-              ),
-            )
+        name,
+        style: const TextStyle(
+          fontSize: 17.5,
+          fontWeight: FontWeight.w900,
+          color: Colors.black87,
+          letterSpacing: -0.5,
+        ),
+      )
           : null,
 
       actions: [
-
-        Padding(
-          padding: const EdgeInsets.only(right: 7),
-          child: IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            color: Color.lerp(Colors.white, Colors.black87, iconProgress),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsPage()),
-              );
-            },
+        // 自分のページのときだけ設定アイコンを表示
+        if (_isMyPage)
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              color: Color.lerp(Colors.white, Colors.black87, iconProgress),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
@@ -268,50 +289,24 @@ class ProfileHeader extends StatelessWidget {
                             child: ClipOval(
                               child: icon.isNotEmpty
                                   ? Image.network(
-                                      icon,
-                                      width: iconSize,
-                                      height: iconSize,
-                                      fit: BoxFit.cover,
-                                    )
+                                icon,
+                                width: iconSize,
+                                height: iconSize,
+                                fit: BoxFit.cover,
+                              )
                                   : Container(
-                                      color: const Color(
-                                        0xFF3D96E8,
-                                      ).withOpacity(0.12),
-                                      child: Icon(
-                                        Icons.person,
-                                        size: iconSize * 0.65,
-                                        color: const Color(0xFF3D96E8),
-                                      ),
-                                    ),
+                                color: const Color(
+                                  0xFF3D96E8,
+                                ).withOpacity(0.12),
+                                child: Icon(
+                                  Icons.person,
+                                  size: iconSize * 0.65,
+                                  color: const Color(0xFF3D96E8),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-
-                        /*
-                        // ------------------------------------------
-                        // カメラアイコン
-                        // ------------------------------------------
-                        if (iconSize > 25)
-                          Positioned(
-                            right: -2,
-                            bottom: 2,
-                            child: Container(
-                              width: 38 * (iconSize / 94),
-                              height: 38 * (iconSize / 94),
-                              decoration: const BoxDecoration(
-                                color: MypageScreen.primaryBlue,
-                                shape: BoxShape.circle,
-                                border: Border.fromBorderSide(
-                                  BorderSide(color: Colors.white, width: 3),
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 19 * (iconSize / 94),
-                              ),
-                            ),
-                          ),*/
                       ],
                     ),
                   ),
@@ -356,14 +351,16 @@ class ProfileHeader extends StatelessWidget {
     );
   }
 }
+
 // ======================================================
 // プロフィール以下
 // ======================================================
 
 class ProfileContent extends StatelessWidget {
   final Map<String, dynamic> data;
+  final bool isMyPage; // 自分用のページかどうか
 
-  const ProfileContent({super.key, required this.data});
+  const ProfileContent({super.key, required this.data, required this.isMyPage});
 
   @override
   Widget build(BuildContext context) {
@@ -374,6 +371,14 @@ class ProfileContent extends StatelessWidget {
     final String location = data["location"] ?? "未設定";
 
     final String studyStyle = data["studyStyle"] ?? "未設定";
+
+    // Firestoreの公開設定を取得（未設定なら安全のため非公開扱いの 'private'）
+    final String studyRecordPrivacy = data["studyRecordPrivacy"] ?? "private";
+
+    // 🌟 公開・非公開の判定ロジック
+    // ・自分のページなら非公開設定でも自分には見える
+    // ・他人のページなら、公開設定が 'public' のときだけ見える
+    final bool shouldShowStudyTime = isMyPage || (studyRecordPrivacy == 'public');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -390,44 +395,45 @@ class ProfileContent extends StatelessWidget {
           const SizedBox(height: 18),
 
           // ------------------------------------------
-          // プロフィール分析・編集
+          // プロフィール分析・編集（自分のページのときだけ表示）
           // ------------------------------------------
-          Row(
-            children: [
-              // ------------------------------------------
-              // プロフィール分析
-              // ------------------------------------------
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.bar_chart_rounded,
-                  text: "プロフィール分析",
-                  onTap: () {},
+          if (isMyPage) ...[
+            Row(
+              children: [
+                // ------------------------------------------
+                // プロフィール分析
+                // ------------------------------------------
+                Expanded(
+                  child: _ActionButton(
+                    icon: Icons.bar_chart_rounded,
+                    text: "プロフィール分析",
+                    onTap: () {},
+                  ),
                 ),
-              ),
 
-              const SizedBox(width: 14),
+                const SizedBox(width: 14),
 
-              // ------------------------------------------
-              // プロフィールを編集
-              // ------------------------------------------
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.edit,
-                  text: "プロフィールを編集",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileEditScreen(data: data),
-                      ),
-                    );
-                  },
+                // ------------------------------------------
+                // プロフィールを編集
+                // ------------------------------------------
+                Expanded(
+                  child: _ActionButton(
+                    icon: Icons.edit,
+                    text: "プロフィールを編集",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfileEditScreen(data: data),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
+              ],
+            ),
+            const SizedBox(height: 18),
+          ],
 
           // ------------------------------------------
           // プロフィール項目
@@ -447,9 +453,11 @@ class ProfileContent extends StatelessWidget {
           const SizedBox(height: 20),
 
           // ------------------------------------------
-          // 学習時間
+          // 学習時間（公開設定が許可されている場合のみ表示）
           // ------------------------------------------
-          const StudyTimeSection(),
+          if (shouldShowStudyTime) ...[
+            const StudyTimeSection(),
+          ],
 
           const SizedBox(height: 200),
         ],
