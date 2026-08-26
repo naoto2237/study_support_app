@@ -482,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               minHeight: 7,
                                               borderRadius:
                                                   BorderRadius.circular(9),
-                                              color: const Color(0xFF42A5F5),
+                                              color: const Color(0xFF258EDB),
                                               backgroundColor: const Color(
                                                 0xFFBBDEFB,
                                               ),

@@ -60,6 +60,8 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
     _checkDateChange();
     loadPeriodStudyTime();
     calculateAchievedDays();
+    loadSummaryStudyTime();
+    calculateSummaryAchievedDays();
   }
 
   String formatStudyTime(int totalSeconds) {
@@ -124,7 +126,20 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   // 週 / 月 / 年
   // ==============================================================
 
+  // 学習記録の推移用
   int selectedPeriod = 0;
+
+  // グラフで表示している月・年
+  DateTime selectedMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
+
+  int selectedYear = DateTime.now().year;
+
+  // サマリー用
+  int summaryPeriod = 0;
 
   // ==============================================================
   // 表示する週
@@ -144,6 +159,10 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   int periodFirestoreSeconds = 0;
 
   int achievedDays = 0;
+
+  // サマリー専用
+  int summaryStudySeconds = 0;
+  int summaryAchievedDays = 0;
 
   // 今週の学習時間を読み込み中か
   bool isLoadingWeeklyTime = true;
@@ -166,10 +185,6 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   // ==============================================================
   double get weeklyGoalHours {
     return 12.3;
-  }
-
-  double get averageDailyGoal {
-    return weeklyGoalHours / 7;
   }
 
   int get achievementRate {
@@ -381,6 +396,213 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
     });
   }
 
+  Future<void> loadSummaryStudyTime() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+
+      setState(() {
+        summaryStudySeconds = 0;
+      });
+
+      return;
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    DateTime startDate;
+    DateTime endDate;
+
+    // ==============================================================
+    // サマリーの期間
+    // ==============================================================
+
+    // 今週
+    if (summaryPeriod == 0) {
+      startDate = today.subtract(Duration(days: today.weekday - 1));
+
+      endDate = today;
+    }
+    // 今月
+    else if (summaryPeriod == 1) {
+      startDate = DateTime(today.year, today.month, 1);
+
+      endDate = today;
+    }
+    // 今年
+    else {
+      startDate = DateTime(today.year, 1, 1);
+
+      endDate = today;
+    }
+
+    int totalSeconds = 0;
+    int savedTodaySeconds = 0;
+
+    // ==============================================================
+    // 日付一覧
+    // ==============================================================
+
+    final dates = <DateTime>[];
+
+    for (
+      DateTime date = startDate;
+      !date.isAfter(endDate);
+      date = date.add(const Duration(days: 1))
+    ) {
+      dates.add(date);
+    }
+
+    // ==============================================================
+    // Firestoreから取得
+    // ==============================================================
+
+    final futures = dates.map((date) async {
+      final dateId = _dateId(date);
+
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .collection("studyRecords")
+          .doc(dateId)
+          .get();
+
+      int studySeconds = 0;
+
+      if (doc.exists) {
+        final data = doc.data();
+
+        studySeconds = (data?["studyTime"] as num?)?.toInt() ?? 0;
+      }
+
+      return {"date": date, "studySeconds": studySeconds};
+    });
+
+    final results = await Future.wait(futures);
+
+    // ==============================================================
+    // 合計
+    // ==============================================================
+
+    for (final result in results) {
+      final date = result["date"] as DateTime;
+      final studySeconds = result["studySeconds"] as int;
+
+      totalSeconds += studySeconds;
+
+      // 今日のFirestore保存済み時間
+      if (date.year == today.year &&
+          date.month == today.month &&
+          date.day == today.day) {
+        savedTodaySeconds = studySeconds;
+      }
+    }
+
+    // ==============================================================
+    // 今日の現在進行中の学習時間を反映
+    //
+    // Firestore保存済みの今日の時間を一度引いて、
+    // 現在のタイマー時間を加える
+    // ==============================================================
+
+    final currentTodaySeconds = todayStudySeconds.value;
+
+    totalSeconds = totalSeconds - savedTodaySeconds + currentTodaySeconds;
+
+    if (!mounted) return;
+
+    setState(() {
+      summaryStudySeconds = totalSeconds;
+    });
+  }
+
+  Future<void> calculateSummaryAchievedDays() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+
+      setState(() {
+        summaryAchievedDays = 0;
+      });
+
+      return;
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    DateTime startDate;
+
+    // ==============================================================
+    // サマリーの期間
+    // ==============================================================
+
+    // 今週
+    if (summaryPeriod == 0) {
+      startDate = today.subtract(Duration(days: today.weekday - 1));
+    }
+    // 今月
+    else if (summaryPeriod == 1) {
+      startDate = DateTime(today.year, today.month, 1);
+    }
+    // 今年
+    else {
+      startDate = DateTime(today.year, 1, 1);
+    }
+
+    // ==============================================================
+    // 日付一覧
+    // ==============================================================
+
+    final dates = <DateTime>[];
+
+    for (
+      DateTime date = startDate;
+      !date.isAfter(today);
+      date = date.add(const Duration(days: 1))
+    ) {
+      dates.add(date);
+    }
+
+    // ==============================================================
+    // 達成済みの日を取得
+    //
+    // goalAchieved == true の保存済みデータだけを数える
+    // ==============================================================
+
+    final futures = dates.map((date) async {
+      final dateId = _dateId(date);
+
+      final studyDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('studyRecords')
+          .doc(dateId)
+          .get();
+
+      if (!studyDoc.exists) {
+        return false;
+      }
+
+      final data = studyDoc.data();
+
+      return data?['goalAchieved'] == true;
+    });
+
+    final results = await Future.wait(futures);
+
+    final count = results.where((achieved) => achieved).length;
+
+    if (!mounted) return;
+
+    setState(() {
+      summaryAchievedDays = count;
+    });
+  }
+
   Future<void> loadPeriodStudyTime() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -419,18 +641,18 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
     // 今月の1日～今日
     // ==============================================================
     else if (selectedPeriod == 1) {
-      startDate = DateTime(now.year, now.month, 1);
+      startDate = DateTime(selectedMonth.year, selectedMonth.month, 1);
 
-      endDate = DateTime(now.year, now.month, now.day);
+      endDate = DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
     }
     // ==============================================================
     // 年
     // 今年の1月1日～今日
     // ==============================================================
     else {
-      startDate = DateTime(now.year, 1, 1);
+      startDate = DateTime(selectedYear, 1, 1);
 
-      endDate = DateTime(now.year, now.month, now.day);
+      endDate = DateTime(selectedYear, 12, 31);
     }
 
     int totalSeconds = 0;
@@ -550,7 +772,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                   child: Align(
                     alignment: Alignment.center,
                     child: Text(
-                      "目標達成日数は、日付が変わると更新されます",
+                      "目標達成日数は日付が変わると更新されます",
                       style: TextStyle(color: secondaryColor, fontSize: 11),
                     ),
                   ),
@@ -579,11 +801,33 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                     loadPeriodStudyTime();
                     calculateAchievedDays();
                   },
-
                   onWeekChanged: (value) {
                     setState(() {
                       selectedWeekStart = value;
+                      isLoadingWeeklyTime = true;
                     });
+
+                    loadPeriodStudyTime();
+                    calculateAchievedDays();
+                  },
+                  onMonthChanged: (value) {
+                    setState(() {
+                      selectedMonth = value;
+                      isLoadingWeeklyTime = true;
+                    });
+
+                    loadPeriodStudyTime();
+                    calculateAchievedDays();
+                  },
+
+                  onYearChanged: (value) {
+                    setState(() {
+                      selectedYear = value;
+                      isLoadingWeeklyTime = true;
+                    });
+
+                    loadPeriodStudyTime();
+                    calculateAchievedDays();
                   },
                 ),
               ],
@@ -598,7 +842,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   // 今週のサマリー
   // ==============================================================
   String get _summaryTitle {
-    switch (selectedPeriod) {
+    switch (summaryPeriod) {
       case 1:
         return "今月のサマリー";
       case 2:
@@ -611,21 +855,17 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
   String get _summaryDate {
     final now = DateTime.now();
 
-    switch (selectedPeriod) {
+    switch (summaryPeriod) {
       case 1:
-        // 月
         return "${now.year}年${now.month}月";
-
       case 2:
-        // 年
         return "${now.year}年";
-
       default:
-        // 週
-        final weekStart = selectedWeekStart;
-        final weekEnd = selectedWeekStart.add(const Duration(days: 6));
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        final sunday = monday.add(const Duration(days: 6));
 
-        return "${formatDate(weekStart)} - ${formatDate(weekEnd)}";
+        return "${formatDate(monday)} - "
+            "${formatDate(sunday)}";
     }
   }
 
@@ -654,12 +894,125 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      _summaryTitle,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    PopupMenuButton<int>(
+                      offset: const Offset(0, 8),
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      color: cardColor,
+                      onSelected: (value) {
+                        setState(() {
+                          summaryPeriod = value;
+                        });
+
+                        loadSummaryStudyTime();
+                        calculateSummaryAchievedDays();
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem<int>(
+                          value: 0,
+                          height: 44,
+                          child: Row(
+                            children: [
+                              Icon(
+                                summaryPeriod == 0
+                                    ? Icons.check
+                                    : Icons.circle_outlined,
+                                size: 18,
+                                color: summaryPeriod == 0
+                                    ? const Color(0xFF258EDB)
+                                    : secondaryColor,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                "今週",
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 14,
+                                  fontWeight: summaryPeriod == 0
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<int>(
+                          value: 1,
+                          height: 44,
+                          child: Row(
+                            children: [
+                              Icon(
+                                summaryPeriod == 1
+                                    ? Icons.check
+                                    : Icons.circle_outlined,
+                                size: 18,
+                                color: summaryPeriod == 1
+                                    ? const Color(0xFF258EDB)
+                                    : secondaryColor,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                "今月",
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 14,
+                                  fontWeight: summaryPeriod == 1
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<int>(
+                          value: 2,
+                          height: 44,
+                          child: Row(
+                            children: [
+                              Icon(
+                                summaryPeriod == 2
+                                    ? Icons.check
+                                    : Icons.circle_outlined,
+                                size: 18,
+                                color: summaryPeriod == 2
+                                    ? const Color(0xFF258EDB)
+                                    : secondaryColor,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                "今年",
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 14,
+                                  fontWeight: summaryPeriod == 2
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _summaryTitle,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: secondaryColor,
+                            size: 19,
+                          ),
+                        ],
                       ),
                     ),
 
@@ -697,16 +1050,13 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
 
                     Expanded(
                       child: _summaryItem(
-                        title: selectedPeriod == 0
+                        title: summaryPeriod == 0
                             ? "今週の学習時間"
-                            : selectedPeriod == 1
+                            : summaryPeriod == 1
                             ? "今月の学習時間"
                             : "今年の学習時間",
-                        value: formatPeriodStudyTime(
-                          periodFirestoreSeconds -
-                              todayFirestoreSeconds +
-                              todayStudySeconds.value,
-                        ),
+
+                        value: formatPeriodStudyTime(summaryStudySeconds),
 
                         unit: "",
                         color: textColor,
@@ -717,7 +1067,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                     Expanded(
                       child: _summaryItem(
                         title: "目標達成日数",
-                        value: achievedDays.toString(),
+                        value: summaryAchievedDays.toString(),
                         unit: "日",
                         color: textColor,
                         bottomText: '',

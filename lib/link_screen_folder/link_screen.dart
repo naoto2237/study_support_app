@@ -89,7 +89,7 @@ class LinkScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 3.5),
                   Text(
-                    "同じ目標を持つ仲間とつながって、学びをもっと楽しく。",
+                    "同じ目標を持つ仲間とつながって、学びをもっと楽しく",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,

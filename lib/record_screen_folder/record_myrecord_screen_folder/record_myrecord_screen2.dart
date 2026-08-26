@@ -16,6 +16,8 @@ class RecordMyRecordScreen2 extends StatefulWidget {
   final int achievementRate;
   final ValueChanged<int> onPeriodChanged;
   final ValueChanged<DateTime> onWeekChanged;
+  final ValueChanged<DateTime> onMonthChanged;
+  final ValueChanged<int> onYearChanged;
 
   const RecordMyRecordScreen2({
     super.key,
@@ -31,6 +33,8 @@ class RecordMyRecordScreen2 extends StatefulWidget {
     required this.achievementRate,
     required this.onPeriodChanged,
     required this.onWeekChanged,
+    required this.onMonthChanged,
+    required this.onYearChanged,
   });
 
   @override
@@ -41,11 +45,18 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
   late int selectedPeriod;
   late DateTime selectedWeekStart;
 
+  late int selectedYear;
+  late DateTime selectedMonth;
+
   @override
   void initState() {
     super.initState();
     selectedPeriod = widget.selectedPeriod;
     selectedWeekStart = widget.selectedWeekStart;
+
+    final now = DateTime.now();
+    selectedMonth = DateTime(now.year, now.month, 1);
+    selectedYear = now.year;
   }
 
   String formatDate(DateTime date) {
@@ -53,8 +64,6 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
   }
 
   String _periodDateText() {
-    final now = DateTime.now();
-
     if (selectedPeriod == 0) {
       final end = selectedWeekStart.add(const Duration(days: 6));
 
@@ -63,10 +72,11 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
     }
 
     if (selectedPeriod == 1) {
-      return "${now.year}年${now.month}月";
+      return "${selectedMonth.year}年"
+          "${selectedMonth.month}月";
     }
 
-    return "${now.year}年";
+    return "${selectedYear}年";
   }
 
   @override
@@ -117,20 +127,30 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
             children: [
               IconButton(
                 onPressed: () {
-                  if (selectedPeriod == 0) {
-                    setState(() {
+                  setState(() {
+                    if (selectedPeriod == 0) {
                       selectedWeekStart = selectedWeekStart.subtract(
                         const Duration(days: 7),
                       );
-                    });
 
-                    widget.onWeekChanged(selectedWeekStart);
-                  }
+                      widget.onWeekChanged(selectedWeekStart);
+                    } else if (selectedPeriod == 1) {
+                      // 前月
+                      selectedMonth = DateTime(
+                        selectedMonth.year,
+                        selectedMonth.month - 1,
+                        1,
+                      );
+                      widget.onMonthChanged(selectedMonth);
+                    } else {
+                      // 前年
+                      selectedYear--;
+                      widget.onYearChanged(selectedYear);
+                    }
+                  });
                 },
-                icon: Icon(
-                  Icons.chevron_left,
-                  color: selectedPeriod == 0 ? textColor : Colors.transparent,
-                ),
+
+                icon: Icon(Icons.chevron_left, color: textColor),
               ),
 
               Text(
@@ -140,20 +160,29 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
 
               IconButton(
                 onPressed: () {
-                  if (selectedPeriod == 0) {
-                    setState(() {
+                  setState(() {
+                    if (selectedPeriod == 0) {
                       selectedWeekStart = selectedWeekStart.add(
                         const Duration(days: 7),
                       );
-                    });
 
-                    widget.onWeekChanged(selectedWeekStart);
-                  }
+                      widget.onWeekChanged(selectedWeekStart);
+                    } else if (selectedPeriod == 1) {
+                      // 次月
+                      selectedMonth = DateTime(
+                        selectedMonth.year,
+                        selectedMonth.month + 1,
+                        1,
+                      );
+                      widget.onMonthChanged(selectedMonth);
+                    } else {
+                      // 次年
+                      selectedYear++;
+                      widget.onYearChanged(selectedYear);
+                    }
+                  });
                 },
-                icon: Icon(
-                  Icons.chevron_right,
-                  color: selectedPeriod == 0 ? textColor : Colors.transparent,
-                ),
+                icon: Icon(Icons.chevron_right, color: textColor),
               ),
             ],
           ),
@@ -254,22 +283,12 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
 
             if (selectedPeriod == 0) {
               // 週
-              final date = selectedWeekStart.add(
-                Duration(days: groupIndex),
-              );
+              final date = selectedWeekStart.add(Duration(days: groupIndex));
 
-              const weekdays = [
-                "月",
-                "火",
-                "水",
-                "木",
-                "金",
-                "土",
-                "日",
-              ];
+              const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
               title =
-              "${date.month}/${date.day}（${weekdays[date.weekday - 1]}）";
+                  "${date.month}/${date.day}（${weekdays[date.weekday - 1]}）";
             } else if (selectedPeriod == 1) {
               // 月
               title = label;
@@ -278,12 +297,10 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
               title = label;
             }
 
-            final totalSeconds =
-            (rod.toY * 3600).round();
+            final totalSeconds = (rod.toY * 3600).round();
 
             final hours = totalSeconds ~/ 3600;
-            final minutes =
-                (totalSeconds % 3600) ~/ 60;
+            final minutes = (totalSeconds % 3600) ~/ 60;
 
             String timeText;
 
@@ -421,11 +438,12 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
     // 日曜日～土曜日
     // ==========================================================
     if (selectedPeriod == 1) {
+      final targetMonth = selectedMonth;
       final now = DateTime.now();
 
-      final firstDay = DateTime(now.year, now.month, 1);
+      final firstDay = DateTime(targetMonth.year, targetMonth.month, 1);
 
-      final lastDay = DateTime(now.year, now.month + 1, 0);
+      final lastDay = DateTime(targetMonth.year, targetMonth.month + 1, 0);
 
       // 月の1日が何曜日か
       // DateTime.weekday:
@@ -446,7 +464,8 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
           final date = weekStart.add(Duration(days: i));
 
           // 対象月以外の日は除外
-          if (date.month != now.month || date.year != now.year) {
+          if (date.month != targetMonth.month ||
+              date.year != targetMonth.year) {
             continue;
           }
 
@@ -474,23 +493,23 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
     // ==========================================================
     // 年：1月～12月の月別学習時間
     // ==========================================================
-    final now = DateTime.now();
+    final targetYear = selectedYear;
 
     final values = List<double>.filled(12, 0);
 
     for (int month = 1; month <= 12; month++) {
-      final daysInMonth = DateTime(now.year, month + 1, 0).day;
+      final daysInMonth = DateTime(targetYear, month + 1, 0).day;
 
       double totalHours = 0;
 
       for (int day = 1; day <= daysInMonth; day++) {
-        final key = "${now.year}/$month/$day";
+        final key = "${targetYear}/$month/$day";
 
         totalHours += (widget.studyRecords[key] ?? 0) / 3600.0;
       }
 
       // 今月ならリアルタイム時間も加算
-      if (month == now.month) {
+      if (targetYear == DateTime.now().year && month == DateTime.now().month) {
         totalHours += widget.currentStudyHours;
       }
 
@@ -520,11 +539,12 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
     // カレンダーの週に合わせる
     // ==========================================================
     if (selectedPeriod == 1) {
+      final targetMonth = selectedMonth;
       final now = DateTime.now();
 
-      final firstDay = DateTime(now.year, now.month, 1);
+      final firstDay = DateTime(targetMonth.year, targetMonth.month, 1);
 
-      final lastDay = DateTime(now.year, now.month + 1, 0);
+      final lastDay = DateTime(targetMonth.year, targetMonth.month + 1, 0);
 
       final firstDayOffset = firstDay.weekday % 7;
 

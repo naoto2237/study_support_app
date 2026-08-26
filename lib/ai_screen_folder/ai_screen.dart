@@ -332,7 +332,7 @@ class _AiTestScreenState extends State<AiScreen> {
                           Padding(
                             padding: const EdgeInsets.only(left: 3),
                             child: Text(
-                              "勉強方法・問題解説・学習計画など、\nAIがあなたの学習をサポートします。",
+                              "勉強方法・問題解説・学習計画など\nAIがあなたの学習をサポートします",
                               style: TextStyle(fontSize: 15, color: textColor),
                             ),
                           ),
