@@ -5,6 +5,7 @@ import 'user_search_screen.dart';
 import 'qanda_screen.dart';
 import 'room_screen_folder/room_screen.dart';
 import 'package:study_support_app/chat_list_screen.dart';
+import 'package:study_support_app/notification_screen.dart';
 
 class LinkScreen extends StatelessWidget {
   const LinkScreen({super.key});
@@ -62,7 +63,14 @@ class LinkScreen extends StatelessWidget {
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
               icon: const Icon(Icons.notifications_none), // 吹き出しアイコン
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
+                );
+              },
             ),
           ),
         ],

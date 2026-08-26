@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'room_makeTab_folder/room_make.dart';
 import 'room_searchTab_folder/room_search.dart';
 import 'package:study_support_app/setting_screen.dart';
+import 'package:study_support_app/notification_screen.dart';
 
 class RoomScreen extends StatelessWidget {
   const RoomScreen({super.key});
@@ -48,6 +49,12 @@ class RoomScreen extends StatelessWidget {
             IconButton(
               icon: Icon(Icons.notifications_none, color: textColor),
               onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
+                );
                 // 通知画面へ
               },
             ),

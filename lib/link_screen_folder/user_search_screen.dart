@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/profile_screen.dart';
+import 'dart:async';
+
 
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
@@ -14,9 +16,12 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
 
   String searchText = "";
 
+  Timer? _searchTimer;
+
   @override
   void dispose() {
     searchController.dispose();
+    _searchTimer?.cancel();
     super.dispose();
   }
 
@@ -25,6 +30,23 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
       searchText = searchController.text.trim();
     });
   }
+
+  // リアルタイム検索
+  void onSearchChanged(String value) {
+    _searchTimer?.cancel();
+
+    _searchTimer = Timer(
+      const Duration(milliseconds: 300),
+          () {
+        if (!mounted) return;
+
+        setState(() {
+          searchText = value.trim();
+        });
+      },
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +85,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
               controller: searchController,
               style: TextStyle(color: textColor),
               cursorColor: const Color(0xFF2196F3),
+
               decoration: InputDecoration(
                 hintText: "ユーザー名 または ユーザーID",
                 hintStyle: TextStyle(
@@ -71,13 +94,6 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 prefixIcon: Icon(
                   Icons.search,
                   color: isDark ? Colors.white60 : Colors.grey,
-                ),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    Icons.search,
-                    color: isDark ? Colors.white60 : Colors.grey,
-                  ),
-                  onPressed: searchUsers,
                 ),
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: borderColor),
@@ -93,11 +109,12 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 ),
               ),
 
-              // キーボードの検索ボタンでも検索
-              onSubmitted: (_) {
-                searchUsers();
-              },
+              // 入力と同時に検索
+              onChanged: onSearchChanged,
             ),
+
+
+
 
             const SizedBox(height: 20),
 

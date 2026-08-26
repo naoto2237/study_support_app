@@ -12,6 +12,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:study_support_app/timer_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen2.dart';
+import 'package:study_support_app/notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -165,10 +166,22 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: const Icon(Icons.notifications_none), // 吹き出しアイコン
-              onPressed: () {},
+              icon: const Icon(
+                Icons.notifications_none,
+              ),
+
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                    const NotificationScreen(),
+                  ),
+                );
+              },
             ),
           ),
+
         ],
 
         iconTheme: const IconThemeData(color: Colors.white),

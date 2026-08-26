@@ -4,6 +4,7 @@ import 'package:study_support_app/setting_screen.dart';
 import 'record_myrecord_screen_folder/record_myrecord_screen.dart';
 import 'comparision_screen_folder/comparison_screen.dart';
 import 'package:study_support_app/chat_list_screen.dart';
+import 'package:study_support_app/notification_screen.dart';
 
 class RecordScreen extends StatelessWidget {
   const RecordScreen({super.key});
@@ -59,7 +60,14 @@ class RecordScreen extends StatelessWidget {
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
                 icon: const Icon(Icons.notifications_none), // 吹き出しアイコン
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationScreen(),
+                    ),
+                  );
+                },
               ),
             ),
           ],

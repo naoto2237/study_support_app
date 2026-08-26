@@ -773,28 +773,18 @@ class _OtherProfileContentState
   // ==========================================================
 
   Future<void> _sendFriendRequest() async {
-
     if (_processing) return;
 
     final String? me = myUid;
-
     final String other = otherUid;
 
     if (me == null) {
-
-      _showMessage(
-        "ログインしてください",
-      );
-
+      _showMessage("ログインしてください");
       return;
     }
 
     if (me == other) {
-
-      _showMessage(
-        "自分自身には申請できません",
-      );
-
+      _showMessage("自分自身には申請できません");
       return;
     }
 
@@ -802,51 +792,26 @@ class _OtherProfileContentState
     // 確認ダイアログ
     // ========================================================
 
-    final bool? result =
-    await showDialog<bool>(
+    final bool? result = await showDialog<bool>(
       context: context,
-
       builder: (context) {
-
-        final name =
-            widget.data["name"] ?? "このユーザー";
+        final name = widget.data["name"] ?? "このユーザー";
 
         return AlertDialog(
-
-          title: const Text(
-            "フレンド申請",
-          ),
-
-          content: Text(
-            "$nameさんにフレンド申請を送りますか？",
-          ),
-
+          title: const Text("フレンド申請"),
+          content: Text("$nameさんにフレンド申請を送りますか？"),
           actions: [
-
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  context,
-                  false,
-                );
+                Navigator.pop(context, false);
               },
-
-              child: const Text(
-                "キャンセル",
-              ),
+              child: const Text("キャンセル"),
             ),
-
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  context,
-                  true,
-                );
+                Navigator.pop(context, true);
               },
-
-              child: const Text(
-                "申請する",
-              ),
+              child: const Text("申請する"),
             ),
           ],
         );
@@ -860,9 +825,8 @@ class _OtherProfileContentState
     });
 
     try {
-
       // ========================================================
-      // 既に申請があるか確認
+      // 既に自分から申請しているか確認
       // ========================================================
 
       final existing = await _firestore
@@ -883,16 +847,12 @@ class _OtherProfileContentState
           .get();
 
       if (existing.docs.isNotEmpty) {
-
-        _showMessage(
-          "すでに申請しています",
-        );
-
+        _showMessage("すでに申請しています");
         return;
       }
 
       // ========================================================
-      // 相手からの申請がある場合
+      // 相手からの申請があるか確認
       // ========================================================
 
       final received = await _firestore
@@ -913,46 +873,82 @@ class _OtherProfileContentState
           .get();
 
       if (received.docs.isNotEmpty) {
-
         _showMessage(
           "相手からすでにフレンド申請が届いています",
         );
-
         return;
       }
 
       // ========================================================
-      // 申請を作成
+      // フレンド申請を作成
+      // ========================================================
+
+      final requestRef = await _firestore
+          .collection("friendRequests")
+          .add({
+        "fromUserId": me,
+        "toUserId": other,
+        "status": "pending",
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      // ========================================================
+      // 自分の名前を取得
+      // ========================================================
+
+      final myUserDoc = await _firestore
+          .collection("users")
+          .doc(me)
+          .get();
+
+      final myData = myUserDoc.data();
+
+      final String myName =
+          myData?["name"] ?? "ユーザー";
+
+      // ========================================================
+      // 通知を作成
       // ========================================================
 
       await _firestore
-          .collection("friendRequests")
+          .collection("notifications")
           .add({
-
-        "fromUserId": me,
-
+        // 通知を受け取る人
         "toUserId": other,
 
-        "status": "pending",
+        // 通知を送った人
+        "fromUserId": me,
 
-        "createdAt":
-        FieldValue.serverTimestamp(),
+        // 通知の種類
+        "type": "friend_request",
+
+        // 通知タイトル
+        "title": "フレンド申請",
+
+        // 通知本文
+        "message": "$myNameさんからフレンド申請が届きました",
+
+        // 元になったフレンド申請
+        "requestId": requestRef.id,
+
+        // 未読
+        "read": false,
+
+        // 作成日時
+        "createdAt": FieldValue.serverTimestamp(),
       });
 
       _showMessage(
         "フレンド申請を送信しました",
       );
-
     } catch (e) {
+      debugPrint("フレンド申請エラー: $e");
 
       _showMessage(
         "申請に失敗しました",
       );
-
     } finally {
-
       if (mounted) {
-
         setState(() {
           _processing = false;
         });
