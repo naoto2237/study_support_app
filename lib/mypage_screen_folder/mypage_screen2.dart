@@ -188,7 +188,7 @@ class ProfileContent extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 110),
+        const SizedBox(height: 135),
       ],
     );
   }
@@ -369,7 +369,7 @@ class _ProfileRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        height: 57,
+        height: 54,
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
         ),
