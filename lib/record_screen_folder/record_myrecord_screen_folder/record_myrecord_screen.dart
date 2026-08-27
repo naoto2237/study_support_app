@@ -1084,7 +1084,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
 
                         Container(
                           width: 1,
-                          height: 45,
+                          height: 55,
                           color: Colors.grey.shade300,
                         ),
 
@@ -1092,7 +1092,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
 
                         Container(
                           width: 1,
-                          height: 45,
+                          height: 55,
                           color: Colors.grey.shade300,
                         ),
 

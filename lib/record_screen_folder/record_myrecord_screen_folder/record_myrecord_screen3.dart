@@ -61,13 +61,9 @@ class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
 
       // 日付が新しい順に並べる
       records.sort((a, b) {
-        final dateA = DateTime.parse(
-          a["date"] as String,
-        );
+        final dateA = DateTime.parse(a["date"] as String);
 
-        final dateB = DateTime.parse(
-          b["date"] as String,
-        );
+        final dateB = DateTime.parse(b["date"] as String);
 
         return dateB.compareTo(dateA);
       });
@@ -213,9 +209,9 @@ class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
 
           Text(time, style: TextStyle(color: widget.textColor, fontSize: 13)),
 
-         // const SizedBox(width: 4),
+          // const SizedBox(width: 4),
 
-        //  Icon(Icons.chevron_right, color: widget.secondaryColor, size: 20),
+          //  Icon(Icons.chevron_right, color: widget.secondaryColor, size: 20),
         ],
       ),
     );
@@ -224,20 +220,11 @@ class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
   String _formatDate(String date) {
     final dateTime = DateTime.parse(date);
 
-    const weekdays = [
-      "月",
-      "火",
-      "水",
-      "木",
-      "金",
-      "土",
-      "日",
-    ];
+    const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
     return "${dateTime.month}/${dateTime.day}"
         "（${weekdays[dateTime.weekday - 1]}）";
   }
-
 
   String _formatStudyTime(int seconds) {
     final hours = seconds ~/ 3600;
@@ -257,7 +244,12 @@ class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
   Widget _card(Widget child) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(
+        18, // 左
+        18, // 上
+        18, // 右
+        10, // 下
+      ),
       decoration: BoxDecoration(
         color: widget.cardColor,
         borderRadius: BorderRadius.circular(16),

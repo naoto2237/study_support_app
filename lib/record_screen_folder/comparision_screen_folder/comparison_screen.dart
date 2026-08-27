@@ -216,7 +216,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                         isUserCountLoading ? "読み込み中..." : "$userCount 人",
                         style: TextStyle(
                           color: textColor,
-                          fontSize: 21,
+                          fontSize: 19,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

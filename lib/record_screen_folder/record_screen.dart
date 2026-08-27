@@ -1,21 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:study_support_app/setting_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'record_myrecord_screen_folder/record_myrecord_screen.dart';
 import 'comparision_screen_folder/comparison_screen.dart';
 import 'package:study_support_app/chat_list_screen.dart';
 import 'package:study_support_app/notification_screen.dart';
 
-class RecordScreen extends StatelessWidget {
+class RecordScreen extends StatefulWidget {
   const RecordScreen({super.key});
 
   @override
+  State<RecordScreen> createState() => _RecordScreenState();
+}
+
+class _RecordScreenState extends State<RecordScreen> {
+  // ========================================================
+  // 比較画面に渡す自分の学習時間
+  // ========================================================
+
+  int totalSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _loadStudyTime();
+  }
+
+  // ========================================================
+  // 今週の学習時間をFirestoreから取得
+  // ========================================================
+
+  Future<void> _loadStudyTime() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final now = DateTime.now();
+
+    // 今週の月曜日
+    final monday = now.subtract(
+      Duration(days: now.weekday - 1),
+    );
+
+    int seconds = 0;
+
+    for (int i = 0; i < 7; i++) {
+      final date = monday.add(
+        Duration(days: i),
+      );
+
+      final dateId =
+          "${date.year.toString().padLeft(4, '0')}-"
+          "${date.month.toString().padLeft(2, '0')}-"
+          "${date.day.toString().padLeft(2, '0')}";
+
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .collection("studyRecords")
+          .doc(dateId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data();
+
+        seconds +=
+            (data?["studyTime"] as num?)?.toInt() ?? 0;
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      totalSeconds = seconds;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark =
+        Theme.of(context).brightness == Brightness.dark;
 
-    final textColor = isDark ? Colors.white70 : Colors.black;
-
-    final unselectedLabelColor = isDark ? Colors.white54 : Colors.black45;
+    final unselectedLabelColor =
+    isDark ? Colors.white54 : Colors.black45;
 
     return DefaultTabController(
       length: 2,
@@ -27,6 +96,7 @@ class RecordScreen extends StatelessWidget {
         // ========================================================
         // AppBar
         // ========================================================
+
         appBar: AppBar(
           centerTitle: false,
           backgroundColor: const Color(0xFF258EDB),
@@ -49,8 +119,9 @@ class RecordScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ChatListScreen(),
-                    ), // ※ファイル名に合わせて変更
+                      builder: (context) =>
+                      const ChatListScreen(),
+                    ),
                   );
                 },
               ),
@@ -59,12 +130,14 @@ class RecordScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon: const Icon(Icons.notifications_none), // 吹き出しアイコン
+                icon:
+                const Icon(Icons.notifications_none),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const NotificationScreen(),
+                      builder: (context) =>
+                      const NotificationScreen(),
                     ),
                   );
                 },
@@ -72,24 +145,35 @@ class RecordScreen extends StatelessWidget {
             ),
           ],
 
-          iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme:
+          const IconThemeData(color: Colors.white),
 
           // ======================================================
           // タブ
           // ======================================================
+
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
+            preferredSize:
+            const Size.fromHeight(48),
             child: Container(
               color: Colors.white,
               child: TabBar(
-                indicatorSize: TabBarIndicatorSize.tab,
+                indicatorSize:
+                TabBarIndicatorSize.tab,
 
-                indicator: const UnderlineTabIndicator(
-                  borderSide: BorderSide(color: Color(0xFF258EDB), width: 3),
+                indicator:
+                const UnderlineTabIndicator(
+                  borderSide: BorderSide(
+                    color: Color(0xFF258EDB),
+                    width: 3,
+                  ),
                 ),
 
-                labelColor: const Color(0xFF258EDB),
-                unselectedLabelColor: unselectedLabelColor,
+                labelColor:
+                const Color(0xFF258EDB),
+
+                unselectedLabelColor:
+                unselectedLabelColor,
 
                 tabs: const [
                   Tab(
@@ -101,6 +185,7 @@ class RecordScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+
                   Tab(
                     child: Text(
                       "他の人と比較",
@@ -119,10 +204,15 @@ class RecordScreen extends StatelessWidget {
         // ========================================================
         // タブの中身
         // ========================================================
+
         body: TabBarView(
           children: [
             const RecordMyRecordScreen(),
-            ComparisonScreen(totalSeconds: 0),
+
+            // ★ ここが重要
+            ComparisonScreen(
+              totalSeconds: totalSeconds,
+            ),
           ],
         ),
       ),

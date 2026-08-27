@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'profile_icon_adjust_screen.dart';
+import 'profile_edit_screen2.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -22,6 +23,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   final TextEditingController _nameController = TextEditingController();
 
+  final TextEditingController _userIdController = TextEditingController();
+
+  final TextEditingController gradeController = TextEditingController();
+  final TextEditingController goalController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
+  final TextEditingController studyStyleController = TextEditingController();
+
   File? _selectedImage;
 
   bool _isSaving = false;
@@ -31,9 +39,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     super.initState();
 
     _commentController.text = widget.data["comment"] ?? "";
-
     _nameController.text = widget.data["name"] ?? "";
-
+    _userIdController.text = widget.data["userId"] ?? "";
+    gradeController.text = widget.data["grade"] ?? "";
+    goalController.text = widget.data["goal"] ?? "";
+    locationController.text = widget.data["location"] ?? "";
+    studyStyleController.text = widget.data["studyStyle"] ?? "";
     _loadLatestProfile();
   }
 
@@ -41,6 +52,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   void dispose() {
     _commentController.dispose();
     _nameController.dispose();
+    _userIdController.dispose();
     super.dispose();
   }
 
@@ -215,7 +227,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             maxLength: 20,
             autofocus: true,
             decoration: InputDecoration(
-              hintText: "名前を入力してください",
+              hintText: "名前を入力する",
               filled: true,
               fillColor: const Color(0xFFF7F7F7),
               border: OutlineInputBorder(
@@ -257,6 +269,69 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     setState(() {
       widget.data["name"] = result;
       _nameController.text = result;
+    });
+  }
+
+  Future<void> _editUserId() async {
+    _userIdController.text = widget.data["userId"] ?? "";
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: const Text(
+            "ユーザーIDを変更",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          content: TextField(
+            controller: _userIdController,
+            maxLength: 20,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: "ユーザーIDを入力する",
+              filled: true,
+              fillColor: const Color(0xFFF7F7F7),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("キャンセル", style: TextStyle(color: Colors.grey)),
+            ),
+
+            TextButton(
+              onPressed: () {
+                final userId = _userIdController.text.trim();
+
+                if (userId.isEmpty) return;
+
+                Navigator.pop(context, userId);
+              },
+              child: const Text(
+                "変更",
+                style: TextStyle(
+                  color: Color(0xFF3D96E8),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || result == null) return;
+
+    setState(() {
+      widget.data["userId"] = result;
+      _userIdController.text = result;
     });
   }
 
@@ -395,10 +470,49 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       // Firestoreへ保存
       // ==========================================
 
+      // ==========================================
+      // ユーザーIDの重複チェック
+      // ==========================================
+
+      final userId = _userIdController.text.trim();
+
+      if (userId.isEmpty) {
+        throw Exception("ユーザーIDを入力する");
+      }
+
+      // @から始まっているか確認
+      if (!userId.startsWith("@")) {
+        throw Exception("ユーザーIDは@から始めてください");
+      }
+
+      // 同じユーザーIDを検索
+      final existingUser = await FirebaseFirestore.instance
+          .collection("users")
+          .where("userId", isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      // 自分以外が同じユーザーIDを使用している場合
+      if (existingUser.docs.isNotEmpty &&
+          existingUser.docs.first.id != user.uid) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("このユーザーIDはすでに使用されています")));
+
+        return;
+      }
+
+      // ==========================================
+      // Firestoreへ保存
+      // ==========================================
+
       debugPrint("③ Firestoreへ保存開始");
 
       await FirebaseFirestore.instance.collection("users").doc(user.uid).set({
         "name": _nameController.text.trim(),
+        "userId": userId,
         "icon": iconUrl ?? "",
         "comment": _commentController.text.trim(),
       }, SetOptions(merge: true));
@@ -625,7 +739,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         name,
                         style: const TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                          // fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
                       ),
@@ -642,10 +756,63 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             const SizedBox(height: 28),
 
             // ==========================================
-            // 一言コメント
+            // ユーザーID
             // ==========================================
             const Text(
-              "一言コメント",
+              "ユーザーID",
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            GestureDetector(
+              onTap: _editUserId,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F7F7),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _userIdController.text.isEmpty
+                            ? "未設定"
+                            : _userIdController.text,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          //fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 19,
+                      color: Colors.grey,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            // ==========================================
+            // プロフィールコメント
+            // ==========================================
+            const Text(
+              "プロフィールコメント",
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.grey,
@@ -660,7 +827,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               maxLength: 50,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText: "一言コメントを入力してください",
+                hintText: "プロフィールコメントを入力する",
                 hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                 filled: true,
                 fillColor: const Color(0xFFF7F7F7),
@@ -684,9 +851,21 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
             const SizedBox(height: 20),
 
-            const Text(
-              "プロフィール情報を変更すると、他のユーザーにも表示されます。",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ProfileEditSection2(
+              gradeController: gradeController,
+              goalController: goalController,
+              //locationController: locationController,
+              //studyStyleController: studyStyleController,
+            ),
+
+            const SizedBox(height: 20),
+
+            const Center(
+              child: Text(
+                "プロフィール情報を変更すると他のユーザーにも表示されます",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
             ),
           ],
         ),
