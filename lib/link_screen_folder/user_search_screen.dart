@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/profile_screen.dart';
 import 'dart:async';
-
+import 'package:study_support_app/notification_screen.dart';
 
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
@@ -35,25 +35,19 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
   void onSearchChanged(String value) {
     _searchTimer?.cancel();
 
-    _searchTimer = Timer(
-      const Duration(milliseconds: 300),
-          () {
-        if (!mounted) return;
+    _searchTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
 
-        setState(() {
-          searchText = value.trim();
-        });
-      },
-    );
+      setState(() {
+        searchText = value.trim();
+      });
+    });
   }
-
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark
-        ? const Color(0xFF121212)
-        : const Color(0xFFF8F8F8);
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F8F8);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white70 : Colors.black87;
     final borderColor = isDark ? Colors.grey.shade800 : Colors.grey;
@@ -65,14 +59,34 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         iconTheme: IconThemeData(color: textColor),
-        title: Text(
-          "ユーザー検索",
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 19,
+        title: Transform.translate(
+          offset: const Offset(-19, 0),
+          child: Text(
+            "ユーザー検索",
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 19,
+            ),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: Icon(Icons.notifications_none, color: Colors.black87),
+              // 通知画面へ
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(15),
@@ -102,10 +116,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                   borderSide: BorderSide(color: borderColor),
                 ),
                 focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Color(0xFF2196F3),
-                    width: 2,
-                  ),
+                  borderSide: BorderSide(color: Color(0xFF2196F3), width: 2),
                 ),
               ),
 
@@ -113,19 +124,12 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
               onChanged: onSearchChanged,
             ),
 
-
-
-
             const SizedBox(height: 20),
 
             // ==========================================
             // 検索結果
             // ==========================================
-            Expanded(
-              child: UserList(
-                searchText: searchText,
-              ),
-            ),
+            Expanded(child: UserList(searchText: searchText)),
           ],
         ),
       ),
@@ -136,15 +140,13 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
 class UserList extends StatelessWidget {
   final String searchText;
 
-  const UserList({
-    super.key,
-    required this.searchText,
-  });
+  const UserList({super.key, required this.searchText});
 
   // ==========================================
   // ユーザー検索
   // ==========================================
-  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> searchUsers() async {
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+  searchUsers() async {
     final firestore = FirebaseFirestore.instance;
 
     // ------------------------------------------
@@ -152,14 +154,8 @@ class UserList extends StatelessWidget {
     // ------------------------------------------
     final nameSnapshot = await firestore
         .collection("users")
-        .where(
-      "name",
-      isGreaterThanOrEqualTo: searchText,
-    )
-        .where(
-      "name",
-      isLessThan: "$searchText\uf8ff",
-    )
+        .where("name", isGreaterThanOrEqualTo: searchText)
+        .where("name", isLessThan: "$searchText\uf8ff")
         .get();
 
     // ------------------------------------------
@@ -167,21 +163,15 @@ class UserList extends StatelessWidget {
     // ------------------------------------------
     final userIdSnapshot = await firestore
         .collection("users")
-        .where(
-      "userId",
-      isGreaterThanOrEqualTo: searchText,
-    )
-        .where(
-      "userId",
-      isLessThan: "$searchText\uf8ff",
-    )
+        .where("userId", isGreaterThanOrEqualTo: searchText)
+        .where("userId", isLessThan: "$searchText\uf8ff")
         .get();
 
     // ------------------------------------------
     // 検索結果を結合
     // ------------------------------------------
     final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>> resultMap =
-    {};
+        {};
 
     // 名前検索の結果
     for (final doc in nameSnapshot.docs) {
@@ -200,21 +190,13 @@ class UserList extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final cardColor = isDark
-        ? const Color(0xFF1E1E1E)
-        : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
-    final textColor = isDark
-        ? Colors.white70
-        : Colors.black87;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
 
-    final subtitleColor = isDark
-        ? Colors.white60
-        : Colors.grey;
+    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
 
-    final borderColor = isDark
-        ? Colors.grey.shade800
-        : const Color(0xFFE5E7EB);
+    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
 
     // ==========================================
     // まだ検索していない場合
@@ -224,9 +206,7 @@ class UserList extends StatelessWidget {
         child: Text(
           "ユーザー名またはユーザーIDを入力して検索してください",
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: subtitleColor,
-          ),
+          style: TextStyle(color: subtitleColor),
         ),
       );
     }
@@ -234,8 +214,7 @@ class UserList extends StatelessWidget {
     // ==========================================
     // 検索実行
     // ==========================================
-    return FutureBuilder<
-        List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+    return FutureBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
       future: searchUsers(),
       builder: (context, snapshot) {
         // ------------------------------------------
@@ -246,9 +225,7 @@ class UserList extends StatelessWidget {
             child: Text(
               "エラーが発生しました\n${snapshot.error}",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: textColor,
-              ),
+              style: TextStyle(color: textColor),
             ),
           );
         }
@@ -257,9 +234,7 @@ class UserList extends StatelessWidget {
         // 読み込み中
         // ------------------------------------------
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         // ------------------------------------------
@@ -272,12 +247,7 @@ class UserList extends StatelessWidget {
         // ------------------------------------------
         if (users.isEmpty) {
           return Center(
-            child: Text(
-              "ユーザーが見つかりません",
-              style: TextStyle(
-                color: subtitleColor,
-              ),
-            ),
+            child: Text("ユーザーが見つかりません", style: TextStyle(color: subtitleColor)),
           );
         }
 
@@ -299,31 +269,24 @@ class UserList extends StatelessWidget {
               color: cardColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: borderColor,
-                  width: 1,
-                ),
+                side: BorderSide(color: borderColor, width: 1),
               ),
-              margin: const EdgeInsets.only(
-                bottom: 10,
-              ),
+              margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
                 // ==========================================
                 // アイコン
                 // ==========================================
                 leading: icon.isNotEmpty
-                    ? CircleAvatar(
-                  backgroundImage: NetworkImage(icon),
-                )
+                    ? CircleAvatar(backgroundImage: NetworkImage(icon))
                     : CircleAvatar(
-                  backgroundColor: isDark
-                      ? Colors.blue.withValues(alpha: 0.2)
-                      : const Color(0xFFEAF4FF),
-                  child: const Icon(
-                    Icons.person,
-                    color: Color(0xFF2196F3),
-                  ),
-                ),
+                        backgroundColor: isDark
+                            ? Colors.blue.withValues(alpha: 0.2)
+                            : const Color(0xFFEAF4FF),
+                        child: const Icon(
+                          Icons.person,
+                          color: Color(0xFF2196F3),
+                        ),
+                      ),
 
                 // ==========================================
                 // 名前
@@ -354,10 +317,7 @@ class UserList extends StatelessWidget {
                     if (email.isNotEmpty)
                       Text(
                         email,
-                        style: TextStyle(
-                          color: subtitleColor,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
                       ),
                   ],
                 ),
@@ -368,9 +328,7 @@ class UserList extends StatelessWidget {
                 trailing: Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: isDark
-                      ? Colors.white60
-                      : Colors.grey,
+                  color: isDark ? Colors.white60 : Colors.grey,
                 ),
 
                 // ==========================================
@@ -380,9 +338,8 @@ class UserList extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ProfileScreen(
-                        userId: users[index].id,
-                      ),
+                      builder: (context) =>
+                          ProfileScreen(userId: users[index].id),
                     ),
                   );
                 },

@@ -45,29 +45,25 @@ class RoomScreen extends StatelessWidget {
               ),
             ),
           ),
+
           actions: [
-            IconButton(
-              icon: Icon(Icons.notifications_none, color: textColor),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationScreen(),
-                  ),
-                );
-                // 通知画面へ
-              },
+            Padding(
+              padding: const EdgeInsets.only(right: 7),
+              child: IconButton(
+                icon: Icon(
+                  Icons.notifications_none,
+                  color: textColor,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationScreen(),
+                    ),
+                  );
+                },
+              ),
             ),
-            IconButton(
-              icon: Icon(Icons.settings_outlined, color: textColor),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-            ),
-            const SizedBox(width: 8),
           ],
           bottom: TabBar(
             indicatorSize: TabBarIndicatorSize.tab,

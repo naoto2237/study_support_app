@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/notification_screen.dart';
 
 // アプリの動作確認用 main（必要に応じて既存のmainと統合してください）
 void main() {
@@ -16,9 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3D96E8),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3D96E8)),
       ),
       home: const QnAListPage(),
     );
@@ -152,9 +151,9 @@ class _QnAListPageState extends State<QnAListPage> {
   Future<void> goPost() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ログインしていません")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("ログインしていません")));
       return;
     }
 
@@ -163,9 +162,7 @@ class _QnAListPageState extends State<QnAListPage> {
 
     final result = await Navigator.push<String>(
       context,
-      MaterialPageRoute(
-        builder: (_) => PostPage(primaryColor: primaryColor),
-      ),
+      MaterialPageRoute(builder: (_) => PostPage(primaryColor: primaryColor)),
     );
 
     if (result != null && result.isNotEmpty) {
@@ -184,10 +181,7 @@ class _QnAListPageState extends State<QnAListPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => DetailPage(
-          question: q,
-          primaryColor: primaryColor,
-        ),
+        builder: (_) => DetailPage(question: q, primaryColor: primaryColor),
       ),
     );
   }
@@ -195,10 +189,38 @@ class _QnAListPageState extends State<QnAListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F7F7),
+
       appBar: AppBar(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        title: const Text("Q&Aアプリ"),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+        surfaceTintColor: Colors.white,
+
+        title: Transform.translate(
+          offset: const Offset(-19, 0),
+          child: const Text(
+            "Q&A",
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: IconButton(
+              icon: Icon(Icons.notifications_none, color: Colors.black87),
+              // 通知画面へ
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -254,7 +276,9 @@ class _QnAListPageState extends State<QnAListPage> {
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: primaryColor,
@@ -264,8 +288,9 @@ class _QnAListPageState extends State<QnAListPage> {
                           ),
                         ),
                         title: Text(q.content),
-                        subtitle:
-                        Text("${q.userName} ・ 回答 ${q.answers.length}件"),
+                        subtitle: Text(
+                          "${q.userName} ・ 回答 ${q.answers.length}件",
+                        ),
                         onTap: () => goDetail(q),
                       ),
                     );
@@ -329,10 +354,7 @@ class _PostPageState extends State<PostPage> {
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: submit,
-                child: const Text("投稿"),
-              ),
+              child: ElevatedButton(onPressed: submit, child: const Text("投稿")),
             ),
           ],
         ),
@@ -426,16 +448,19 @@ class _DetailPageState extends State<DetailPage> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("キャンセル")),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("キャンセル"),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (textController.text.isNotEmpty) {
-                a.replies.add(Reply(
-                  userName: currentUserName,
-                  text: textController.text,
-                  userId: user.uid,
-                ));
+                a.replies.add(
+                  Reply(
+                    userName: currentUserName,
+                    text: textController.text,
+                    userId: user.uid,
+                  ),
+                );
                 await _updateFirestoreAnswers();
                 setState(() {});
               }
@@ -459,8 +484,9 @@ class _DetailPageState extends State<DetailPage> {
         content: TextField(controller: c),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("キャンセル")),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("キャンセル"),
+          ),
           ElevatedButton(
             onPressed: () async {
               setState(() => widget.question.content = c.text);
@@ -495,11 +521,13 @@ class _DetailPageState extends State<DetailPage> {
         "text": a.text,
         "userId": a.userId,
         "replies": a.replies
-            .map((r) => {
-          "userName": r.userName,
-          "text": r.text,
-          "userId": r.userId,
-        })
+            .map(
+              (r) => {
+                "userName": r.userName,
+                "text": r.text,
+                "userId": r.userId,
+              },
+            )
             .toList(),
       };
     }).toList();
@@ -514,7 +542,8 @@ class _DetailPageState extends State<DetailPage> {
   Widget build(BuildContext context) {
     final q = widget.question;
     final currentUser = FirebaseAuth.instance.currentUser;
-    final bool isMyQuestion = currentUser != null && q.userId == currentUser.uid;
+    final bool isMyQuestion =
+        currentUser != null && q.userId == currentUser.uid;
 
     return Scaffold(
       appBar: AppBar(
@@ -533,7 +562,7 @@ class _DetailPageState extends State<DetailPage> {
                 if (v == "edit") editQuestion();
                 if (v == "delete") deleteQuestion();
               },
-            )
+            ),
         ],
       ),
       body: Column(
@@ -553,10 +582,14 @@ class _DetailPageState extends State<DetailPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(q.userName,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const Text("質問者",
-                        style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(
+                      q.userName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const Text(
+                      "質問者",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ],
                 ),
               ],
@@ -580,8 +613,10 @@ class _DetailPageState extends State<DetailPage> {
                     currentUser != null && a.userId == currentUser.uid;
 
                 return Card(
-                  margin:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   child: Column(
                     children: [
                       ListTile(
@@ -596,37 +631,44 @@ class _DetailPageState extends State<DetailPage> {
                         subtitle: Text(a.userName),
                         trailing: isMyAnswer
                             ? PopupMenuButton(
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(
-                                value: "delete", child: Text("削除")),
-                          ],
-                          onSelected: (v) {
-                            if (v == "delete") deleteAnswer(a);
-                          },
-                        )
+                                itemBuilder: (_) => const [
+                                  PopupMenuItem(
+                                    value: "delete",
+                                    child: Text("削除"),
+                                  ),
+                                ],
+                                onSelected: (v) {
+                                  if (v == "delete") deleteAnswer(a);
+                                },
+                              )
                             : null,
                       ),
-                      ...a.replies.map((r) => Padding(
-                        padding: const EdgeInsets.only(
-                            left: 40, bottom: 6, right: 12),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 12,
-                              backgroundColor: widget.primaryColor,
-                              child: Text(
-                                r.userName.isNotEmpty ? r.userName[0] : "?",
-                                style: const TextStyle(
-                                    fontSize: 10, color: Colors.white),
+                      ...a.replies.map(
+                        (r) => Padding(
+                          padding: const EdgeInsets.only(
+                            left: 40,
+                            bottom: 6,
+                            right: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 12,
+                                backgroundColor: widget.primaryColor,
+                                child: Text(
+                                  r.userName.isNotEmpty ? r.userName[0] : "?",
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text("${r.userName}: ${r.text}"),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Expanded(child: Text("${r.userName}: ${r.text}")),
+                            ],
+                          ),
                         ),
-                      )),
+                      ),
                       TextButton(
                         onPressed: () => addReply(a),
                         child: const Text("返信"),
