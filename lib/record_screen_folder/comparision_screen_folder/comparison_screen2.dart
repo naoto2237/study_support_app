@@ -606,8 +606,12 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
                   "差分",
                   (isLoadingMyStudyTime || isLoadingAverage)
                       ? "--"
-                      : "${difference >= 0 ? '+' : ''}"
-                      "${formatStudyTime((difference.abs() * 3600).round())}",
+                      : "${difference > 0
+                                ? '+'
+                                : difference < 0
+                                ? '-'
+                                : ''}"
+                            "${formatStudyTime((difference.abs() * 3600).round())}",
                   "",
                   const Color(0xFFE52B72),
                 ),
@@ -668,11 +672,11 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
   // ==============================================================
 
   Widget _comparisonValue(
-      String title,
-      String value,
-      String unit,
-      Color color,
-      ) {
+    String title,
+    String value,
+    String unit,
+    Color color,
+  ) {
     return Container(
       width: double.infinity,
       alignment: Alignment.center,
@@ -686,9 +690,7 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
             child: Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-              ),
+              style: const TextStyle(fontSize: 11),
             ),
           ),
 
@@ -699,11 +701,7 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
             height: 32,
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: _buildStudyTimeRichText(
-                value,
-                unit,
-                color,
-              ),
+              child: _buildStudyTimeRichText(value, unit, color),
             ),
           ),
         ],
@@ -711,11 +709,7 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
     );
   }
 
-  Widget _buildStudyTimeRichText(
-      String value,
-      String unit,
-      Color color,
-      ) {
+  Widget _buildStudyTimeRichText(String value, String unit, Color color) {
     // 読み込み中
     if (value == "--") {
       return Text(
@@ -761,9 +755,7 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
     // +3時間20分
     // -1時間30分
     // 123.4時間
-    final regex = RegExp(
-      r'([+-]?\d+(?:\.\d+)?)(時間|分)',
-    );
+    final regex = RegExp(r'([+-]?\d+(?:\.\d+)?)(時間|分)');
 
     final spans = <TextSpan>[];
 
@@ -791,10 +783,6 @@ class _ComparisonScreen2State extends State<ComparisonScreen2> {
       );
     }
 
-    return RichText(
-      text: TextSpan(
-        children: spans,
-      ),
-    );
+    return RichText(text: TextSpan(children: spans));
   }
 }

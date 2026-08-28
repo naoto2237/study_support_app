@@ -198,7 +198,7 @@ class _MypageScreenState extends State<MypageScreen> {
       leading: !_isMyPage
           ? IconButton(
               icon: const Icon(Icons.arrow_back),
-              color: Colors.white,
+              color: Color.lerp(Colors.white, Colors.black87, iconProgress),
               onPressed: () {
                 Navigator.pop(context);
               },

@@ -45,38 +45,51 @@ class _RecordScreenState extends State<RecordScreen> {
 
     final now = DateTime.now();
 
+    // 今日の日付だけにする
+    final today = DateTime(now.year, now.month, now.day);
+
     // 今週の月曜日
-    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final monday = today.subtract(Duration(days: today.weekday - 1));
 
-    int seconds = 0;
+    // 今週の日曜日
+    final sunday = monday.add(const Duration(days: 6));
 
-    for (int i = 0; i < 7; i++) {
-      final date = monday.add(Duration(days: i));
+    final startDateId =
+        "${monday.year.toString().padLeft(4, '0')}-"
+        "${monday.month.toString().padLeft(2, '0')}-"
+        "${monday.day.toString().padLeft(2, '0')}";
 
-      final dateId =
-          "${date.year.toString().padLeft(4, '0')}-"
-          "${date.month.toString().padLeft(2, '0')}-"
-          "${date.day.toString().padLeft(2, '0')}";
+    final endDateId =
+        "${sunday.year.toString().padLeft(4, '0')}-"
+        "${sunday.month.toString().padLeft(2, '0')}-"
+        "${sunday.day.toString().padLeft(2, '0')}";
 
-      final doc = await FirebaseFirestore.instance
+    try {
+      // 今週の記録をまとめて1回で取得
+      final snapshot = await FirebaseFirestore.instance
           .collection("users")
           .doc(targetUserId)
           .collection("studyRecords")
-          .doc(dateId)
+          .where(FieldPath.documentId, isGreaterThanOrEqualTo: startDateId)
+          .where(FieldPath.documentId, isLessThanOrEqualTo: endDateId)
           .get();
 
-      if (doc.exists) {
+      int seconds = 0;
+
+      for (final doc in snapshot.docs) {
         final data = doc.data();
 
-        seconds += (data?["studyTime"] as num?)?.toInt() ?? 0;
+        seconds += (data["studyTime"] as num?)?.toInt() ?? 0;
       }
+
+      if (!mounted) return;
+
+      setState(() {
+        totalSeconds = seconds;
+      });
+    } catch (e) {
+      debugPrint("今週の学習時間の取得に失敗しました: $e");
     }
-
-    if (!mounted) return;
-
-    setState(() {
-      totalSeconds = seconds;
-    });
   }
 
   @override
