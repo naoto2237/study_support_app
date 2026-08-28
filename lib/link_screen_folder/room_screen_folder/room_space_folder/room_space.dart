@@ -131,37 +131,101 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildMemberCount() {
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('rooms')
           .doc(widget.roomId)
-          .collection('members')
           .snapshots(),
-      builder: (context, snapshot) {
-        final count =
-            snapshot.data?.docs.length ?? 0;
+      builder: (context, roomSnapshot) {
+        // =====================================================
+        // ルーム情報取得中
+        // =====================================================
 
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.public,
-              size: 15,
-              color: Colors.black54,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              "公開ルーム・${count}人参加中",
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
+        if (roomSnapshot.connectionState ==
+            ConnectionState.waiting) {
+          return const SizedBox(
+            height: 18,
+            child: Center(
+              child: SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.black54,
+                ),
               ),
             ),
-          ],
+          );
+        }
+
+        // =====================================================
+        // ルームが存在しない
+        // =====================================================
+
+        if (!roomSnapshot.hasData ||
+            !roomSnapshot.data!.exists) {
+          return const Text(
+            "ルーム情報を取得できません",
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.black54,
+            ),
+          );
+        }
+
+        final roomData =
+        roomSnapshot.data!.data()
+        as Map<String, dynamic>;
+
+        // =====================================================
+        // 公開設定
+        // =====================================================
+
+        final isPublic =
+            roomData['isPublic'] ?? true;
+
+        // =====================================================
+        // メンバー人数を取得
+        // =====================================================
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('rooms')
+              .doc(widget.roomId)
+              .collection('members')
+              .snapshots(),
+          builder: (context, memberSnapshot) {
+            final count =
+                memberSnapshot.data?.docs.length ?? 0;
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isPublic
+                      ? Icons.public
+                      : Icons.lock,
+                  size: 15,
+                  color: Colors.black54,
+                ),
+
+                const SizedBox(width: 4),
+
+                Text(
+                  "${isPublic ? "公開ルーム" : "非公開ルーム"}・${count}人参加中",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
+
 
   Widget _buildTopStudyCard() {
     return Container(
