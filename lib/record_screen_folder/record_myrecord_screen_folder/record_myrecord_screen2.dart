@@ -18,6 +18,7 @@ class RecordMyRecordScreen2 extends StatefulWidget {
   final ValueChanged<DateTime> onWeekChanged;
   final ValueChanged<DateTime> onMonthChanged;
   final ValueChanged<int> onYearChanged;
+  final String userId;
 
   const RecordMyRecordScreen2({
     super.key,
@@ -35,6 +36,7 @@ class RecordMyRecordScreen2 extends StatefulWidget {
     required this.onWeekChanged,
     required this.onMonthChanged,
     required this.onYearChanged,
+    required this.userId,
   });
 
   @override
@@ -101,6 +103,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
         const SizedBox(height: 14),
 
         RecordMyRecordScreen3(
+          userId: widget.userId,
           cardColor: widget.cardColor,
           textColor: widget.textColor,
           secondaryColor: widget.secondaryColor,

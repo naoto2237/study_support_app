@@ -8,7 +8,9 @@ import 'package:study_support_app/chat_list_screen.dart';
 import 'package:study_support_app/notification_screen.dart';
 
 class RecordScreen extends StatefulWidget {
-  const RecordScreen({super.key});
+  final String? userId;
+
+  const RecordScreen({super.key, this.userId});
 
   @override
   State<RecordScreen> createState() => _RecordScreenState();
@@ -33,23 +35,23 @@ class _RecordScreenState extends State<RecordScreen> {
   // ========================================================
 
   Future<void> _loadStudyTime() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final currentUser = FirebaseAuth.instance.currentUser;
 
-    if (user == null) return;
+    // userIdが指定されていればそのUID、
+    // 指定されていなければログイン中の自分のUID
+    final targetUserId = widget.userId ?? currentUser?.uid;
+
+    if (targetUserId == null || targetUserId.isEmpty) return;
 
     final now = DateTime.now();
 
     // 今週の月曜日
-    final monday = now.subtract(
-      Duration(days: now.weekday - 1),
-    );
+    final monday = now.subtract(Duration(days: now.weekday - 1));
 
     int seconds = 0;
 
     for (int i = 0; i < 7; i++) {
-      final date = monday.add(
-        Duration(days: i),
-      );
+      final date = monday.add(Duration(days: i));
 
       final dateId =
           "${date.year.toString().padLeft(4, '0')}-"
@@ -58,7 +60,7 @@ class _RecordScreenState extends State<RecordScreen> {
 
       final doc = await FirebaseFirestore.instance
           .collection("users")
-          .doc(user.uid)
+          .doc(targetUserId)
           .collection("studyRecords")
           .doc(dateId)
           .get();
@@ -66,8 +68,7 @@ class _RecordScreenState extends State<RecordScreen> {
       if (doc.exists) {
         final data = doc.data();
 
-        seconds +=
-            (data?["studyTime"] as num?)?.toInt() ?? 0;
+        seconds += (data?["studyTime"] as num?)?.toInt() ?? 0;
       }
     }
 
@@ -80,11 +81,9 @@ class _RecordScreenState extends State<RecordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark =
-        Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final unselectedLabelColor =
-    isDark ? Colors.white54 : Colors.black45;
+    final unselectedLabelColor = isDark ? Colors.white54 : Colors.black45;
 
     return DefaultTabController(
       length: 2,
@@ -96,7 +95,6 @@ class _RecordScreenState extends State<RecordScreen> {
         // ========================================================
         // AppBar
         // ========================================================
-
         appBar: AppBar(
           centerTitle: false,
           backgroundColor: const Color(0xFF258EDB),
@@ -119,8 +117,7 @@ class _RecordScreenState extends State<RecordScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                      const ChatListScreen(),
+                      builder: (context) => const ChatListScreen(),
                     ),
                   );
                 },
@@ -130,14 +127,12 @@ class _RecordScreenState extends State<RecordScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon:
-                const Icon(Icons.notifications_none),
+                icon: const Icon(Icons.notifications_none),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                      const NotificationScreen(),
+                      builder: (context) => const NotificationScreen(),
                     ),
                   );
                 },
@@ -145,35 +140,25 @@ class _RecordScreenState extends State<RecordScreen> {
             ),
           ],
 
-          iconTheme:
-          const IconThemeData(color: Colors.white),
+          iconTheme: const IconThemeData(color: Colors.white),
 
           // ======================================================
           // タブ
           // ======================================================
-
           bottom: PreferredSize(
-            preferredSize:
-            const Size.fromHeight(48),
+            preferredSize: const Size.fromHeight(48),
             child: Container(
               color: Colors.white,
               child: TabBar(
-                indicatorSize:
-                TabBarIndicatorSize.tab,
+                indicatorSize: TabBarIndicatorSize.tab,
 
-                indicator:
-                const UnderlineTabIndicator(
-                  borderSide: BorderSide(
-                    color: Color(0xFF258EDB),
-                    width: 3,
-                  ),
+                indicator: const UnderlineTabIndicator(
+                  borderSide: BorderSide(color: Color(0xFF258EDB), width: 3),
                 ),
 
-                labelColor:
-                const Color(0xFF258EDB),
+                labelColor: const Color(0xFF258EDB),
 
-                unselectedLabelColor:
-                unselectedLabelColor,
+                unselectedLabelColor: unselectedLabelColor,
 
                 tabs: const [
                   Tab(
@@ -204,15 +189,15 @@ class _RecordScreenState extends State<RecordScreen> {
         // ========================================================
         // タブの中身
         // ========================================================
-
         body: TabBarView(
           children: [
-            const RecordMyRecordScreen(),
+            RecordMyRecordScreen(
+              userId:
+                  widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? '',
+            ),
 
             // ★ ここが重要
-            ComparisonScreen(
-              totalSeconds: totalSeconds,
-            ),
+            ComparisonScreen(totalSeconds: totalSeconds),
           ],
         ),
       ),

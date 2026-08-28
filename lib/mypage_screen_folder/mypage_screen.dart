@@ -73,107 +73,110 @@ class _MypageScreenState extends State<MypageScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     debugPrint('_targetUserId: $_targetUserId');
     debugPrint('_isMyPage: $_isMyPage');
     debugPrint('currentUid: ${FirebaseAuth.instance.currentUser?.uid}');
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: _userStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: SafeArea(
+        top: false,
+        bottom: !_isMyPage,
+        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: _userStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return const Center(child: Text("ユーザー情報の取得に失敗しました"));
-          }
+            if (snapshot.hasError) {
+              return const Center(child: Text("ユーザー情報の取得に失敗しました"));
+            }
 
-          if (!snapshot.hasData) {
-            return const Center(child: Text("ログインしてください"));
-          }
+            if (!snapshot.hasData) {
+              return const Center(child: Text("ログインしてください"));
+            }
 
-          if (!snapshot.data!.exists) {
-            return const Center(child: Text("ユーザー情報が見つかりません"));
-          }
+            if (!snapshot.data!.exists) {
+              return const Center(child: Text("ユーザー情報が見つかりません"));
+            }
 
-          final data = snapshot.data!.data()!;
+            final data = snapshot.data!.data()!;
 
-          return Stack(
-            children: [
-              // ======================================================
-              // ① 背景画像
-              //    ここはスクロールの外に置くので動かない
-              // ======================================================
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 335,
-                child: Image.asset(
-                  'assets/images/haikei8.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
+            return Stack(
+              children: [
+                // ======================================================
+                // ① 背景画像
+                //    ここはスクロールの外に置くので動かない
+                // ======================================================
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 335,
+                  child: Image.asset(
+                    'assets/images/haikei8.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
                 ),
-              ),
 
-              // ======================================================
-              // ③ 白い部分＋プロフィール内容
-              //    ここだけスクロールする
-              // ======================================================
-              SingleChildScrollView(
-                controller: _scrollController,
-                physics: const ClampingScrollPhysics(),
-                child: Column(
-                  children: [
-                    // 背景画像を見せるための上部スペース
-                    const SizedBox(height: 236),
+                // ======================================================
+                // ③ 白い部分＋プロフィール内容
+                //    ここだけスクロールする
+                // ======================================================
+                SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const ClampingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // 背景画像を見せるための上部スペース
+                      SizedBox(height: _isMyPage ? 236 : 236),
 
-                    // --------------------------------------------------
-                    // 白いプロフィールエリア
-                    // --------------------------------------------------
-                    Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
+                      // --------------------------------------------------
+                      // 白いプロフィールエリア
+                      // --------------------------------------------------
+                      Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            ProfileHeader(
+                              data: data,
+                              scrollOffset: _scrollOffset,
+                            ),
+                            MypageScreen2(
+                              data: data,
+                              isMyPage: _isMyPage,
+                              userId: _targetUserId,
+                            ),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        children: [
-                          ProfileHeader(
-                            data: data,
-                            scrollOffset: _scrollOffset,
-                          ),
-                          MypageScreen2(
-                            data: data,
-                            isMyPage: _isMyPage,
-                            userId: _targetUserId,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-              // ======================================================
-              // ④ スクロール時のAppBar
-              //    IgnorePointerでスクロール操作を邪魔しない
-              // ======================================================
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _buildScrollAppBar(data),
-              ),
-            ],
-          );
-        },
+                // ======================================================
+                // ④ スクロール時のAppBar
+                //    IgnorePointerでスクロール操作を邪魔しない
+                // ======================================================
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildScrollAppBar(data),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

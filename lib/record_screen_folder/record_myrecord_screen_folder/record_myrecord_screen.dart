@@ -7,7 +7,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RecordMyRecordScreen extends StatefulWidget {
-  const RecordMyRecordScreen({super.key});
+  final String userId;
+
+  const RecordMyRecordScreen({
+    super.key,
+    required this.userId,
+  });
 
   Future<int> getThisWeekStudySeconds() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -750,6 +755,8 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
         ? const Color(0xFF121212)
         : const Color(0xFFF8F8FC);
 
+
+
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -791,6 +798,7 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                   weeklyStudyHours: periodStudyHours,
                   weeklyGoalHours: weeklyGoalHours,
                   achievementRate: achievementRate,
+                  userId: widget.userId,
 
                   onPeriodChanged: (value) {
                     setState(() {

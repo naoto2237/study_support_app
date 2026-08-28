@@ -192,11 +192,12 @@ class MypageScreen2 extends StatelessWidget {
             cardColor: Colors.white,
             textColor: Colors.black87,
             secondaryColor: Colors.black54,
+            userId: userId,
           ),
         ),
 
         SizedBox(
-          height: isMyPage ? 140 : 180,
+          height: isMyPage ? 140 : 200,
         ),
       ],
     );

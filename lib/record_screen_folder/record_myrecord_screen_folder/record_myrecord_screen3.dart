@@ -7,12 +7,14 @@ class RecordMyRecordScreen3 extends StatefulWidget {
   final Color cardColor;
   final Color textColor;
   final Color secondaryColor;
+  final String userId;
 
   const RecordMyRecordScreen3({
     super.key,
     required this.cardColor,
     required this.textColor,
     required this.secondaryColor,
+    required this.userId,
   });
 
   @override
@@ -31,9 +33,7 @@ class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
   }
 
   Future<void> _loadRecentRecords() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
+    if (widget.userId.isEmpty) {
       if (!mounted) return;
 
       setState(() {
@@ -46,7 +46,7 @@ class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection("users")
-          .doc(user.uid)
+          .doc(widget.userId)
           .collection("studyRecords")
           .get();
 
@@ -118,6 +118,7 @@ class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
                         cardColor: widget.cardColor,
                         textColor: widget.textColor,
                         secondaryColor: widget.secondaryColor,
+                        userId: widget.userId,
                       ),
                     ),
                   );

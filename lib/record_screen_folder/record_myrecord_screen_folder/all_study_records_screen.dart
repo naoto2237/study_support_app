@@ -3,12 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AllStudyRecordsScreen extends StatefulWidget {
+  final String userId;
   final Color cardColor;
   final Color textColor;
   final Color secondaryColor;
 
   const AllStudyRecordsScreen({
     super.key,
+    required this.userId,
     required this.cardColor,
     required this.textColor,
     required this.secondaryColor,
@@ -32,9 +34,7 @@ class _AllStudyRecordsScreenState
   }
 
   Future<void> _loadRecords() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
+    if (widget.userId.isEmpty) {
       if (!mounted) return;
 
       setState(() {
@@ -47,7 +47,7 @@ class _AllStudyRecordsScreenState
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection("users")
-          .doc(user.uid)
+          .doc(widget.userId)
           .collection("studyRecords")
           .get();
 
