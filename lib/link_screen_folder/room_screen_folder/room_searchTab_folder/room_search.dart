@@ -237,7 +237,7 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
               "公開ルーム",
 
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 17,
                 fontWeight:
                 FontWeight.bold,
                 color: textColor,
