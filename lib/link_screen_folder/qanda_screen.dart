@@ -280,12 +280,11 @@ class _QnAListPageState extends State<QnAListPage> {
                         vertical: 6,
                       ),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: primaryColor,
-                          child: Text(
-                            q.userName.isNotEmpty ? q.userName[0] : "?",
-                            style: const TextStyle(color: Colors.white),
-                          ),
+                        leading: UserIcon(
+                          userId: q.userId,
+                          userName: q.userName,
+                          radius: 20,
+                          primaryColor: primaryColor,
                         ),
                         title: Text(q.content),
                         subtitle: Text(
@@ -571,12 +570,11 @@ class _DetailPageState extends State<DetailPage> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: widget.primaryColor,
-                  child: Text(
-                    q.userName.isNotEmpty ? q.userName[0] : "?",
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                UserIcon(
+                  userId: q.userId,
+                  userName: q.userName,
+                  radius: 20,
+                  primaryColor: widget.primaryColor,
                 ),
                 const SizedBox(width: 10),
                 Column(
@@ -620,12 +618,11 @@ class _DetailPageState extends State<DetailPage> {
                   child: Column(
                     children: [
                       ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: widget.primaryColor,
-                          child: Text(
-                            a.userName.isNotEmpty ? a.userName[0] : "?",
-                            style: const TextStyle(color: Colors.white),
-                          ),
+                        leading: UserIcon(
+                          userId: a.userId,
+                          userName: a.userName,
+                          radius: 20,
+                          primaryColor: widget.primaryColor,
                         ),
                         title: Text(a.text),
                         subtitle: Text(a.userName),
@@ -652,16 +649,11 @@ class _DetailPageState extends State<DetailPage> {
                           ),
                           child: Row(
                             children: [
-                              CircleAvatar(
+                              UserIcon(
+                                userId: r.userId,
+                                userName: r.userName,
                                 radius: 12,
-                                backgroundColor: widget.primaryColor,
-                                child: Text(
-                                  r.userName.isNotEmpty ? r.userName[0] : "?",
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                primaryColor: widget.primaryColor,
                               ),
                               const SizedBox(width: 8),
                               Expanded(child: Text("${r.userName}: ${r.text}")),
@@ -700,6 +692,78 @@ class _DetailPageState extends State<DetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class UserIcon extends StatelessWidget {
+  final String userId;
+  final String userName;
+  final double radius;
+  final Color primaryColor;
+
+  const UserIcon({
+    super.key,
+    required this.userId,
+    required this.userName,
+    required this.radius,
+    required this.primaryColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId.isEmpty) {
+      return _defaultIcon();
+    }
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection("users")
+          .doc(userId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        // 読み込み中
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _defaultIcon();
+        }
+
+        // データが存在しない
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return _defaultIcon();
+        }
+
+        final data = snapshot.data!.data();
+
+        // マイページで保存している「icon」を取得
+        final String icon = data?["icon"]?.toString() ?? "";
+
+        // アイコン未設定
+        if (icon.isEmpty) {
+          return _defaultIcon();
+        }
+
+        // マイページと同じ画像を表示
+        return CircleAvatar(
+          radius: radius,
+          backgroundColor: Colors.white,
+          backgroundImage: NetworkImage(icon),
+        );
+      },
+    );
+  }
+
+  Widget _defaultIcon() {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: primaryColor.withOpacity(0.12),
+      child: Text(
+        userName.isNotEmpty ? userName[0] : "?",
+        style: TextStyle(
+          color: primaryColor,
+          fontSize: radius * 0.8,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
