@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 class ChatRoomScreen extends StatefulWidget {
   final String userName;
   final String userId;
@@ -42,8 +43,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       final friendUid = widget.userId;
 
       // 同じメッセージIDを使用
-      final messageId =
-          firestore.collection('users').doc().id;
+      final messageId = firestore.collection('users').doc().id;
 
       final messageData = {
         'text': text,
@@ -76,7 +76,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           .collection('messages')
           .doc(messageId)
           .set(messageData);
-
     } catch (e) {
       debugPrint('メッセージ送信エラー: $e');
     }
@@ -93,12 +92,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         centerTitle: false,
         backgroundColor: const Color(0xFF258EDB),
 
-        title: Text(
-          widget.userName,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 19,
-            fontWeight: FontWeight.bold,
+        title: Transform.translate(
+          offset: const Offset(-19, 0),
+          child: Text(
+            widget.userName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 19,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
 
