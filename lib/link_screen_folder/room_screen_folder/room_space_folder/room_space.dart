@@ -114,17 +114,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.public, size: 15, color: Colors.black54),
-              SizedBox(width: 4),
-              Text(
-                "公開ルーム・3人参加中",
-                style: TextStyle(fontSize: 13, color: Colors.black54),
-              ),
-            ],
-          ),
+          _buildMemberCount(),
         ],
       ),
 
@@ -137,6 +127,39 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMemberCount() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomId)
+          .collection('members')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count =
+            snapshot.data?.docs.length ?? 0;
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.public,
+              size: 15,
+              color: Colors.black54,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              "公開ルーム・${count}人参加中",
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -434,7 +457,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               _openFeatureScreen(
                 title: "メンバー",
                 icon: Icons.groups_rounded,
-                child: const RoomMemberScreen(),
+                child: RoomMemberScreen(
+                  roomId: widget.roomId,
+                ),
+
               );
             },
           ),
@@ -576,80 +602,114 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildMembersSummary() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0),
-      child: Column(
-        children: [
-          // タイトル
-          Row(
-            children: [
-              const Text(
-                "メンバー",
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomId)
+          .collection('members')
+          .orderBy('joinedAt')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
+          return const SizedBox(
+            height: 120,
+            child: Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFF258EDB),
               ),
+            ),
+          );
+        }
 
-              const SizedBox(width: 8),
+        final memberDocs =
+            snapshot.data?.docs ?? [];
 
-              const Text(
-                "(3人)",
-                style: TextStyle(fontSize: 13, color: Colors.black54),
-              ),
+        return Column(
+          children: [
+            // ==============================
+            // タイトル
+            // ==============================
 
-              const Spacer(),
-
-              GestureDetector(
-                onTap: () {
-                  _openFeatureScreen(
-                    title: "メンバー",
-                    icon: Icons.groups_rounded,
-                    child: const RoomMemberScreen(),
-                  );
-                },
-                child: const Text(
-                  "すべて見る",
+            Row(
+              children: [
+                const Text(
+                  "メンバー",
                   style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF258EDB),
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
+
+                const SizedBox(width: 8),
+
+                Text(
+                  "(${memberDocs.length}人)",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
+
+                const Spacer(),
+
+                GestureDetector(
+                  onTap: () {
+                    _openFeatureScreen(
+                      title: "メンバー",
+                      icon: Icons.groups_rounded,
+                      child: RoomMemberScreen(
+                        roomId: widget.roomId,
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "すべて見る",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF258EDB),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 13),
+
+            // ==============================
+            // メンバー一覧
+            // ==============================
+
+            SizedBox(
+              height: 105,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: memberDocs.length + 1,
+                separatorBuilder: (_, __) {
+                  return const SizedBox(width: 8);
+                },
+                itemBuilder: (context, index) {
+                  // 最後は招待ボタン
+                  if (index == memberDocs.length) {
+                    return _buildInviteSummaryItem();
+                  }
+
+                  final uid =
+                      memberDocs[index].id;
+
+                  return _MemberSummaryUser(
+                    uid: uid,
+                    isOwner: index == 0,
+                  );
+                },
               ),
-            ],
-          ),
-
-          const SizedBox(height: 13),
-
-          // メンバー一覧
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildMemberSummaryItem(
-                name: "Aさん",
-                isOwner: true,
-                isOnline: true,
-              ),
-
-              _buildMemberSummaryItem(
-                name: "Bさん",
-                isOwner: false,
-                isOnline: true,
-              ),
-
-              _buildMemberSummaryItem(
-                name: "Cさん",
-                isOwner: false,
-                isOnline: true,
-              ),
-
-              _buildInviteSummaryItem(),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -909,21 +969,64 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   void _showExitDialog() {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text("ルームを退出"),
           content: const Text("このルームから退出しますか？"),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
               },
               child: const Text("キャンセル"),
             ),
+
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
+              onPressed: () async {
+                // ダイアログを閉じる
+                Navigator.pop(dialogContext);
+
+                try {
+                  // 現在ログインしているユーザー
+                  final user =
+                      FirebaseAuth.instance.currentUser;
+
+                  if (user == null) {
+                    throw Exception(
+                      "ログインユーザーが見つかりません",
+                    );
+                  }
+
+                  // ==========================================
+                  // membersから自分を削除
+                  // ==========================================
+
+                  await FirebaseFirestore.instance
+                      .collection("rooms")
+                      .doc(widget.roomId)
+                      .collection("members")
+                      .doc(user.uid)
+                      .delete();
+
+                  // ==========================================
+                  // ルーム画面を閉じる
+                  // ==========================================
+
+                  if (!mounted) return;
+
+                  Navigator.pop(context);
+                } catch (e) {
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "ルームの退出に失敗しました\n$e",
+                      ),
+                    ),
+                  );
+                }
               },
               child: const Text("退出"),
             ),
@@ -932,6 +1035,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       },
     );
   }
+
 
   void _start() {
     if (_stopwatch.isRunning) return;
@@ -1255,6 +1359,137 @@ class _RoomFeatureScreenState extends State<_RoomFeatureScreen> {
             Positioned.fill(child: widget.child),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MemberSummaryUser extends StatelessWidget {
+  final String uid;
+  final bool isOwner;
+
+  const _MemberSummaryUser({
+    required this.uid,
+    required this.isOwner,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData ||
+            !snapshot.data!.exists) {
+          return const SizedBox(
+            width: 70,
+          );
+        }
+
+        final data =
+        snapshot.data!.data()
+        as Map<String, dynamic>;
+
+        final name =
+            data['name']?.toString() ?? '名前未設定';
+
+        return _buildItem(name);
+      },
+    );
+  }
+
+  Widget _buildItem(String name) {
+    return SizedBox(
+      width: 70,
+      child: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEAF4FF),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Color(0xFF64A9ED),
+                  size: 34,
+                ),
+              ),
+
+              // オーナー
+              if (isOwner)
+                const Positioned(
+                  left: -4,
+                  top: -5,
+                  child: Icon(
+                    Icons.workspace_premium_rounded,
+                    color: Color(0xFFFFC107),
+                    size: 20,
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 5),
+
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+
+          const SizedBox(height: 3),
+
+          if (isOwner)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF4FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                "オーナー",
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Color(0xFF258EDB),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          else
+            Row(
+              mainAxisAlignment:
+              MainAxisAlignment.center,
+              children: const [
+                Icon(
+                  Icons.circle,
+                  size: 7,
+                  color: Color(0xFF22C55E),
+                ),
+                SizedBox(width: 3),
+                Text(
+                  "オンライン",
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }
