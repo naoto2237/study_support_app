@@ -16,19 +16,27 @@ class NotificationScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xFFF7F7F7),
 
       appBar: AppBar(
-        title: const Text(
-          '通知',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        title: Transform.translate(
+          offset: const Offset(-19, 0),
+          child: const Text(
+            '通知',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 19,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        backgroundColor: const Color(0xFF258EDB),
-        iconTheme: const IconThemeData(color: Colors.white),
+
+        backgroundColor: Colors.white,
+
+        // 左上の戻る矢印を黒にする
+        iconTheme: const IconThemeData(
+          color: Colors.black87,
+        ),
       ),
 
       // =====================================================
