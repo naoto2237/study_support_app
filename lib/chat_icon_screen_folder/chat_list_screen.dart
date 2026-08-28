@@ -339,9 +339,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                       context,
                       MaterialPageRoute(
                         builder: (_) => ChatRoomScreen(
-                          roomId: roomId,
                           userName: friendName,
-                        ),
+                          userId: friendId,
+                        )
                       ),
                     );
                   },
