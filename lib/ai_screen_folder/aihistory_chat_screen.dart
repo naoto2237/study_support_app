@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/rendering.dart';
 import 'aichat_inputbar.dart';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatMessage {
   final bool isUser;
@@ -20,8 +21,13 @@ class ChatMessage {
 
 class AiHistoryChatScreen extends StatefulWidget {
   final String chatId;
+  final String userId;
 
-  const AiHistoryChatScreen({super.key, required this.chatId});
+  const AiHistoryChatScreen({
+    super.key,
+    required this.chatId,
+    required this.userId,
+  });
 
   @override
   State<AiHistoryChatScreen> createState() => _AiHistoryChatScreenState();
@@ -43,23 +49,19 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
   Future<void> askGemini() async {
     if (_textController.text.trim().isEmpty) return;
 
-    final question = _textController.text;
+    // 現在ログインしているユーザー
+    final user = FirebaseAuth.instance.currentUser;
 
-    // キーボードを閉じる
-    FocusScope.of(context).unfocus();
-
-    if (_chatId == null) {
-      _chatId = FirebaseFirestore.instance.collection('ai_history').doc().id;
-
-      await FirebaseFirestore.instance
-          .collection('ai_history')
-          .doc(_chatId)
-          .set({
-            'title': question,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+    if (user == null) {
+      setState(() {
+        _messages.add(ChatMessage(isUser: false, text: "ログインしてください。"));
+      });
+      return;
     }
+
+    final question = _textController.text.trim();
+
+    FocusScope.of(context).unfocus();
 
     setState(() {
       _isLoading = true;
@@ -69,7 +71,10 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
     });
 
     try {
+      // ユーザーのメッセージを保存
       await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
           .collection('ai_history')
           .doc(_chatId)
           .collection('messages')
@@ -78,10 +83,13 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
             'text': question,
             'createdAt': FieldValue.serverTimestamp(),
           });
+
       final apiKey = dotenv.get('GEMINI_API_KEY');
 
       final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/'
+        'v1beta/models/gemini-3.1-flash-lite:generateContent'
+        '?key=$apiKey',
       );
 
       final response = await http.post(
@@ -125,12 +133,17 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
 
         final reply = data["candidates"][0]["content"]["parts"][0]["text"];
 
+        if (!mounted) return;
+
         setState(() {
           _messages.add(ChatMessage(isUser: false, text: reply));
           _isLoading = false;
         });
 
+        // AIの回答を保存
         await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
             .collection('ai_history')
             .doc(_chatId)
             .collection('messages')
@@ -140,33 +153,31 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
               'createdAt': FieldValue.serverTimestamp(),
             });
 
+        // 履歴の更新日時を更新
         await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
             .collection('ai_history')
             .doc(_chatId)
             .set({
               'updatedAt': FieldValue.serverTimestamp(),
             }, SetOptions(merge: true));
       } else {
+        if (!mounted) return;
+
         setState(() {
           _isLoading = false;
 
-          if (response.statusCode == 503) {
-            _messages.add(
-              ChatMessage(
-                isUser: false,
-                text: "現在AIが混み合っています。\n少し時間をおいてもう一度お試しください。",
-              ),
-            );
-          } else {
-            _messages.add(
-              ChatMessage(isUser: false, text: "エラー(${response.statusCode})"),
-            );
-          }
+          _messages.add(
+            ChatMessage(isUser: false, text: "エラー(${response.statusCode})"),
+          );
         });
       }
     } catch (e, stackTrace) {
       debugPrint(e.toString());
       debugPrint(stackTrace.toString());
+
+      if (!mounted) return;
 
       setState(() {
         _isLoading = false;
@@ -182,9 +193,23 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
   }
 
   Future<void> _loadMessages() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingHistory = false;
+      });
+
+      return;
+    }
+
     final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
         .collection('ai_history')
-        .doc(_chatId)
+        .doc(widget.chatId)
         .collection('messages')
         .orderBy('createdAt')
         .get();
@@ -198,6 +223,8 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
         ChatMessage(isUser: data['role'] == 'user', text: data['text'] ?? ''),
       );
     }
+
+    if (!mounted) return;
 
     setState(() {
       _chatId = widget.chatId;

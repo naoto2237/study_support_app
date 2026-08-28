@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../record_screen_folder/record_myrecord_screen_folder/record_myrecord_screen3.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'friend_request_screen.dart';
 
 class MypageScreen2 extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -60,7 +61,11 @@ class MypageScreen2 extends StatelessWidget {
                     if (isMyPage) {
                       // プロフィール分析
                     } else {
-                      // 友達申請
+                      FriendRequestScreen.show(
+                        context,
+                        userId: userId,
+                        data: data,
+                      );
                     }
                   },
                 ),
@@ -196,9 +201,7 @@ class MypageScreen2 extends StatelessWidget {
           ),
         ),
 
-        SizedBox(
-          height: isMyPage ? 140 : 200,
-        ),
+        SizedBox(height: isMyPage ? 140 : 200),
       ],
     );
   }
@@ -390,17 +393,11 @@ class _ProfileRow extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: primaryBlue,
-                ),
+                style: const TextStyle(fontSize: 15, color: primaryBlue),
               ),
             ),
 
-            Text(
-              value,
-              style: const TextStyle(fontSize: 15,),
-            ),
+            Text(value, style: const TextStyle(fontSize: 15)),
 
             const SizedBox(width: 5),
 

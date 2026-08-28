@@ -1,3 +1,6 @@
+//相手側が見るプロフィール画面
+
+
 import 'package:flutter/material.dart';
 
 import 'mypage_screen_folder/mypage_screen.dart';
