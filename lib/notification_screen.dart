@@ -425,7 +425,7 @@ class _FriendRequestTile extends StatelessWidget {
 
       child: const Icon(
         Icons.person,
-        size: 24 * 0.65,
+        size: 27 ,
         color: Color(0xFF258EDB),
       ),
     );
@@ -557,7 +557,7 @@ class _FriendAcceptedTile extends StatelessWidget {
       const Color(0xFF258EDB).withOpacity(0.12),
       child: const Icon(
         Icons.person,
-        size: 16,
+        size: 27,
         color: Color(0xFF258EDB),
       ),
     );

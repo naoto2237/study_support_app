@@ -5,6 +5,7 @@ import '../record_screen_folder/record_myrecord_screen_folder/record_myrecord_sc
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'friend_request_screen.dart';
+import 'all_friends_screen.dart';
 
 class MypageScreen2 extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -259,79 +260,110 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class ProfileStatsSection extends StatefulWidget {
+class ProfileStatsSection extends StatelessWidget {
   final String userId;
 
-  const ProfileStatsSection({super.key, required this.userId});
-
-  @override
-  State<ProfileStatsSection> createState() => _ProfileStatsSectionState();
-}
-
-class _ProfileStatsSectionState extends State<ProfileStatsSection> {
-  int achievementDays = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTotalAchievementDays();
-  }
-
-  Future<void> _loadTotalAchievementDays() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) return;
-
-    try {
-      // 今までのすべての学習記録を取得
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .collection('studyRecords')
-          .get();
-
-      // goalAchieved が true の日だけ数える
-      final count = snapshot.docs.where((doc) {
-        final data = doc.data();
-        return data['goalAchieved'] == true;
-      }).length;
-
-      if (!mounted) return;
-
-      setState(() {
-        achievementDays = count;
-      });
-    } catch (e) {
-      debugPrint('総合目標達成日数の取得に失敗しました: $e');
-    }
-  }
+  const ProfileStatsSection({
+    super.key,
+    required this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 34),
-      child: Row(
-        children: [
-          const Expanded(
-            child: _ProfileStatItem(count: "0", label: "友達"),
-          ),
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('friends')
+          .snapshots(),
 
-          Container(width: 1, height: 16, color: Colors.grey.shade300),
+      builder: (context, friendSnapshot) {
+        final friendCount =
+            friendSnapshot.data?.docs.length ?? 0;
 
-          const Expanded(
-            child: _ProfileStatItem(count: "0", label: "応援"),
-          ),
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('studyRecords')
+              .snapshots(),
 
-          Container(width: 1, height: 16, color: Colors.grey.shade300),
+          builder: (context, recordSnapshot) {
+            int achievementDays = 0;
 
-          Expanded(
-            child: _ProfileStatItem(
-              count: achievementDays.toString(),
-              label: "目標達成",
-            ),
-          ),
-        ],
-      ),
+            if (recordSnapshot.hasData) {
+              achievementDays = recordSnapshot.data!.docs.where((doc) {
+                final data = doc.data();
+
+                return data['goalAchieved'] == true;
+              }).length;
+            }
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 34),
+
+              child: Row(
+                children: [
+                  // ======================================
+                  // 友達
+                  // ======================================
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AllFriendsScreen(
+                              userId: userId,
+                            ),
+                          ),
+                        );
+                      },
+
+                      child: _ProfileStatItem(
+                        count: friendCount.toString(),
+                        label: "友達",
+                      ),
+                    ),
+                  ),
+
+                  Container(
+                    width: 1,
+                    height: 16,
+                    color: Colors.grey.shade300,
+                  ),
+
+                  // ======================================
+                  // 応援
+                  // ======================================
+                  const Expanded(
+                    child: _ProfileStatItem(
+                      count: "0",
+                      label: "応援",
+                    ),
+                  ),
+
+                  Container(
+                    width: 1,
+                    height: 16,
+                    color: Colors.grey.shade300,
+                  ),
+
+                  // ======================================
+                  // 目標達成
+                  // ======================================
+                  Expanded(
+                    child: _ProfileStatItem(
+                      count: achievementDays.toString(),
+                      label: "目標達成",
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

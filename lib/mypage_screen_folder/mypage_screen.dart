@@ -125,41 +125,48 @@ class _MypageScreenState extends State<MypageScreen> {
                 // ③ 白い部分＋プロフィール内容
                 //    ここだけスクロールする
                 // ======================================================
-                SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const ClampingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      // 背景画像を見せるための上部スペース
-                      SizedBox(height: _isMyPage ? 236 : 236),
+                RefreshIndicator(
+                  color: const Color(0xFF258EDB),
+                  onRefresh: _refreshProfile,
 
-                      // --------------------------------------------------
-                      // 白いプロフィールエリア
-                      // --------------------------------------------------
-                      Container(
-                        width: double.infinity,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(16),
-                            topRight: Radius.circular(16),
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+
+                    physics: const AlwaysScrollableScrollPhysics(),
+
+                    child: Column(
+                      children: [
+                        // 背景画像を見せるための上部スペース
+                        SizedBox(height: _isMyPage ? 236 : 236),
+
+                        // 白いプロフィールエリア
+                        Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                            ),
+                          ),
+
+                          child: Column(
+                            children: [
+                              ProfileHeader(
+                                data: data,
+                                scrollOffset: _scrollOffset,
+                              ),
+
+                              MypageScreen2(
+                                data: data,
+                                isMyPage: _isMyPage,
+                                userId: _targetUserId,
+                              ),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            ProfileHeader(
-                              data: data,
-                              scrollOffset: _scrollOffset,
-                            ),
-                            MypageScreen2(
-                              data: data,
-                              isMyPage: _isMyPage,
-                              userId: _targetUserId,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
@@ -178,6 +185,19 @@ class _MypageScreenState extends State<MypageScreen> {
           },
         ),
       ),
+    );
+  }
+
+  Future<void> _refreshProfile() async {
+    // Firestoreの最新データを取得
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_targetUserId)
+        .get();
+
+    // くるくるを少し長く表示する
+    await Future.delayed(
+      const Duration(milliseconds: 700),
     );
   }
 
