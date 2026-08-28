@@ -745,9 +745,9 @@ class UserIcon extends StatelessWidget {
 
         // マイページと同じ画像を表示
         return CircleAvatar(
-          radius: radius,
-          backgroundColor: Colors.white,
-          backgroundImage: NetworkImage(icon),
+          radius: 24,
+          backgroundColor: const Color(0xFF258EDB).withOpacity(0.12),
+          child: const Icon(Icons.person, size: 27, color: Color(0xFF258EDB)),
         );
       },
     );
