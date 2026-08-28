@@ -5,13 +5,28 @@ import '../record_screen_folder/record_myrecord_screen_folder/record_myrecord_sc
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class ProfileContent extends StatelessWidget {
+class MypageScreen2 extends StatelessWidget {
   final Map<String, dynamic> data;
   final bool isMyPage;
+  final String userId;
 
-  const ProfileContent({super.key, required this.data, required this.isMyPage});
+  const MypageScreen2({
+    super.key,
+    required this.data,
+    required this.isMyPage,
+    required this.userId,
+  });
 
   static const Color primaryBlue = Color(0xFF258EDB);
+
+  void _openEditScreen(BuildContext context) {
+    if (!isMyPage) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ProfileEditScreen(data: data)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,52 +39,66 @@ class ProfileContent extends StatelessWidget {
       children: [
         // ------------------------------------------
         // プロフィール分析・編集
-        // 自分のページのときだけ表示
+        // 自分のページだけ表示
         // ------------------------------------------
-        if (isMyPage) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _ActionButton(
-                    icon: Icons.bar_chart_rounded,
-                    text: "プロフィール分析",
-                    backgroundColor: Colors.grey.shade200,
-                    onTap: () {},
-                  ),
+        // ------------------------------------------
+        // プロフィールアクション
+        // 自分・相手で表示を切り替える
+        // ------------------------------------------
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: Row(
+            children: [
+              Expanded(
+                child: _ActionButton(
+                  icon: isMyPage
+                      ? Icons.bar_chart_rounded
+                      : Icons.person_add_alt_1,
+                  text: isMyPage ? "プロフィール分析" : "友達申請",
+                  backgroundColor: Colors.grey.shade200,
+                  onTap: () {
+                    if (isMyPage) {
+                      // プロフィール分析
+                    } else {
+                      // 友達申請
+                    }
+                  },
                 ),
+              ),
 
-                const SizedBox(width: 14),
+              const SizedBox(width: 14),
 
-                Expanded(
-                  child: _ActionButton(
-                    icon: Icons.edit,
-                    text: "プロフィール編集",
-                    backgroundColor: Colors.grey.shade200,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProfileEditScreen(data: data),
-                        ),
-                      );
-                    },
-                  ),
+              Expanded(
+                child: _ActionButton(
+                  icon: isMyPage ? Icons.edit : Icons.chat_outlined,
+                  text: isMyPage ? "プロフィール編集" : "メッセージ",
+                  backgroundColor: Colors.grey.shade200,
+                  onTap: () {
+                    if (isMyPage) {
+                      _openEditScreen(context);
+                    } else {
+                      // チャット画面へ移動
+                    }
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
 
-          const SizedBox(height: 12.5),
+        const SizedBox(height: 12.5),
 
-          const ProfileStatsSection(),
+        // ------------------------------------------
+        // プロフィール統計
+        // 自分・相手の両方に表示
+        // ------------------------------------------
+        ProfileStatsSection(userId: userId),
 
-          const SizedBox(height: 15),
-        ],
+        const SizedBox(height: 15),
 
-        // 一言コメント
-        // コメント
+        // ------------------------------------------
+        // 一言コメント【共通】
+        // ------------------------------------------
         if ((data["comment"] ?? "").toString().trim().isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -83,7 +112,9 @@ class ProfileContent extends StatelessWidget {
           const SizedBox(height: 18),
         ],
 
-        // 境界線
+        // ------------------------------------------
+        // 境界線【共通】
+        // ------------------------------------------
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
           child: const Divider(
@@ -92,9 +123,12 @@ class ProfileContent extends StatelessWidget {
             color: Color(0xFFE5E7EB),
           ),
         ),
+
         const SizedBox(height: 11),
 
-        // プロフィール見出し
+        // ------------------------------------------
+        // プロフィール見出し【共通】
+        // ------------------------------------------
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 18),
           child: Align(
@@ -113,7 +147,8 @@ class ProfileContent extends StatelessWidget {
         const SizedBox(height: 5),
 
         // ------------------------------------------
-        // プロフィール項目
+        // プロフィール項目【共通】
+        // 自分のときだけタップして編集可能
         // ------------------------------------------
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -122,53 +157,25 @@ class ProfileContent extends StatelessWidget {
               _ProfileRow(
                 title: "学年・職種（任意）",
                 value: grade,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfileEditScreen(data: data),
-                    ),
-                  );
-                },
+                onTap: isMyPage ? () => _openEditScreen(context) : null,
               ),
 
               _ProfileRow(
                 title: "学習目標",
                 value: goal,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfileEditScreen(data: data),
-                    ),
-                  );
-                },
+                onTap: isMyPage ? () => _openEditScreen(context) : null,
               ),
 
               _ProfileRow(
                 title: "自由項目①",
                 value: location,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfileEditScreen(data: data),
-                    ),
-                  );
-                },
+                onTap: isMyPage ? () => _openEditScreen(context) : null,
               ),
 
               _ProfileRow(
                 title: "自由項目②",
                 value: studyStyle,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfileEditScreen(data: data),
-                    ),
-                  );
-                },
+                onTap: isMyPage ? () => _openEditScreen(context) : null,
               ),
             ],
           ),
@@ -177,7 +184,7 @@ class ProfileContent extends StatelessWidget {
         const SizedBox(height: 20),
 
         // ------------------------------------------
-        // 学習時間
+        // 学習時間【共通】
         // ------------------------------------------
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -188,7 +195,9 @@ class ProfileContent extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 135),
+        SizedBox(
+          height: isMyPage ? 140 : 180,
+        ),
       ],
     );
   }
@@ -247,7 +256,9 @@ class _ActionButton extends StatelessWidget {
 }
 
 class ProfileStatsSection extends StatefulWidget {
-  const ProfileStatsSection({super.key});
+  final String userId;
+
+  const ProfileStatsSection({super.key, required this.userId});
 
   @override
   State<ProfileStatsSection> createState() => _ProfileStatsSectionState();
@@ -271,7 +282,7 @@ class _ProfileStatsSectionState extends State<ProfileStatsSection> {
       // 今までのすべての学習記録を取得
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(widget.userId)
           .collection('studyRecords')
           .get();
 
@@ -380,7 +391,6 @@ class _ProfileRow extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   fontSize: 15,
-                  fontWeight: FontWeight.bold,
                   color: primaryBlue,
                 ),
               ),
@@ -388,7 +398,7 @@ class _ProfileRow extends StatelessWidget {
 
             Text(
               value,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 15,),
             ),
 
             const SizedBox(width: 5),

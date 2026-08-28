@@ -25,6 +25,7 @@ class _MypageScreenState extends State<MypageScreen> {
   // スクロールによるsetStateで再作成されないようにする。
   late final Stream<DocumentSnapshot<Map<String, dynamic>>> _userStream;
   bool _isMyPage = true;
+  late final String _targetUserId;
 
   @override
   void initState() {
@@ -33,30 +34,28 @@ class _MypageScreenState extends State<MypageScreen> {
     final currentUser = FirebaseAuth.instance.currentUser;
     final currentUid = currentUser?.uid;
 
-    // 表示する対象のUIDを決定（指定がなければ自分のUID）
-    final String uidToFetch =
+    // 表示する対象のUIDを決定
+    // targetUserIdがなければ自分のUIDを使用
+    _targetUserId =
         (widget.targetUserId != null && widget.targetUserId!.isNotEmpty)
         ? widget.targetUserId!
         : (currentUid ?? '');
 
-    // 自分のマイページかどうかの判定
-    if (widget.targetUserId == null ||
-        widget.targetUserId!.isEmpty ||
-        (currentUid != null && widget.targetUserId == currentUid)) {
-      _isMyPage = true;
-    } else {
-      _isMyPage = (currentUid != null && uidToFetch == currentUid);
-    }
+    // 現在表示しているプロフィールが
+    // ログイン中の自分かどうかを判定
+    _isMyPage = currentUid != null && _targetUserId == currentUid;
 
-    if (uidToFetch.isNotEmpty) {
+    // 表示するユーザーのFirestoreデータを取得
+    if (_targetUserId.isNotEmpty) {
       _userStream = FirebaseFirestore.instance
           .collection("users")
-          .doc(uidToFetch)
+          .doc(_targetUserId)
           .snapshots();
     } else {
       _userStream = const Stream.empty();
     }
 
+    // スクロール位置を取得
     _scrollController.addListener(() {
       if (!mounted) return;
 
@@ -74,6 +73,11 @@ class _MypageScreenState extends State<MypageScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    debugPrint('_targetUserId: $_targetUserId');
+    debugPrint('_isMyPage: $_isMyPage');
+    debugPrint('currentUid: ${FirebaseAuth.instance.currentUser?.uid}');
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -145,9 +149,10 @@ class _MypageScreenState extends State<MypageScreen> {
                             data: data,
                             scrollOffset: _scrollOffset,
                           ),
-                          ProfileContent(
+                          MypageScreen2(
                             data: data,
-                            isMyPage: _isMyPage, // 自分のページかどうかのフラグを渡す
+                            isMyPage: _isMyPage,
+                            userId: _targetUserId,
                           ),
                         ],
                       ),
@@ -186,6 +191,17 @@ class _MypageScreenState extends State<MypageScreen> {
     return AppBar(
       // 他人のプロフィールを表示しているときは戻るボタン（←）を自動で出す
       automaticallyImplyLeading: !_isMyPage,
+
+      leading: !_isMyPage
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              color: Colors.white,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            )
+          : null,
+
       centerTitle: true,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -204,8 +220,8 @@ class _MypageScreenState extends State<MypageScreen> {
           : null,
 
       actions: [
-        // 自分のページのときだけ設定アイコンを表示
-        if (_isMyPage)
+        // 相手のプロフィールでは設定アイコンを表示しない
+        if (widget.targetUserId == null || widget.targetUserId!.isEmpty)
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
