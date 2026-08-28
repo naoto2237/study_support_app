@@ -745,9 +745,9 @@ class UserIcon extends StatelessWidget {
 
         // マイページと同じ画像を表示
         return CircleAvatar(
-          radius: 24,
-          backgroundColor: const Color(0xFF258EDB).withOpacity(0.12),
-          child: const Icon(Icons.person, size: 27, color: Color(0xFF258EDB)),
+          radius: radius,
+          backgroundColor: Colors.white,
+          backgroundImage: NetworkImage(icon),
         );
       },
     );
@@ -755,16 +755,9 @@ class UserIcon extends StatelessWidget {
 
   Widget _defaultIcon() {
     return CircleAvatar(
-      radius: radius,
-      backgroundColor: primaryColor.withOpacity(0.12),
-      child: Text(
-        userName.isNotEmpty ? userName[0] : "?",
-        style: TextStyle(
-          color: primaryColor,
-          fontSize: radius * 0.8,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      radius: 24,
+      backgroundColor: const Color(0xFF258EDB).withOpacity(0.12),
+      child: const Icon(Icons.person, size: 27, color: Color(0xFF258EDB)),
     );
   }
 }
