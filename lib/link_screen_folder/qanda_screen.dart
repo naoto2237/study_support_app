@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:study_support_app/notification_screen.dart';
+import 'package:study_support_app/notification_screen_folder/notification_screen.dart';
 
 // アプリの動作確認用 main（必要に応じて既存のmainと統合してください）
 void main() {

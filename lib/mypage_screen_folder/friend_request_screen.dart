@@ -117,7 +117,7 @@ class FriendRequestScreen {
 
                                   // 申請状態
                                   'status': 'pending',
-
+                                  'isRead': false,
                                   // 申請日時
                                   'createdAt': FieldValue.serverTimestamp(),
                                 });

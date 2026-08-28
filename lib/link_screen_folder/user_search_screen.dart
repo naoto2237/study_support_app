@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/profile_screen.dart';
 import 'dart:async';
-import 'package:study_support_app/notification_screen.dart';
+import 'package:study_support_app/notification_screen_folder/notification_screen.dart';
 
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});

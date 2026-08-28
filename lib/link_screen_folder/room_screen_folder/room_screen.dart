@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'room_makeTab_folder/room_make.dart';
 import 'room_searchTab_folder/room_search.dart';
 import 'package:study_support_app/setting_screen.dart';
-import 'package:study_support_app/notification_screen.dart';
+import 'package:study_support_app/notification_screen_folder/notification_screen.dart';
 
 class RoomScreen extends StatelessWidget {
   const RoomScreen({super.key});
