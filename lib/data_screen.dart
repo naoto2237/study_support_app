@@ -100,85 +100,301 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF258EDB);
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+
       appBar: AppBar(
-        title: const Text("プロフィール登録"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-              );
-            },
-            child: const Text("スキップ"),
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+
+        title: const Text(
+          "プロフィール登録",
+          style: TextStyle(
+            fontSize: 19, // 26 → 22
+            fontWeight: FontWeight.bold,
           ),
-        ],
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
+
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20, // 28 → 20
+            vertical: 16, // 28 → 16
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                _buildInputSection(
+                  icon: Icons.person_outline,
+                  title: "ユーザーネーム",
+                  hint: "例）なまえ",
+                  controller: nameController,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "入力してください";
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 18),
+
+                _buildInputSection(
+                  icon: Icons.school_outlined,
+                  title: "学年・職種",
+                  hint: "例）大学2年 / エンジニア",
+                  controller: gradeController,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "入力してください";
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 18),
+
+                _buildInputSection(
+                  icon: Icons.track_changes_outlined,
+                  title: "学習目標",
+                  hint: "例）TOEICで800点を取る",
+                  controller: goalController,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "入力してください";
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 18),
+
+                _buildInputSection(
+                  icon: Icons.badge_outlined,
+                  title: "ユーザーID",
+                  hint: "例）@study1234",
+                  controller: userIdController,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "ユーザーIDを入力してください";
+                    }
+
+                    if (!value.trim().startsWith("@")) {
+                      return "@から始めてください";
+                    }
+
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 5),
+
+                const Padding(
+                  padding: EdgeInsets.only(left: 48),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "※プロフィールは後からでも変更できます",
+                      style: TextStyle(color: Colors.black54, fontSize: 11),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ユーザーIDについて
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF4FF),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.shield_outlined,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "ユーザーIDについて",
+                              style: TextStyle(
+                                color: primaryColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            SizedBox(height: 5),
+
+                            Text(
+                              "他のユーザーがあなたを見つけるときに使用されます。学習記録やプロフィールを確認するときにも使われます。",
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 11,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                    ),
+                    child: const Text(
+                      "保存してはじめる",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputSection({
+    required IconData icon,
+    required String title,
+    required String hint,
+    required TextEditingController controller,
+    required String? Function(String?) validator,
+  }) {
+    const primaryColor = Color(0xFF258EDB);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Icon(
+            icon,
+            color: primaryColor,
+            size: 28, // 36 → 28
+          ),
+        ),
+
+        const SizedBox(width: 12), // 20 → 12
+
+        Expanded(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: "名前"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "入力してください";
-                  }
-                  return null;
-                },
+              Row(
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 17, // 21 → 17
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(width: 7),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: primaryColor),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: const Text(
+                      "必須",
+                      style: TextStyle(color: primaryColor, fontSize: 11),
+                    ),
+                  ),
+                ],
               ),
 
-              TextFormField(
-                controller: gradeController,
-                decoration: const InputDecoration(labelText: "学年・職種"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "入力してください";
-                  }
-                  return null;
-                },
-              ),
+              const SizedBox(height: 7),
 
               TextFormField(
-                controller: goalController,
-                decoration: const InputDecoration(labelText: "学習目標"),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "入力してください";
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: userIdController,
-                decoration: const InputDecoration(labelText: "ユーザーID"),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return "ユーザーIDを入力してください";
-                  }
+                controller: controller,
+                validator: validator,
+                style: const TextStyle(fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: hint,
+                  hintStyle: const TextStyle(
+                    color: Colors.black45,
+                    fontSize: 14,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
 
-                  if (!value.trim().startsWith("@")) {
-                    return "@から始めてください";
-                  }
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12, // 18 → 12
+                  ),
 
-                  return null;
-                },
-              ),
-              const SizedBox(height: 30),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFD9DEE5)),
+                  ),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(onPressed: save, child: const Text("保存")),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: primaryColor, width: 2),
+                  ),
+
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.red),
+                  ),
+                ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

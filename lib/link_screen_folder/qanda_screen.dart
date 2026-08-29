@@ -225,7 +225,7 @@ class _QnAListPageState extends State<QnAListPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(18),
             child: TextField(
               controller: searchController,
               onChanged: (v) => setState(() => keyword = v),
@@ -275,6 +275,15 @@ class _QnAListPageState extends State<QnAListPage> {
                     final q = filteredQuestions[i];
 
                     return Card(
+                      color: const Color(0xFFF1F8FF),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(
+                          color: Color(0xFFE5E7EB), // ← 枠の色
+                          width: 1,
+                        ),
+                      ),
                       margin: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 6,
@@ -334,12 +343,18 @@ class _PostPageState extends State<PostPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: widget.primaryColor,
-        foregroundColor: Colors.white,
-        title: const Text("質問投稿"),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        title: Transform.translate(
+          offset: const Offset(-19, 0),
+          child: const Text(
+            "質問投稿",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19),
+          ),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           children: [
             TextField(
@@ -567,7 +582,7 @@ class _DetailPageState extends State<DetailPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(18),
             child: Row(
               children: [
                 UserIcon(
@@ -594,7 +609,7 @@ class _DetailPageState extends State<DetailPage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Text(
               q.content,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -673,7 +688,7 @@ class _DetailPageState extends State<DetailPage> {
           ),
 
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(18),
             child: Column(
               children: [
                 TextField(
