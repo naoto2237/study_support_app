@@ -73,10 +73,6 @@ class _MypageScreenState extends State<MypageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('_targetUserId: $_targetUserId');
-    debugPrint('_isMyPage: $_isMyPage');
-    debugPrint('currentUid: ${FirebaseAuth.instance.currentUser?.uid}');
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -196,9 +192,7 @@ class _MypageScreenState extends State<MypageScreen> {
         .get();
 
     // くるくるを少し長く表示する
-    await Future.delayed(
-      const Duration(milliseconds: 700),
-    );
+    await Future.delayed(const Duration(milliseconds: 700));
   }
 
   // ======================================================

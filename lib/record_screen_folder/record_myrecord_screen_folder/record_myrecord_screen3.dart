@@ -230,16 +230,17 @@ class _RecordMyRecordScreen3State extends State<RecordMyRecordScreen3> {
   String _formatStudyTime(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
+    final remainingSeconds = seconds % 60;
 
     if (hours > 0) {
-      if (minutes > 0) {
-        return "$hours時間$minutes分";
-      }
-
-      return "$hours時間";
+      return "$hours時間$minutes分$remainingSeconds秒";
     }
 
-    return "$minutes分";
+    if (minutes > 0) {
+      return "$minutes分$remainingSeconds秒";
+    }
+
+    return "$remainingSeconds秒";
   }
 
   Widget _card(Widget child) {

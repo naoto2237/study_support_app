@@ -465,11 +465,10 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
 
         values[i] = (widget.studyRecords[key] ?? 0) / 3600.0;
 
-        // 今日の学習中の時間をリアルタイムで加算
         if (date.year == now.year &&
             date.month == now.month &&
             date.day == now.day) {
-          values[i] += widget.currentStudyHours;
+          values[i] = widget.currentStudyHours;
         }
       }
 
@@ -494,8 +493,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
       // カレンダーの第1週の月曜日
       final firstDayOffset = firstDay.weekday - 1;
 
-      DateTime weekStart =
-      firstDay.subtract(Duration(days: firstDayOffset));
+      DateTime weekStart = firstDay.subtract(Duration(days: firstDayOffset));
 
       final values = <double>[];
 
@@ -513,14 +511,12 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
           }
 
           final key = "${date.year}/${date.month}/${date.day}";
-
-          totalHours += (widget.studyRecords[key] ?? 0) / 3600.0;
-
-          // 今日のリアルタイム学習時間
           if (date.year == now.year &&
               date.month == now.month &&
               date.day == now.day) {
             totalHours += widget.currentStudyHours;
+          } else {
+            totalHours += (widget.studyRecords[key] ?? 0) / 3600.0;
           }
         }
 
@@ -537,6 +533,7 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
     // 年：1月～12月の月別学習時間
     // ==========================================================
     final targetYear = selectedYear;
+    final now = DateTime.now();
 
     final values = List<double>.filled(12, 0);
 
@@ -548,12 +545,12 @@ class _RecordMyRecordScreen2State extends State<RecordMyRecordScreen2> {
       for (int day = 1; day <= daysInMonth; day++) {
         final key = "${targetYear}/$month/$day";
 
-        totalHours += (widget.studyRecords[key] ?? 0) / 3600.0;
-      }
-
-      // 今月ならリアルタイム時間も加算
-      if (targetYear == DateTime.now().year && month == DateTime.now().month) {
-        totalHours += widget.currentStudyHours;
+        if (targetYear == now.year && month == now.month && day == now.day) {
+          // 今日だけリアルタイムの値を使用
+          totalHours += widget.currentStudyHours;
+        } else {
+          totalHours += (widget.studyRecords[key] ?? 0) / 3600.0;
+        }
       }
 
       values[month - 1] = totalHours;

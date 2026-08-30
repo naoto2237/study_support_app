@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen_folder/home_screen.dart';
 import 'ai_screen_folder/ai_screen.dart';
 import 'link_screen_folder/link_screen.dart';
@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'splash_screen.dart';
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -131,8 +131,42 @@ class MyApp extends StatelessWidget {
             ),
           ),
 
-          home: const SplashScreen(),
+          home: const AppStartScreen(),
         );
+      },
+    );
+  }
+}
+class AppStartScreen extends StatelessWidget {
+  const AppStartScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const SplashScreen();
+    }
+
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          return const MainNavigationScreen();
+        }
+
+        return const SplashScreen();
       },
     );
   }

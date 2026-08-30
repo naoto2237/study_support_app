@@ -17,12 +17,10 @@ class AllStudyRecordsScreen extends StatefulWidget {
   });
 
   @override
-  State<AllStudyRecordsScreen> createState() =>
-      _AllStudyRecordsScreenState();
+  State<AllStudyRecordsScreen> createState() => _AllStudyRecordsScreenState();
 }
 
-class _AllStudyRecordsScreenState
-    extends State<AllStudyRecordsScreen> {
+class _AllStudyRecordsScreenState extends State<AllStudyRecordsScreen> {
   List<Map<String, dynamic>> records = [];
 
   bool isLoading = true;
@@ -56,20 +54,15 @@ class _AllStudyRecordsScreenState
 
         return {
           "date": doc.id,
-          "studyTime":
-          (data["studyTime"] as num?)?.toInt() ?? 0,
+          "studyTime": (data["studyTime"] as num?)?.toInt() ?? 0,
         };
       }).toList();
 
       // 新しい日付順
       loadedRecords.sort((a, b) {
-        final dateA = DateTime.parse(
-          a["date"] as String,
-        );
+        final dateA = DateTime.parse(a["date"] as String);
 
-        final dateB = DateTime.parse(
-          b["date"] as String,
-        );
+        final dateB = DateTime.parse(b["date"] as String);
 
         return dateB.compareTo(dateA);
       });
@@ -81,9 +74,7 @@ class _AllStudyRecordsScreenState
         isLoading = false;
       });
     } catch (e) {
-      debugPrint(
-        "学習記録一覧の取得に失敗しました: $e",
-      );
+      debugPrint("学習記録一覧の取得に失敗しました: $e");
 
       if (!mounted) return;
 
@@ -102,10 +93,7 @@ class _AllStudyRecordsScreenState
           offset: const Offset(-18, 0),
           child: const Text(
             "最近の学習記録",
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
           ),
         ),
         backgroundColor: Colors.white,
@@ -113,60 +101,38 @@ class _AllStudyRecordsScreenState
         elevation: 0,
       ),
       body: isLoading
-          ? const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-        ),
-      )
+          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : records.isEmpty
           ? Center(
-        child: Text(
-          "まだ学習記録がありません",
-          style: TextStyle(
-            color: widget.secondaryColor,
-            fontSize: 14,
-          ),
-        ),
-      )
+              child: Text(
+                "まだ学習記録がありません",
+                style: TextStyle(color: widget.secondaryColor, fontSize: 14),
+              ),
+            )
           : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: records.length,
-        itemBuilder: (context, index) {
-          final record = records[index];
+              padding: const EdgeInsets.all(16),
+              itemCount: records.length,
+              itemBuilder: (context, index) {
+                final record = records[index];
 
-          final date =
-          record["date"] as String;
+                final date = record["date"] as String;
 
-          final studyTime =
-              (record["studyTime"] as num?)
-                  ?.toInt() ??
-                  0;
+                final studyTime = (record["studyTime"] as num?)?.toInt() ?? 0;
 
-          return _recordCard(
-            date,
-            studyTime,
-          );
-        },
-      ),
+                return _recordCard(date, studyTime);
+              },
+            ),
     );
   }
 
-  Widget _recordCard(
-      String date,
-      int studyTime,
-      ) {
+  Widget _recordCard(String date, int studyTime) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: widget.cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.grey.shade200,
-        ),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
@@ -196,15 +162,7 @@ class _AllStudyRecordsScreenState
   String _formatDate(String date) {
     final dateTime = DateTime.parse(date);
 
-    const weekdays = [
-      "月",
-      "火",
-      "水",
-      "木",
-      "金",
-      "土",
-      "日",
-    ];
+    const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
     return "${dateTime.year}/${dateTime.month}/${dateTime.day}"
         "（${weekdays[dateTime.weekday - 1]}）";
@@ -213,15 +171,16 @@ class _AllStudyRecordsScreenState
   String _formatStudyTime(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
+    final remainingSeconds = seconds % 60;
 
     if (hours > 0) {
-      if (minutes > 0) {
-        return "$hours時間$minutes分";
-      }
-
-      return "$hours時間";
+      return "$hours時間$minutes分$remainingSeconds秒";
     }
 
-    return "$minutes分";
+    if (minutes > 0) {
+      return "$minutes分$remainingSeconds秒";
+    }
+
+    return "$remainingSeconds秒";
   }
 }

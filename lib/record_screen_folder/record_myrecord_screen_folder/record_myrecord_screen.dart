@@ -311,7 +311,11 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
       'goalFinalized': true,
     }, SetOptions(merge: true));
   }
-
+  int _getRealtimeSummaryStudySeconds() {
+    return summaryStudySeconds
+        - todayFirestoreSeconds
+        + todayStudySeconds.value;
+  }
   // ==============================================================
   // 連続学習
   // ==============================================================
@@ -1057,18 +1061,25 @@ class _RecordMyRecordScreenState extends State<RecordMyRecordScreen> {
                     ),
 
                     Expanded(
-                      child: _summaryItem(
-                        title: summaryPeriod == 0
-                            ? "今週の学習時間"
-                            : summaryPeriod == 1
-                            ? "今月の学習時間"
-                            : "今年の学習時間",
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: todayStudySeconds,
+                        builder: (context, seconds, child) {
+                          return _summaryItem(
+                            title: summaryPeriod == 0
+                                ? "今週の学習時間"
+                                : summaryPeriod == 1
+                                ? "今月の学習時間"
+                                : "今年の学習時間",
 
-                        value: formatPeriodStudyTime(summaryStudySeconds),
+                            value: formatPeriodStudyTime(
+                              _getRealtimeSummaryStudySeconds(),
+                            ),
 
-                        unit: "",
-                        color: textColor,
-                        bottomText: '',
+                            unit: "",
+                            color: textColor,
+                            bottomText: '',
+                          );
+                        },
                       ),
                     ),
 

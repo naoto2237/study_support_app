@@ -724,10 +724,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   textAlign: TextAlign.right,
                                                   text: TextSpan(
                                                     children: _buildTimeSpans(
-                                                      remainingTime.inHours == 0
-                                                          ? "${remainingTime.inMinutes}分"
-                                                          : "${remainingTime.inHours}時間"
-                                                                "${remainingTime.inMinutes % 60}分",
+                                                      formatRemainingTime(
+                                                        remainingTime.inSeconds,
+                                                      ),
                                                       textColor,
                                                     ),
                                                   ),
@@ -832,6 +831,24 @@ class _HomeScreenState extends State<HomeScreen> {
     final minutes = (totalSeconds % 3600) ~/ 60;
 
     return "${wholeHours}時間${minutes}分";
+  }
+
+  String formatRemainingTime(int remainingSeconds) {
+    final hours = remainingSeconds ~/ 3600;
+    final minutes = (remainingSeconds % 3600) ~/ 60;
+    final seconds = remainingSeconds % 60;
+
+    // 10分未満になったら秒まで表示
+    if (remainingSeconds < 600) {
+      return "$minutes分$seconds秒";
+    }
+
+    // 10分以上
+    if (hours > 0) {
+      return "$hours時間$minutes分";
+    }
+
+    return "$minutes分";
   }
 
   Future<void> saveTodayStudyTime(int seconds) async {
