@@ -37,7 +37,7 @@ class _MypageScreenState extends State<MypageScreen> {
     // 表示する対象のUIDを決定
     // targetUserIdがなければ自分のUIDを使用
     _targetUserId =
-        (widget.targetUserId != null && widget.targetUserId!.isNotEmpty)
+    (widget.targetUserId != null && widget.targetUserId!.isNotEmpty)
         ? widget.targetUserId!
         : (currentUid ?? '');
 
@@ -103,6 +103,9 @@ class _MypageScreenState extends State<MypageScreen> {
 
             final data = snapshot.data!.data()!;
 
+            // isPublicの状態を取得（MypageScreen2へ渡す用）
+            final bool isPublic = data["isPublic"] ?? true;
+
             return Stack(
               children: [
                 // ======================================================
@@ -161,6 +164,7 @@ class _MypageScreenState extends State<MypageScreen> {
                                 data: data,
                                 isMyPage: _isMyPage,
                                 userId: _targetUserId,
+                                isPublic: isPublic,
                               ),
                             ],
                           ),
@@ -217,12 +221,12 @@ class _MypageScreenState extends State<MypageScreen> {
 
       leading: !_isMyPage
           ? IconButton(
-              icon: const Icon(Icons.arrow_back),
-              color: Color.lerp(Colors.white, Colors.black87, iconProgress),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            )
+        icon: const Icon(Icons.arrow_back),
+        color: Color.lerp(Colors.white, Colors.black87, iconProgress),
+        onPressed: () {
+          Navigator.pop(context);
+        },
+      )
           : null,
 
       centerTitle: true,
@@ -232,14 +236,14 @@ class _MypageScreenState extends State<MypageScreen> {
 
       title: showAppBar
           ? Text(
-              name,
-              style: const TextStyle(
-                fontSize: 17.5,
-                fontWeight: FontWeight.w900,
-                color: Colors.black87,
-                letterSpacing: -0.5,
-              ),
-            )
+        name,
+        style: const TextStyle(
+          fontSize: 17.5,
+          fontWeight: FontWeight.w900,
+          color: Colors.black87,
+          letterSpacing: -0.5,
+        ),
+      )
           : null,
 
       actions: [
@@ -330,21 +334,21 @@ class ProfileHeader extends StatelessWidget {
                             child: ClipOval(
                               child: icon.isNotEmpty
                                   ? Image.network(
-                                      icon,
-                                      width: iconSize,
-                                      height: iconSize,
-                                      fit: BoxFit.cover,
-                                    )
+                                icon,
+                                width: iconSize,
+                                height: iconSize,
+                                fit: BoxFit.cover,
+                              )
                                   : Container(
-                                      color: const Color(
-                                        0xFF258EDB,
-                                      ).withOpacity(0.12),
-                                      child: Icon(
-                                        Icons.person,
-                                        size: iconSize * 0.65,
-                                        color: const Color(0xFF258EDB),
-                                      ),
-                                    ),
+                                color: const Color(
+                                  0xFF258EDB,
+                                ).withOpacity(0.12),
+                                child: Icon(
+                                  Icons.person,
+                                  size: iconSize * 0.65,
+                                  color: const Color(0xFF258EDB),
+                                ),
+                              ),
                             ),
                           ),
                         ),

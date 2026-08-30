@@ -11,12 +11,14 @@ class MypageScreen2 extends StatelessWidget {
   final Map<String, dynamic> data;
   final bool isMyPage;
   final String userId;
+  final bool isPublic; // 公開・非公開の状態
 
   const MypageScreen2({
     super.key,
     required this.data,
     required this.isMyPage,
     required this.userId,
+    required this.isPublic,
   });
 
   static const Color primaryBlue = Color(0xFF258EDB);
@@ -37,15 +39,15 @@ class MypageScreen2 extends StatelessWidget {
     final String location = "未設定";
     final String studyStyle = "未設定";
 
+    // 他人のページかつ非公開の場合かどうか
+    final bool isPrivateOther = !isMyPage && !isPublic;
+
     return Column(
       children: [
         // ------------------------------------------
-        // プロフィール分析・編集
-        // 自分のページだけ表示
-        // ------------------------------------------
-        // ------------------------------------------
         // プロフィールアクション
-        // 自分・相手で表示を切り替える
+        // 非公開の場合はメッセージなどの一部を制限・変更するか、
+        // あるいはそのまま表示（必要に応じて調整可能）
         // ------------------------------------------
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -96,7 +98,6 @@ class MypageScreen2 extends StatelessWidget {
 
         // ------------------------------------------
         // プロフィール統計
-        // 自分・相手の両方に表示
         // ------------------------------------------
         ProfileStatsSection(userId: userId),
 
@@ -153,8 +154,7 @@ class MypageScreen2 extends StatelessWidget {
         const SizedBox(height: 5),
 
         // ------------------------------------------
-        // プロフィール項目【共通】
-        // 自分のときだけタップして編集可能
+        // プロフィール項目【共通】（学年や目標などは常に表示）
         // ------------------------------------------
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -190,11 +190,34 @@ class MypageScreen2 extends StatelessWidget {
         const SizedBox(height: 20),
 
         // ------------------------------------------
-        // 学習時間【共通】
+        // 学習時間（非公開の場合はグラフの代わりに非公開メッセージを表示）
         // ------------------------------------------
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: RecordMyRecordScreen3(
+          child: isPrivateOther
+              ? Container(
+            padding: const EdgeInsets.symmetric(vertical: 30),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: const [
+                Icon(Icons.lock_outline, size: 36, color: Colors.grey),
+                SizedBox(height: 8),
+                Text(
+                  'このユーザーは学習記録を非公開にしています',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          )
+              : RecordMyRecordScreen3(
             cardColor: Colors.white,
             textColor: Colors.black87,
             secondaryColor: Colors.black54,
