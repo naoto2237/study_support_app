@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart'; // 追加: Firestore用
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'main.dart'; // main.dart の isDarkModeNotifier などを読み込む
@@ -13,6 +14,44 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   // 学習記録の公開設定の選択状態（'public' = 公開, 'private' = 非公開）
   String _selectedPrivacyOption = 'public';
+  bool _isLoadingPrivacy = true; // 読み込み中の状態管理
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrivacySetting(); // 起動時にFirebaseから現在の設定を取得
+  }
+
+  // Firebaseから現在の公開設定を取得する処理
+  Future<void> _loadPrivacySetting() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          if (data.containsKey('isPublic')) {
+            setState(() {
+              // 'isPublic'がtrueなら'public'、falseなら'private'
+              _selectedPrivacyOption = (data['isPublic'] == true) ? 'public' : 'private';
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ 公開設定の取得に失敗しました: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingPrivacy = false;
+        });
+      }
+    }
+  }
 
   // ダークモード・ライトモード選択ダイアログ
   void _showThemeSettingsDialog(BuildContext context) {
@@ -83,7 +122,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // 学習記録の公開設定ダイアログ（ラジオボタン）
+  // 学習記録の公開設定ダイアログ（Firebase連携版）
   void _showPrivacySettingsDialog(BuildContext context) {
     String tempPrivacyOption = _selectedPrivacyOption;
 
@@ -135,14 +174,42 @@ class _SettingsPageState extends State<SettingsPage> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _selectedPrivacyOption = tempPrivacyOption;
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(_selectedPrivacyOption == 'public' ? '学習記録を公開に設定しました' : '学習記録を非公開に設定しました')),
-                    );
+                  onPressed: () async {
+                    Navigator.pop(context); // ダイアログを閉じる
+
+                    try {
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user != null) {
+                        bool isPublicValue = (tempPrivacyOption == 'public');
+
+                        // Firestoreの users/{uid} ドキュメントを更新（存在しない場合は作成）
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .set({
+                          'isPublic': isPublicValue,
+                        }, SetOptions(merge: true));
+
+                        setState(() {
+                          _selectedPrivacyOption = tempPrivacyOption;
+                        });
+
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(_selectedPrivacyOption == 'public'
+                                ? '学習記録を公開に設定しました'
+                                : '学習記録を非公開に設定しました'),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      debugPrint('❌ 公開設定の保存に失敗しました: $e');
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('設定の保存に失敗しました')),
+                      );
+                    }
                   },
                   child: const Text('保存'),
                 ),
@@ -312,7 +379,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     ListTile(
                       leading: const Icon(Icons.lock_outline, color: Colors.blue),
                       title: Text('学習記録の公開', style: TextStyle(color: textColor)),
-                      subtitle: Text(_selectedPrivacyOption == 'public' ? '公開する' : '非公開にする', style: TextStyle(fontSize: 12, color: subTextColor)),
+                      subtitle: Text(
+                        _isLoadingPrivacy
+                            ? '読み込み中...'
+                            : (_selectedPrivacyOption == 'public' ? '公開する' : '非公開にする'),
+                        style: TextStyle(fontSize: 12, color: subTextColor),
+                      ),
                       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                       onTap: () => _showPrivacySettingsDialog(context),
                     ),
@@ -347,35 +419,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
               const SizedBox(height: 32),
 
-              // --- ログイン・ログアウト・アカウント消去ボタン ---
+              // --- ログアウトボタン ---
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 child: Column(
                   children: [
-                    // ログインボタン
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const OnboardingScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text('ログインする', style: TextStyle(fontSize: 16)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // ★ ログアウトボタン（ご指定の pushReplacement & OnboardingScreen を使用）
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
@@ -392,7 +440,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
                             if (!context.mounted) return;
 
-                            // 2. ご指定の画面遷移コード
+                            // 2. ログイン画面（OnboardingScreen）へ置き換え遷移
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
                                 builder: (_) => const OnboardingScreen(),
@@ -405,21 +453,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           }
                         },
                         child: const Text('ログアウトする'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // アカウント消去ボタン
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                        onPressed: () {
-                          // アカウント消去処理
-                        },
-                        child: const Text('アカウントを消去する'),
                       ),
                     ),
                   ],
