@@ -1,21 +1,32 @@
+// ======================================================================
+// アプリの入口
+//
+// 主なクラス: MyApp / AppStartScreen / MainNavigationScreen
+// ・main()：.env の読み込み、Firebase の初期化、タイマー通知の準備
+// ・MyApp：テーマ（ライト／ダーク）と日本語設定
+// ・AppStartScreen：ログインと登録の状態を見て、最初の画面を決める
+// ・MainNavigationScreen：下のタブ（ホーム／AIサポート／Link／学習記録／マイページ）
+// ・アプリ全体で共有する値：isDarkModeNotifier, dailyTargetHours,
+//   todayStudySeconds, weeklyStudySeconds
+// ======================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home_screen_folder/home_screen.dart';
-import 'ai_screen_folder/ai_screen.dart';
-import 'link_screen_folder/link_screen.dart';
-import 'record_screen_folder/record_screen.dart';
-import 'mypage_screen_folder/mypage_screen.dart';
+import 'package:study_support_app/screens/home/home_screen.dart';
+import 'package:study_support_app/screens/ai_support/ai_screen.dart';
+import 'package:study_support_app/screens/link/link_screen.dart';
+import 'package:study_support_app/screens/record/record_screen.dart';
+import 'package:study_support_app/screens/mypage/mypage_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:study_support_app/firebase_options.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'splash_screen.dart';
+import 'package:study_support_app/screens/start/splash_screen.dart';
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'timer_service.dart';
 
 // アプリ全体で共有するダークモードの状態変数（初期値: false = ライト）
 final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
@@ -137,6 +148,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 class AppStartScreen extends StatelessWidget {
   const AppStartScreen({super.key});
 
@@ -156,9 +168,7 @@ class AppStartScreen extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
