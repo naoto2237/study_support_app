@@ -11,6 +11,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/screens/notification/notification_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
@@ -243,9 +244,9 @@ class _QnaListScreenState extends State<QnaListScreen> {
           Container(
             width: 60,
             height: 60,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primarySoft,
+              color: context.pal.primarySoft,
             ),
             child: Icon(icon, color: _blue, size: 28),
           ),
@@ -253,14 +254,14 @@ class _QnaListScreenState extends State<QnaListScreen> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(fontSize: 15, color: context.pal.text),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12.5, color: Colors.black45),
+              style: TextStyle(fontSize: 12.5, color: context.pal.muted),
             ),
           ],
         ],
@@ -276,7 +277,7 @@ class _QnaListScreenState extends State<QnaListScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: Colors.white,
+        color: context.pal.card,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
@@ -285,7 +286,7 @@ class _QnaListScreenState extends State<QnaListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: context.pal.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,10 +312,10 @@ class _QnaListScreenState extends State<QnaListScreen> {
                               q.userName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black54,
+                                color: context.pal.secondary,
                               ),
                             ),
                           ),
@@ -322,18 +323,18 @@ class _QnaListScreenState extends State<QnaListScreen> {
                           // 投稿した日時
                           Text(
                             "  ・  ${q.postedAtText}",
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.5,
-                              color: Colors.black38,
+                              color: context.pal.muted,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       size: 22,
-                      color: Colors.black26,
+                      color: context.pal.muted,
                     ),
                   ],
                 ),
@@ -349,11 +350,11 @@ class _QnaListScreenState extends State<QnaListScreen> {
                     q.displayTitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       height: 1.45,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: context.pal.text,
                     ),
                   ),
                 ),
@@ -366,10 +367,10 @@ class _QnaListScreenState extends State<QnaListScreen> {
                       q.previewBody,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         height: 1.5,
-                        color: Colors.black54,
+                        color: context.pal.secondary,
                       ),
                     ),
                   ),
@@ -387,7 +388,7 @@ class _QnaListScreenState extends State<QnaListScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: hasAnswer
-                        ? AppColors.primarySoft
+                        ? context.pal.primarySoft
                         : const Color(0xFFF2F3F5),
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -397,7 +398,7 @@ class _QnaListScreenState extends State<QnaListScreen> {
                       Icon(
                         Icons.chat_bubble_outline_rounded,
                         size: 14,
-                        color: hasAnswer ? _blue : Colors.black38,
+                        color: hasAnswer ? _blue : context.pal.muted,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -405,7 +406,7 @@ class _QnaListScreenState extends State<QnaListScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: hasAnswer ? _blue : Colors.black45,
+                          color: hasAnswer ? _blue : context.pal.muted,
                         ),
                       ),
                     ],
@@ -430,13 +431,13 @@ class _QnaListScreenState extends State<QnaListScreen> {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: context.pal.card,
+        foregroundColor: context.pal.text,
         elevation: 0,
-        surfaceTintColor: Colors.white,
+        surfaceTintColor: context.pal.card,
         scrolledUnderElevation: 0,
         titleSpacing: 0,
 
@@ -448,7 +449,7 @@ class _QnaListScreenState extends State<QnaListScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: const Icon(Icons.notifications_none, color: Colors.black87),
+              icon: Icon(Icons.notifications_none, color: context.pal.text),
               // 通知画面へ
               onPressed: () {
                 Navigator.push(
@@ -472,22 +473,22 @@ class _QnaListScreenState extends State<QnaListScreen> {
             child: TextField(
               controller: searchController,
               onChanged: (v) => setState(() => keyword = v),
-              style: const TextStyle(fontSize: 15, color: Colors.black87),
+              style: TextStyle(fontSize: 15, color: context.pal.text),
               cursorColor: _blue,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: "質問を検索",
-                hintStyle: const TextStyle(fontSize: 15, color: Colors.black38),
+                hintStyle: TextStyle(fontSize: 15, color: context.pal.muted),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: context.pal.card,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 4,
                   vertical: 14,
                 ),
-                prefixIcon: const Padding(
+                prefixIcon: Padding(
                   padding: EdgeInsets.only(left: 12, right: 4),
-                  child: Icon(Icons.search_rounded, color: Colors.black38),
+                  child: Icon(Icons.search_rounded, color: context.pal.muted),
                 ),
                 prefixIconConstraints: const BoxConstraints(minWidth: 44),
                 suffixIcon: searchController.text.isEmpty
@@ -495,10 +496,10 @@ class _QnaListScreenState extends State<QnaListScreen> {
                     : IconButton(
                         tooltip: "消す",
                         onPressed: _clearSearch,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.cancel_rounded,
                           size: 20,
-                          color: Colors.black38,
+                          color: context.pal.muted,
                         ),
                       ),
                 // ふだんは枠線なし（白い面だけで浮かせる）。入力中は青い枠
@@ -629,23 +630,19 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
     // 白い角丸の入力欄（タイトルと内容で共通）
     InputDecoration fieldDecoration(String hint) => InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(
-        fontSize: 14,
-        height: 1.6,
-        color: Colors.black38,
-      ),
+      hintStyle: TextStyle(fontSize: 14, height: 1.6, color: context.pal.muted),
       hintMaxLines: 3,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: context.pal.card,
       counterText: "",
       contentPadding: const EdgeInsets.all(16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: context.pal.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: context.pal.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
@@ -654,13 +651,13 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: context.pal.card,
+        foregroundColor: context.pal.text,
         elevation: 0,
-        surfaceTintColor: Colors.white,
+        surfaceTintColor: context.pal.card,
         scrolledUnderElevation: 0,
         titleSpacing: 0,
         title: const Text(
@@ -681,14 +678,14 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(left: 2, bottom: 8),
                       child: Text(
                         "タイトル",
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: context.pal.text,
                         ),
                       ),
                     ),
@@ -699,10 +696,10 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
                       maxLength: 40,
                       textInputAction: TextInputAction.next,
                       cursorColor: _blue,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: context.pal.text,
                       ),
                       decoration: fieldDecoration("例：英単語を効率よく覚えるコツは？"),
                     ),
@@ -713,9 +710,9 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
                         alignment: Alignment.centerRight,
                         child: Text(
                           "${title.text.characters.length}/40",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.black45,
+                            color: context.pal.muted,
                           ),
                         ),
                       ),
@@ -723,14 +720,14 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
 
                     const SizedBox(height: 10),
 
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(left: 2, bottom: 8),
                       child: Text(
                         "質問の内容",
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: context.pal.text,
                         ),
                       ),
                     ),
@@ -741,10 +738,10 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
                       maxLines: 12,
                       keyboardType: TextInputType.multiline,
                       cursorColor: _blue,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         height: 1.6,
-                        color: Colors.black87,
+                        color: context.pal.text,
                       ),
                       decoration: fieldDecoration(
                         "くわしい内容を書いてください\n例：毎日100個覚えても、すぐ忘れてしまいます",
@@ -756,26 +753,26 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
                     // 公開されることの案内と、文字数
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.public_rounded,
                           size: 14,
-                          color: Colors.black38,
+                          color: context.pal.muted,
                         ),
                         const SizedBox(width: 4),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             "投稿した質問は、ほかのユーザーにも公開されます",
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.black45,
+                              color: context.pal.muted,
                             ),
                           ),
                         ),
                         Text(
                           "${content.text.characters.length}文字",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.black45,
+                            color: context.pal.muted,
                           ),
                         ),
                       ],
@@ -790,9 +787,9 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
             // ==========================================
             Container(
               padding: const EdgeInsets.fromLTRB(17, 10, 17, 12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: AppColors.border)),
+              decoration: BoxDecoration(
+                color: context.pal.card,
+                border: Border(top: BorderSide(color: context.pal.border)),
               ),
               child: SizedBox(
                 width: double.infinity,
@@ -803,7 +800,7 @@ class _QnaPostScreenState extends State<QnaPostScreen> {
                     backgroundColor: _blue,
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: const Color(0xFFE3E7EC),
-                    disabledForegroundColor: Colors.black38,
+                    disabledForegroundColor: context.pal.muted,
                     elevation: 0,
                     // 両端が丸いボタン
                     shape: const StadiumBorder(),
@@ -1039,7 +1036,7 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
       decoration: BoxDecoration(
-        color: AppColors.primarySoft,
+        color: context.pal.primarySoft,
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Text(
@@ -1056,9 +1053,9 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
   // 白い角丸のカード
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
-      color: Colors.white,
+      color: context.pal.card,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.pal.border),
     );
   }
 
@@ -1090,10 +1087,10 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                         q.userName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: context.pal.text,
                         ),
                       ),
                     ),
@@ -1105,7 +1102,7 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
               const SizedBox(width: 8),
               Text(
                 q.postedAtText,
-                style: const TextStyle(fontSize: 12, color: Colors.black38),
+                style: TextStyle(fontSize: 12, color: context.pal.muted),
               ),
             ],
           ),
@@ -1114,11 +1111,11 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
 
           Text(
             q.displayTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               height: 1.45,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: context.pal.text,
             ),
           ),
 
@@ -1126,10 +1123,10 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
             const SizedBox(height: 8),
             Text(
               q.previewBody,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 height: 1.65,
-                color: Colors.black87,
+                color: context.pal.text,
               ),
             ),
           ],
@@ -1170,10 +1167,10 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                         a.userName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: context.pal.text,
                         ),
                       ),
                     ),
@@ -1185,9 +1182,9 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
               // 自分の回答だけ、削除のメニューを出す
               if (isMyAnswer)
                 PopupMenuButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.more_horiz_rounded,
-                    color: Colors.black38,
+                    color: context.pal.muted,
                   ),
                   itemBuilder: (_) => const [
                     PopupMenuItem(value: "delete", child: Text("削除")),
@@ -1205,10 +1202,10 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
             padding: const EdgeInsets.only(right: 10, top: 2),
             child: Text(
               a.text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 height: 1.6,
-                color: Colors.black87,
+                color: context.pal.text,
               ),
             ),
           ),
@@ -1219,7 +1216,7 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
               margin: const EdgeInsets.fromLTRB(12, 10, 10, 0),
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: context.pal.field,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -1251,10 +1248,10 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                                   TextSpan(text: r.text),
                                 ],
                               ),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13.5,
                                 height: 1.5,
-                                color: Colors.black87,
+                                color: context.pal.text,
                               ),
                             ),
                           ),
@@ -1295,13 +1292,13 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
     final canSend = answerText.text.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: context.pal.card,
+        foregroundColor: context.pal.text,
         elevation: 0,
-        surfaceTintColor: Colors.white,
+        surfaceTintColor: context.pal.card,
         scrolledUnderElevation: 0,
         titleSpacing: 0,
         title: const Text(
@@ -1342,10 +1339,10 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                     padding: const EdgeInsets.only(left: 2, bottom: 8),
                     child: Text(
                       "回答 ${q.answers.length}件",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: context.pal.text,
                       ),
                     ),
                   ),
@@ -1354,11 +1351,11 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 28),
                       decoration: _cardDecoration(),
-                      child: const Column(
+                      child: Column(
                         children: [
                           Icon(
                             Icons.chat_bubble_outline_rounded,
-                            color: Colors.black26,
+                            color: context.pal.muted,
                             size: 28,
                           ),
                           SizedBox(height: 8),
@@ -1366,7 +1363,7 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                             "まだ回答はありません",
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.black54,
+                              color: context.pal.secondary,
                             ),
                           ),
                           SizedBox(height: 2),
@@ -1374,7 +1371,7 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                             "下の入力欄から、最初の回答を書いてみよう",
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.black38,
+                              color: context.pal.muted,
                             ),
                           ),
                         ],
@@ -1392,9 +1389,9 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
             // ==========================================
             Container(
               padding: const EdgeInsets.fromLTRB(17, 8, 12, 10),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: AppColors.border)),
+              decoration: BoxDecoration(
+                color: context.pal.card,
+                border: Border(top: BorderSide(color: context.pal.border)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -1409,9 +1406,9 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                       style: const TextStyle(fontSize: 15, height: 1.4),
                       decoration: InputDecoration(
                         hintText: "回答を入力",
-                        hintStyle: const TextStyle(color: Colors.black38),
+                        hintStyle: TextStyle(color: context.pal.muted),
                         filled: true,
-                        fillColor: AppColors.background,
+                        fillColor: context.pal.field,
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -1449,7 +1446,7 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                           child: Icon(
                             Icons.arrow_upward_rounded,
                             size: 22,
-                            color: canSend ? Colors.white : Colors.black26,
+                            color: canSend ? Colors.white : context.pal.muted,
                           ),
                         ),
                       ),
@@ -1514,7 +1511,7 @@ class UserIcon extends StatelessWidget {
         // マイページと同じ画像を表示
         return CircleAvatar(
           radius: radius,
-          backgroundColor: Colors.white,
+          backgroundColor: context.pal.card,
           backgroundImage: NetworkImage(icon),
         );
       },
@@ -1525,7 +1522,7 @@ class UserIcon extends StatelessWidget {
   Widget _defaultIcon() {
     return CircleAvatar(
       radius: radius,
-      backgroundColor: AppColors.primary.withOpacity(0.12),
+      backgroundColor: AppColors.primarySoft,
       child: Icon(Icons.person, size: radius * 1.15, color: AppColors.primary),
     );
   }

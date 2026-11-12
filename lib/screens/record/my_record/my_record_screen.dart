@@ -10,6 +10,7 @@
 
 import 'package:study_support_app/screens/record/my_record/study_time_chart_section.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -71,6 +72,29 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
     super.initState();
 
     _checkDateChange();
+    loadPeriodStudyTime();
+    calculateAchievedDays();
+    loadSummaryStudyTime();
+    calculateSummaryAchievedDays();
+
+    // 日付が変わったら（ホーム画面が知らせる）、集計を読み直す
+    currentDay.addListener(_onDayChanged);
+  }
+
+  @override
+  void dispose() {
+    currentDay.removeListener(_onDayChanged);
+    super.dispose();
+  }
+
+  // 日付が変わったとき
+  // ・昨日の分を「今日」としてではなく、保存済みの記録として数え直す
+  // ・昨日の目標達成を確定する
+  Future<void> _onDayChanged() async {
+    await _checkDateChange();
+
+    if (!mounted) return;
+
     loadPeriodStudyTime();
     calculateAchievedDays();
     loadSummaryStudyTime();
@@ -174,7 +198,9 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
   int achievedDays = 0;
 
   // サマリー専用
-  int summaryStudySeconds = 0;
+  // 今日を除いた、期間の始まり～昨日の合計（Firestore 保存済み）
+  // 今日の分は表示するときに todayStudySeconds（今の値）を足す
+  int summaryPastSeconds = 0;
   int summaryAchievedDays = 0;
 
   // 今週の学習時間を読み込み中か
@@ -320,10 +346,10 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
     }, SetOptions(merge: true));
   }
 
+  // サマリーに出す時間 ＝ 今日を除いた合計 ＋ 今の今日の学習時間
+  // （サマリーの期間はいつも今日をふくむので、今日の分はここで1回だけ足す）
   int _getRealtimeSummaryStudySeconds() {
-    return summaryStudySeconds -
-        todayFirestoreSeconds +
-        todayStudySeconds.value;
+    return summaryPastSeconds + todayStudySeconds.value;
   }
   // ==============================================================
   // 連続学習
@@ -421,7 +447,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
       if (!mounted) return;
 
       setState(() {
-        summaryStudySeconds = 0;
+        summaryPastSeconds = 0;
       });
 
       return;
@@ -519,20 +545,16 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
     }
 
     // ==============================================================
-    // 今日の現在進行中の学習時間を反映
+    // 今日の分を除いておく
     //
-    // Firestore保存済みの今日の時間を一度引いて、
-    // 現在のタイマー時間を加える
+    // 今日の時間はタイマーで増えていくので、ここでは持たない。
+    // 表示するとき（_getRealtimeSummaryStudySeconds）に今の値を足す。
     // ==============================================================
-
-    final currentTodaySeconds = todayStudySeconds.value;
-
-    totalSeconds = totalSeconds - savedTodaySeconds + currentTodaySeconds;
 
     if (!mounted) return;
 
     setState(() {
-      summaryStudySeconds = totalSeconds;
+      summaryPastSeconds = totalSeconds - savedTodaySeconds;
     });
   }
 
@@ -898,7 +920,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.pal.border),
       ),
       child: Column(
         children: [
@@ -1111,7 +1133,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                         Container(
                           width: 1,
                           height: 55,
-                          color: AppColors.border,
+                          color: context.pal.border,
                         ),
 
                         const Expanded(child: SizedBox()),
@@ -1119,7 +1141,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                         Container(
                           width: 1,
                           height: 55,
-                          color: AppColors.border,
+                          color: context.pal.border,
                         ),
 
                         const Expanded(child: SizedBox()),

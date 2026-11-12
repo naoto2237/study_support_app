@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/chat/chat_room_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/empty_message.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -78,10 +79,10 @@ class _ChatListScreenState extends State<ChatListScreen>
 
         title: Transform.translate(
           offset: const Offset(-19, 0),
-          child: const Text(
+          child: Text(
             "チャット",
             style: TextStyle(
-              color: Colors.black87,
+              color: isDark ? Colors.white : Colors.black87,
               fontSize: 19,
               fontWeight: FontWeight.bold,
             ),
@@ -100,6 +101,8 @@ class _ChatListScreenState extends State<ChatListScreen>
             child: TabBar(
               controller: _tabController,
 
+              // 選んだタブの下線は、タブの幅いっぱいの長い線にする
+              // （学習記録・ルームのタブと同じ）
               indicatorSize: TabBarIndicatorSize.tab,
 
               indicator: const UnderlineTabIndicator(
@@ -148,11 +151,9 @@ class _ChatListScreenState extends State<ChatListScreen>
 
               Expanded(
                 child: _searchText.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'ユーザー名を検索してください',
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                    ? const EmptyMessage(
+                        icon: Icons.person_search_outlined,
+                        text: 'ユーザー名を入力して\nチャットする相手を探しましょう',
                       )
                     : _buildUserSearchResultList(
                         currentUserId,
@@ -170,18 +171,30 @@ class _ChatListScreenState extends State<ChatListScreen>
   // =====================================================
   // 検索バー
   // =====================================================
+  // ユーザー検索（user_search_screen.dart）の検索欄と同じ見た目：
+  // 白い丸い面だけで浮かせ、入力中だけ青い枠
   Widget _buildSearchBar(bool isDark) {
-    final borderColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
-
     final textColor = isDark ? Colors.white : Colors.black87;
+    final fieldColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final hintColor = isDark ? Colors.white38 : Colors.black38;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
+    OutlineInputBorder pill(Color color, double width) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: width == 0
+            ? BorderSide.none
+            : BorderSide(color: color, width: width),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(17, 14, 17, 8),
 
       child: TextField(
         controller: _searchController,
-
-        style: TextStyle(color: textColor),
+        style: TextStyle(color: textColor, fontSize: 15),
+        cursorColor: AppColors.primary,
+        textInputAction: TextInputAction.search,
 
         onChanged: (value) {
           setState(() {
@@ -190,24 +203,24 @@ class _ChatListScreenState extends State<ChatListScreen>
         },
 
         decoration: InputDecoration(
-          hintText: 'ユーザー名で検索...',
-
-          hintStyle: TextStyle(
-            color: isDark ? Colors.grey[500] : Colors.grey[500],
+          hintText: 'ユーザー名で検索',
+          hintStyle: TextStyle(color: hintColor, fontSize: 15),
+          filled: true,
+          fillColor: fieldColor,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 14,
           ),
-
-          prefixIcon: Icon(
-            Icons.search,
-            color: isDark ? Colors.grey[400] : Colors.grey,
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 12, right: 4),
+            child: Icon(Icons.search_rounded, color: hintColor),
           ),
-
+          prefixIconConstraints: const BoxConstraints(minWidth: 44),
           suffixIcon: _searchText.isNotEmpty
               ? IconButton(
-                  icon: Icon(
-                    Icons.clear,
-                    color: isDark ? Colors.grey[400] : Colors.grey,
-                  ),
-
+                  tooltip: "消す",
+                  icon: Icon(Icons.cancel_rounded, size: 20, color: hintColor),
                   onPressed: () {
                     _searchController.clear();
 
@@ -217,33 +230,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                   },
                 )
               : null,
-
-          filled: true,
-
-          fillColor: isDark ? const Color(0xFF2D2D2D) : AppColors.background,
-
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 0,
-          ),
-
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
-
-            borderSide: BorderSide(color: borderColor),
-          ),
-
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
-
-            borderSide: BorderSide(color: borderColor),
-          ),
-
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
-
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-          ),
+          border: pill(Colors.transparent, 0),
+          enabledBorder: pill(Colors.transparent, 0),
+          focusedBorder: pill(AppColors.primary, 1.5),
         ),
       ),
     );
@@ -266,14 +255,19 @@ class _ChatListScreenState extends State<ChatListScreen>
         }
 
         if (snapshot.hasError) {
-          return const Center(child: Text('友達一覧を取得できませんでした'));
+          return const EmptyMessage(
+            icon: Icons.cloud_off_rounded,
+            text: '友達一覧を取得できませんでした',
+          );
         }
 
         final friends = snapshot.data?.docs ?? [];
 
         if (friends.isEmpty) {
-          return const Center(
-            child: Text('まだ友達がいません', style: TextStyle(color: Colors.grey)),
+          return const EmptyMessage(
+            icon: Icons.people_outline_rounded,
+            text: 'まだ友達がいません',
+            subText: '「探す」から学習仲間を見つけましょう',
           );
         }
 
@@ -305,7 +299,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
                   leading: CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppColors.primary.withOpacity(0.12),
+                    backgroundColor: AppColors.primarySoft,
 
                     child: const Icon(
                       Icons.person,
@@ -428,11 +422,9 @@ class _ChatListScreenState extends State<ChatListScreen>
             }).toList();
 
             if (filteredUsers.isEmpty) {
-              return const Center(
-                child: Text(
-                  'ユーザーが見つかりません',
-                  style: TextStyle(color: Colors.grey),
-                ),
+              return const EmptyMessage(
+                icon: Icons.search_off_rounded,
+                text: 'ユーザーが見つかりませんでした',
               );
             }
 
@@ -458,7 +450,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
                       leading: CircleAvatar(
                         radius: 24,
-                        backgroundColor: AppColors.primary.withOpacity(0.12),
+                        backgroundColor: AppColors.primarySoft,
 
                         backgroundImage: icon.isNotEmpty
                             ? NetworkImage(icon)

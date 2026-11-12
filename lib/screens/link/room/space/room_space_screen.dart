@@ -10,6 +10,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'dart:async';
 import 'package:study_support_app/screens/link/room/space/room_chat_screen.dart';
 import 'package:study_support_app/screens/link/room/space/room_member_screen.dart';
@@ -49,7 +50,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.pal.card,
       appBar: _buildAppBar(),
       body: SizedBox(
         width: double.infinity,
@@ -84,7 +85,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: context.pal.card,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
@@ -92,7 +93,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: AppColors.border),
+        child: Container(height: 1, color: context.pal.border),
       ),
       flexibleSpace: Container(
         decoration: BoxDecoration(
@@ -105,7 +106,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       ),
 
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, size: 24, color: Colors.black87),
+        icon: Icon(Icons.arrow_back, size: 24, color: context.pal.text),
         onPressed: _showExitDialog,
       ),
 
@@ -114,10 +115,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         children: [
           Text(
             widget.roomTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: context.pal.text,
             ),
           ),
           const SizedBox(height: 4),
@@ -129,7 +130,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         Padding(
           padding: const EdgeInsets.only(right: 7),
           child: IconButton(
-            icon: const Icon(Icons.more_vert, size: 24, color: Colors.black87),
+            icon: Icon(Icons.more_vert, size: 24, color: context.pal.text),
             onPressed: _showMenu,
           ),
         ),
@@ -149,7 +150,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         // =====================================================
 
         if (roomSnapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
+          return SizedBox(
             height: 18,
             child: Center(
               child: SizedBox(
@@ -157,7 +158,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
                 height: 12,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.black54,
+                  color: context.pal.secondary,
                 ),
               ),
             ),
@@ -169,9 +170,9 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         // =====================================================
 
         if (!roomSnapshot.hasData || !roomSnapshot.data!.exists) {
-          return const Text(
+          return Text(
             "ルーム情報を取得できません",
-            style: TextStyle(fontSize: 13, color: Colors.black54),
+            style: TextStyle(fontSize: 13, color: context.pal.secondary),
           );
         }
 
@@ -202,14 +203,14 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
                 Icon(
                   isPublic ? Icons.public : Icons.lock,
                   size: 15,
-                  color: Colors.black54,
+                  color: context.pal.secondary,
                 ),
 
                 const SizedBox(width: 4),
 
                 Text(
                   "${isPublic ? "公開ルーム" : "非公開ルーム"}・$count人参加中",
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                  style: TextStyle(fontSize: 13, color: context.pal.secondary),
                 ),
               ],
             );
@@ -225,9 +226,9 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       height: 245,
       //padding: const EdgeInsets.only(left: 18, right: 15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.pal.card,
         borderRadius: BorderRadius.circular(16),
-        //border: Border.all(color: AppColors.border),
+        //border: Border.all(color: context.pal.border),
         /*boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -251,7 +252,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               child: VerticalDivider(
                 width: 1,
                 thickness: 1,
-                color: AppColors.border,
+                color: context.pal.border,
               ),
             ),
 
@@ -293,12 +294,12 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               children: [
                 Transform.translate(
                   offset: const Offset(0, 13),
-                  child: const Text(
+                  child: Text(
                     "学習タイマー",
                     style: TextStyle(
                       fontSize: 13.3,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: context.pal.text,
                     ),
                   ),
                 ),
@@ -382,7 +383,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.border, width: 1.5),
+              border: Border.all(color: context.pal.border, width: 1.5),
             ),
             child: const Icon(
               Icons.refresh_rounded,
@@ -420,7 +421,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  style: TextStyle(fontSize: 12, color: context.pal.text),
                 ),
               ],
             ),
@@ -431,10 +432,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               padding: const EdgeInsets.only(left: 24),
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.pal.text,
                   letterSpacing: 1,
                 ),
               ),
@@ -463,7 +464,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               padding: const EdgeInsets.only(right: 0),
               child: SizedBox(
                 width: 120,
-                child: const Divider(height: 1, color: AppColors.border),
+                child: Divider(height: 1, color: context.pal.border),
               ),
             ),
           ),
@@ -481,7 +482,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               padding: const EdgeInsets.only(right: 0),
               child: SizedBox(
                 width: 120,
-                child: const Divider(height: 1, color: AppColors.border),
+                child: Divider(height: 1, color: context.pal.border),
               ),
             ),
           ),
@@ -578,9 +579,9 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         child: Ink(
           height: 79,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.pal.card,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.pal.border),
             /* boxShadow: [
              BoxShadow(
                 color: Colors.black.withValues(alpha: 0.035),
@@ -605,10 +606,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.pal.text,
                 ),
               ),
               const SizedBox(height: 2),
@@ -624,9 +625,9 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.pal.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(color: context.pal.border, width: 1),
       ),
       child: Column(
         children: [
@@ -637,7 +638,11 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
           const SizedBox(height: 16),
 
-          Container(height: 1, width: double.infinity, color: AppColors.border),
+          Container(
+            height: 1,
+            width: double.infinity,
+            color: context.pal.border,
+          ),
 
           const SizedBox(height: 16),
 
@@ -680,12 +685,12 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             // ==============================
             Row(
               children: [
-                const Text(
+                Text(
                   "メンバー",
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: context.pal.text,
                   ),
                 ),
 
@@ -693,7 +698,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
                 Text(
                   "(${memberDocs.length}人)",
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                  style: TextStyle(fontSize: 13, color: context.pal.secondary),
                 ),
 
                 const Spacer(),
@@ -788,12 +793,12 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "アクティビティ",
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: context.pal.text,
           ),
         ),
 
@@ -842,8 +847,8 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
         Container(
           width: 36,
           height: 36,
-          decoration: const BoxDecoration(
-            color: AppColors.primarySoft,
+          decoration: BoxDecoration(
+            color: context.pal.primarySoft,
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor, size: 19),
@@ -857,22 +862,22 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               children: [
                 TextSpan(
                   text: name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: context.pal.text,
                   ),
                 ),
                 TextSpan(
                   text: "  $text",
-                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  style: TextStyle(fontSize: 13, color: context.pal.text),
                 ),
               ],
             ),
           ),
         ),
 
-        Text(time, style: const TextStyle(fontSize: 10, color: Colors.black45)),
+        Text(time, style: TextStyle(fontSize: 10, color: context.pal.muted)),
       ],
     );
   }
@@ -1053,12 +1058,12 @@ class _MemberSummaryUser extends StatelessWidget {
 
         final name = data['name']?.toString() ?? '名前未設定';
 
-        return _buildItem(name);
+        return _buildItem(context, name);
       },
     );
   }
 
-  Widget _buildItem(String name) {
+  Widget _buildItem(BuildContext context, String name) {
     return SizedBox(
       width: 70,
       child: Column(
@@ -1069,8 +1074,8 @@ class _MemberSummaryUser extends StatelessWidget {
               Container(
                 width: 56,
                 height: 56,
-                decoration: const BoxDecoration(
-                  color: AppColors.primarySoft,
+                decoration: BoxDecoration(
+                  color: context.pal.primarySoft,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -1098,10 +1103,10 @@ class _MemberSummaryUser extends StatelessWidget {
 
           Text(
             name,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: context.pal.text,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -1112,7 +1117,7 @@ class _MemberSummaryUser extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.primarySoft,
+                color: context.pal.primarySoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Text(
@@ -1127,12 +1132,12 @@ class _MemberSummaryUser extends StatelessWidget {
           else
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(Icons.circle, size: 7, color: Color(0xFF22C55E)),
                 SizedBox(width: 3),
                 Text(
                   "オンライン",
-                  style: TextStyle(fontSize: 9, color: Colors.black54),
+                  style: TextStyle(fontSize: 9, color: context.pal.secondary),
                 ),
               ],
             ),

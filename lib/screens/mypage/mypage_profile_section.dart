@@ -7,6 +7,7 @@
 // ・統計（友達・応援・目標達成）。「友達」から友達一覧へ
 // ・一言コメント、学年・学習目標・自由項目
 // ・最近の学習記録（recent_records_section.dart）
+// ・見た目はほかの画面とそろえて、白いカード（枠つき・角丸16）を並べる
 // ・旧ファイル名: mypage_screen2.dart
 // ======================================================================
 
@@ -18,6 +19,48 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/screens/mypage/friend_request_dialog.dart';
 import 'package:study_support_app/screens/mypage/all_friends_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/empty_message.dart';
+
+// マイページで使う色（明るい画面・暗い画面）
+class _MypageColors {
+  final Color card;
+  final Color border;
+  final Color divider;
+  final Color text;
+  final Color secondary;
+  final Color muted;
+
+  const _MypageColors({
+    required this.card,
+    required this.border,
+    required this.divider,
+    required this.text,
+    required this.secondary,
+    required this.muted,
+  });
+
+  factory _MypageColors.of(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return isDark
+        ? const _MypageColors(
+            card: Color(0xFF1E1E1E),
+            border: Colors.white12,
+            divider: Colors.white12,
+            text: Colors.white,
+            secondary: Colors.white70,
+            muted: Colors.white38,
+          )
+        : const _MypageColors(
+            card: Colors.white,
+            border: AppColors.border,
+            divider: AppColors.divider,
+            text: Colors.black87,
+            secondary: Colors.black54,
+            muted: Colors.black38,
+          );
+  }
+}
 
 class MypageProfileSection extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -46,24 +89,32 @@ class MypageProfileSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = _MypageColors.of(context);
+
     final String grade = data["grade"] ?? "未設定";
     final String goal = data["goal"] ?? "未設定";
     final String location = "未設定";
     final String studyStyle = "未設定";
 
+    final String comment = (data["comment"] ?? "").toString().trim();
+
     // 他人のページかつ非公開の場合かどうか
     final bool isPrivateOther = !isMyPage && !isPublic;
 
-    return Column(
-      children: [
-        // ------------------------------------------
-        // プロフィールアクション
-        // 非公開の場合はメッセージなどの一部を制限・変更するか、
-        // あるいはそのまま表示（必要に応じて調整可能）
-        // ------------------------------------------
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 17),
-          child: Row(
+    // 自分のページだけ、項目を押すと編集画面へ
+    final VoidCallback? onEdit = isMyPage
+        ? () => _openEditScreen(context)
+        : null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 17),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ------------------------------------------
+          // プロフィールアクション（前のデザインのまま：灰色の丸いボタン）
+          // ------------------------------------------
+          Row(
             children: [
               Expanded(
                 child: _ActionButton(
@@ -71,7 +122,6 @@ class MypageProfileSection extends StatelessWidget {
                       ? Icons.bar_chart_rounded
                       : Icons.person_add_alt_1,
                   text: isMyPage ? "プロフィール分析" : "友達申請",
-                  backgroundColor: Colors.grey.shade200,
                   onTap: () {
                     if (isMyPage) {
                       // プロフィール分析
@@ -92,7 +142,6 @@ class MypageProfileSection extends StatelessWidget {
                 child: _ActionButton(
                   icon: isMyPage ? Icons.edit : Icons.chat_outlined,
                   text: isMyPage ? "プロフィール編集" : "メッセージ",
-                  backgroundColor: Colors.grey.shade200,
                   onTap: () {
                     if (isMyPage) {
                       _openEditScreen(context);
@@ -104,171 +153,192 @@ class MypageProfileSection extends StatelessWidget {
               ),
             ],
           ),
-        ),
 
-        const SizedBox(height: 12.5),
+          const SizedBox(height: 12.5),
 
-        // ------------------------------------------
-        // プロフィール統計
-        // ------------------------------------------
-        ProfileStatsSection(userId: userId),
+          // ------------------------------------------
+          // プロフィール統計（友達・応援・目標達成。前のデザインのまま）
+          // ------------------------------------------
+          ProfileStatsSection(userId: userId),
 
-        const SizedBox(height: 15),
+          const SizedBox(height: 15),
 
-        // ------------------------------------------
-        // 一言コメント【共通】
-        // ------------------------------------------
-        if ((data["comment"] ?? "").toString().trim().isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 17),
-            child: Text(
-              data["comment"],
-              style: const TextStyle(color: Colors.black87, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          const SizedBox(height: 18),
-        ],
-
-        // ------------------------------------------
-        // 境界線【共通】
-        // ------------------------------------------
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 17),
-          child: const Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.border,
-          ),
-        ),
-
-        const SizedBox(height: 11),
-
-        // ------------------------------------------
-        // プロフィール見出し【共通】
-        // ------------------------------------------
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 17),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "プロフィール",
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+          // ------------------------------------------
+          // 一言コメント
+          // ------------------------------------------
+          if (comment.isNotEmpty) ...[
+            Center(
+              child: Text(
+                comment,
+                style: TextStyle(color: colors.text, fontSize: 14, height: 1.5),
+                textAlign: TextAlign.center,
               ),
             ),
-          ),
-        ),
+            const SizedBox(height: 18),
+          ],
 
-        const SizedBox(height: 5),
+          const SizedBox(height: 7),
 
-        // ------------------------------------------
-        // プロフィール項目【共通】（学年や目標などは常に表示）
-        // ------------------------------------------
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 17),
-          child: Column(
-            children: [
-              _ProfileRow(
-                title: "学年・職種（任意）",
-                value: grade,
-                onTap: isMyPage ? () => _openEditScreen(context) : null,
-              ),
+          // ------------------------------------------
+          // プロフィール項目
+          // ------------------------------------------
+          _SectionTitle(title: "プロフィール", color: colors.text),
 
-              _ProfileRow(
-                title: "学習目標",
-                value: goal,
-                onTap: isMyPage ? () => _openEditScreen(context) : null,
-              ),
+          const SizedBox(height: 8),
 
-              _ProfileRow(
-                title: "自由項目①",
-                value: location,
-                onTap: isMyPage ? () => _openEditScreen(context) : null,
-              ),
-
-              _ProfileRow(
-                title: "自由項目②",
-                value: studyStyle,
-                onTap: isMyPage ? () => _openEditScreen(context) : null,
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // ------------------------------------------
-        // 学習時間（非公開の場合はグラフの代わりに非公開メッセージを表示）
-        // ------------------------------------------
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 17),
-          child: isPrivateOther
-              ? Container(
-                  padding: const EdgeInsets.symmetric(vertical: 30),
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: const [
-                      Icon(Icons.lock_outline, size: 36, color: Colors.grey),
-                      SizedBox(height: 8),
-                      Text(
-                        'このユーザーは学習記録を非公開にしています',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : RecentRecordsSection(
-                  cardColor: Colors.white,
-                  textColor: Colors.black87,
-                  secondaryColor: Colors.black54,
-                  userId: userId,
+          _Card(
+            colors: colors,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                _ProfileRow(
+                  icon: Icons.school_outlined,
+                  title: "学年・職種",
+                  value: grade,
+                  colors: colors,
+                  onTap: onEdit,
                 ),
-        ),
+                _ProfileRow(
+                  icon: Icons.flag_outlined,
+                  title: "学習目標",
+                  value: goal,
+                  colors: colors,
+                  onTap: onEdit,
+                ),
+                _ProfileRow(
+                  icon: Icons.notes_rounded,
+                  title: "自由項目①",
+                  value: location,
+                  colors: colors,
+                  onTap: onEdit,
+                ),
+                _ProfileRow(
+                  icon: Icons.notes_rounded,
+                  title: "自由項目②",
+                  value: studyStyle,
+                  colors: colors,
+                  onTap: onEdit,
+                  showDivider: false,
+                ),
+              ],
+            ),
+          ),
 
-        SizedBox(height: isMyPage ? 140 : 200),
-      ],
+          const SizedBox(height: 22),
+
+          // ------------------------------------------
+          // 学習記録（非公開の場合は、記録の代わりに案内を出す）
+          // ------------------------------------------
+          if (isPrivateOther)
+            _Card(
+              colors: colors,
+              padding: const EdgeInsets.symmetric(vertical: 28),
+              child: const SizedBox(
+                width: double.infinity,
+                child: EmptyMessage(
+                  icon: Icons.lock_outline_rounded,
+                  text: "このユーザーは学習記録を非公開にしています",
+                ),
+              ),
+            )
+          else
+            RecentRecordsSection(
+              cardColor: colors.card,
+              textColor: colors.text,
+              secondaryColor: colors.secondary,
+              userId: userId,
+            ),
+
+          SizedBox(height: isMyPage ? 140 : 200),
+        ],
+      ),
     );
   }
 }
 
 // ======================================================
-// アクションボタン
+// 見出し
+// ======================================================
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final Color color;
+
+  const _SectionTitle({required this.title, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+// ======================================================
+// カード（ほかの画面と同じ：枠つき・角丸16）
+// ======================================================
+
+class _Card extends StatelessWidget {
+  final _MypageColors colors;
+  final EdgeInsetsGeometry padding;
+  final Widget child;
+
+  const _Card({
+    required this.colors,
+    required this.padding,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ======================================================
+// アクションボタン（前のデザイン：灰色の丸いボタン）
 // ======================================================
 
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String text;
   final VoidCallback onTap;
-  final Color backgroundColor;
 
   const _ActionButton({
     required this.icon,
     required this.text,
     required this.onTap,
-    required this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       height: 35,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: Colors.black87,
+          // 暗い画面では、灰色の代わりにうすい白にする
+          backgroundColor: isDark ? Colors.white12 : Colors.grey.shade200,
+          foregroundColor: isDark ? Colors.white : Colors.black87,
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
@@ -295,6 +365,10 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
+// ======================================================
+// プロフィール統計（友達・応援・目標達成。前のデザイン）
+// ======================================================
+
 class ProfileStatsSection extends StatelessWidget {
   final String userId;
 
@@ -302,6 +376,10 @@ class ProfileStatsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final dividerColor = isDark ? Colors.white24 : Colors.grey.shade300;
+
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -331,7 +409,8 @@ class ProfileStatsSection extends StatelessWidget {
             }
 
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 34),
+              // 外側の余白（17）と合わせて、前と同じ 34 にする
+              padding: const EdgeInsets.symmetric(horizontal: 17),
 
               child: Row(
                 children: [
@@ -356,7 +435,7 @@ class ProfileStatsSection extends StatelessWidget {
                     ),
                   ),
 
-                  Container(width: 1, height: 16, color: Colors.grey.shade300),
+                  Container(width: 1, height: 16, color: dividerColor),
 
                   // ======================================
                   // 応援
@@ -365,7 +444,7 @@ class ProfileStatsSection extends StatelessWidget {
                     child: _ProfileStatItem(count: "0", label: "応援"),
                   ),
 
-                  Container(width: 1, height: 16, color: Colors.grey.shade300),
+                  Container(width: 1, height: 16, color: dividerColor),
 
                   // ======================================
                   // 目標達成
@@ -394,6 +473,8 @@ class _ProfileStatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       children: [
         Text(
@@ -409,7 +490,10 @@ class _ProfileStatItem extends StatelessWidget {
 
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Colors.black54),
+          style: TextStyle(
+            fontSize: 13,
+            color: isDark ? Colors.white70 : Colors.black54,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -418,40 +502,70 @@ class _ProfileStatItem extends StatelessWidget {
 }
 
 // ======================================================
-// プロフィール項目
+// プロフィール項目（左にアイコンと項目名、右に値）
 // ======================================================
 class _ProfileRow extends StatelessWidget {
+  final IconData icon;
   final String title;
   final String value;
+  final _MypageColors colors;
   final VoidCallback? onTap;
+  final bool showDivider;
 
-  const _ProfileRow({required this.title, required this.value, this.onTap});
-
-  static const Color primaryBlue = AppColors.primary;
+  const _ProfileRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.colors,
+    this.onTap,
+    this.showDivider = true,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isUnset = value.trim().isEmpty || value == "未設定";
+
     return InkWell(
       onTap: onTap,
       child: Container(
         height: 54,
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.border)),
-        ),
+        decoration: showDivider
+            ? BoxDecoration(
+                border: Border(bottom: BorderSide(color: colors.divider)),
+              )
+            : null,
         child: Row(
           children: [
+            Icon(icon, size: 20, color: AppColors.primary),
+
+            const SizedBox(width: 10),
+
+            Text(
+              title,
+              style: TextStyle(fontSize: 14, color: colors.secondary),
+            ),
+
+            const SizedBox(width: 12),
+
             Expanded(
               child: Text(
-                title,
-                style: const TextStyle(fontSize: 15, color: primaryBlue),
+                isUnset ? "未設定" : value,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  color: isUnset ? colors.muted : colors.text,
+                  fontWeight: isUnset ? FontWeight.normal : FontWeight.w600,
+                ),
               ),
             ),
 
-            Text(value, style: const TextStyle(fontSize: 15)),
-
-            const SizedBox(width: 5),
-
-            const Icon(Icons.chevron_right, color: primaryBlue, size: 25),
+            // 押して編集できるとき（自分のページ）だけ「>」を出す
+            if (onTap != null) ...[
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded, color: colors.muted, size: 22),
+            ],
           ],
         ),
       ),

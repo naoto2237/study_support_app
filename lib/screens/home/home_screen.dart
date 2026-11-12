@@ -29,9 +29,25 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // 停止済みの学習時間
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  // 停止済みの学習時間（_day の日の分）
   Duration todayTotal = Duration.zero;
+
+  // todayTotal が何日の分か（時刻は 0:00）
+  DateTime _day = _dayOf(DateTime.now());
+
+  // 次の 0:00 に日付の変わり目を確かめるためのタイマー
+  Timer? _midnightTimer;
+
+  static DateTime _dayOf(DateTime time) {
+    return DateTime(time.year, time.month, time.day);
+  }
+
+  static String _dateIdOf(DateTime date) {
+    return "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')}";
+  }
 
   String getToday() {
     final now = DateTime.now();
@@ -44,8 +60,77 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addObserver(this);
+
     _loadTodayStudyTime();
     _loadTodayGoal();
+    _scheduleMidnightCheck();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _midnightTimer?.cancel();
+    super.dispose();
+  }
+
+  // アプリに戻ってきたときも、日付が変わっていないか確かめる
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkDayChange();
+    }
+  }
+
+  // 次の 0:00（少しあと）に、日付の変わり目を確かめる
+  void _scheduleMidnightCheck() {
+    _midnightTimer?.cancel();
+
+    final now = DateTime.now();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+
+    _midnightTimer = Timer(
+      nextMidnight.difference(now) + const Duration(seconds: 1),
+      () {
+        _checkDayChange();
+        _scheduleMidnightCheck();
+      },
+    );
+  }
+
+  // ==============================================================
+  // 日付が変わったら、今日の学習時間を 0 に戻す
+  // ==============================================================
+  void _checkDayChange() {
+    final today = _dayOf(DateTime.now());
+
+    if (today == _day) return;
+
+    _day = today;
+
+    if (mounted) {
+      setState(() {
+        // 新しい日の分は、まだ保存されていないので 0 から
+        todayTotal = Duration.zero;
+      });
+    }
+
+    app.todayStudySeconds.value = 0;
+
+    // 学習記録の画面などに、日付が変わったことを知らせる
+    app.currentDay.value = today;
+
+    // 新しい日の記録（別の端末で保存した分など）と、その曜日の目標を読み直す
+    _loadTodayStudyTime();
+    _loadTodayGoal();
+  }
+
+  // 今回の計測（sessionTime）のうち、今日（0:00 より後）にあたる時間
+  Duration _todayPartOf(Duration sessionTime) {
+    final now = DateTime.now();
+    final sinceMidnight = now.difference(_dayOf(now));
+
+    return sessionTime < sinceMidnight ? sessionTime : sinceMidnight;
   }
 
   Future<void> _loadTodayGoal() async {
@@ -90,12 +175,9 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final now = DateTime.now();
-
-    final dateId =
-        "${now.year.toString().padLeft(4, '0')}-"
-        "${now.month.toString().padLeft(2, '0')}-"
-        "${now.day.toString().padLeft(2, '0')}";
+    // 読み込みを始めたときの日付
+    final day = _day;
+    final dateId = _dateIdOf(day);
 
     final doc = await FirebaseFirestore.instance
         .collection("users")
@@ -105,6 +187,9 @@ class _HomeScreenState extends State<HomeScreen> {
         .get();
 
     if (!mounted) return;
+
+    // 読み込んでいるあいだに日付が変わっていたら、古い日の値は使わない
+    if (day != _day) return;
 
     if (doc.exists) {
       final data = doc.data();
@@ -329,19 +414,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: StopwatchWidget(
-                    onSaveStudyTime: saveTodayStudyTime,
+                    onSaveStudyTime: saveStudyTime,
 
                     // タイマー動作中の画面表示だけ更新
+                    // （0時をまたいだときは、0時より後の分だけを今日に数える）
                     onTick: (sessionTime) {
+                      _checkDayChange();
+
                       app.todayStudySeconds.value =
-                          todayTotal.inSeconds + sessionTime.inSeconds;
+                          todayTotal.inSeconds +
+                          _todayPartOf(sessionTime).inSeconds;
                     },
 
-                    // 停止・リセットしたときに確定
+                    // 停止・リセットして保存したあと
+                    // （今日の分は saveStudyTime で todayTotal に足してある）
                     onStop: (sessionTime) {
-                      setState(() {
-                        todayTotal += sessionTime;
-                      });
+                      setState(() {});
 
                       app.todayStudySeconds.value = todayTotal.inSeconds;
                     },
@@ -776,31 +864,75 @@ class _HomeScreenState extends State<HomeScreen> {
     return "$minutes分";
   }
 
-  Future<void> saveTodayStudyTime(int seconds) async {
+  // ==============================================================
+  // 学習時間の保存
+  //
+  // start: 今回の計測を始めた時刻、seconds: 今回の計測の秒
+  // 0時をまたいだときは、0時で区切って、それぞれの日の記録に分けて足す
+  // （例：23:00～1:00 の2時間 → 前の日に1時間、次の日に1時間）
+  // ==============================================================
+  Future<void> saveStudyTime(DateTime start, int seconds) async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null || seconds <= 0) return;
 
-    // 今日の日付
-    final now = DateTime.now();
+    // ------------------------------------------------------------
+    // 日ごとの秒に分ける
+    // ------------------------------------------------------------
+    final parts = <String, int>{};
 
-    final dateId =
-        "${now.year.toString().padLeft(4, '0')}-"
-        "${now.month.toString().padLeft(2, '0')}-"
-        "${now.day.toString().padLeft(2, '0')}";
+    DateTime cursor = start;
+    int remaining = seconds;
 
-    final studyRef = FirebaseFirestore.instance
+    while (remaining > 0) {
+      final nextMidnight = DateTime(cursor.year, cursor.month, cursor.day + 1);
+
+      // この日のうちに入る秒
+      final available = nextMidnight.difference(cursor).inSeconds;
+      final take = remaining < available ? remaining : available;
+
+      if (take > 0) {
+        final dateId = _dateIdOf(cursor);
+        parts[dateId] = (parts[dateId] ?? 0) + take;
+        remaining -= take;
+      }
+
+      cursor = nextMidnight;
+    }
+
+    // ------------------------------------------------------------
+    // その日の学習時間に足す（まとめて1回で書き込む）
+    // ------------------------------------------------------------
+    final records = FirebaseFirestore.instance
         .collection("users")
         .doc(user.uid)
-        .collection("studyRecords")
-        .doc(dateId);
+        .collection("studyRecords");
 
-    // その日の学習時間に加算
-    // その日の学習時間に加算
-    await studyRef.set({
-      "studyTime": FieldValue.increment(seconds),
-      "date": dateId,
-      "updatedAt": FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    final batch = FirebaseFirestore.instance.batch();
+
+    parts.forEach((dateId, partSeconds) {
+      batch.set(records.doc(dateId), {
+        "studyTime": FieldValue.increment(partSeconds),
+        "date": dateId,
+        "updatedAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    });
+
+    await batch.commit();
+
+    // ------------------------------------------------------------
+    // 今日の分だけ、停止済みの学習時間に足す
+    // ------------------------------------------------------------
+    _checkDayChange();
+
+    final todaySeconds = parts[_dateIdOf(_day)] ?? 0;
+
+    if (mounted) {
+      setState(() {
+        todayTotal += Duration(seconds: todaySeconds);
+      });
+    } else {
+      todayTotal += Duration(seconds: todaySeconds);
+    }
   }
 }

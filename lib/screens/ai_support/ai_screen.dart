@@ -10,6 +10,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -298,7 +299,7 @@ class _AiScreenState extends State<AiScreen> {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.pal.page,
         appBar: AppBar(
           leadingWidth: 56,
           // デフォルトは56
@@ -337,14 +338,16 @@ class _AiScreenState extends State<AiScreen> {
             child: Text(
               "AIサポート",
               style: TextStyle(
-                color: _hasStartedChat ? Colors.black87 : Colors.white,
+                color: _hasStartedChat ? context.pal.text : Colors.white,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           centerTitle: false,
-          backgroundColor: _hasStartedChat ? Colors.white : AppColors.primary,
+          backgroundColor: _hasStartedChat
+              ? context.pal.card
+              : AppColors.primary,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
@@ -354,7 +357,7 @@ class _AiScreenState extends State<AiScreen> {
               child: IconButton(
                 icon: Icon(
                   Icons.history,
-                  color: _hasStartedChat ? Colors.black87 : Colors.white,
+                  color: _hasStartedChat ? context.pal.text : Colors.white,
                 ),
                 onPressed: () {
                   // キーボードを閉じる
@@ -581,7 +584,7 @@ class _AiScreenState extends State<AiScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: _messages.isEmpty
-          ? const Padding(
+          ? Padding(
               padding: EdgeInsets.only(top: 2),
               child: Center(
                 child: Text(
@@ -589,7 +592,7 @@ class _AiScreenState extends State<AiScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12.5,
-                    color: Colors.black45,
+                    color: context.pal.muted,
                     height: 1.5,
                   ),
                 ),

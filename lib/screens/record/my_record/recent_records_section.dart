@@ -7,10 +7,14 @@
 // ・旧ファイル名: record_myrecord_screen3.dart
 // ======================================================================
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:study_support_app/main.dart' show todayStudySeconds;
 import 'package:study_support_app/screens/record/my_record/all_study_records_screen.dart';
-import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/screens/record/my_record/study_record_row.dart';
 
 class RecentRecordsSection extends StatefulWidget {
   final Color cardColor;
@@ -31,78 +35,125 @@ class RecentRecordsSection extends StatefulWidget {
 }
 
 class _RecentRecordsSectionState extends State<RecentRecordsSection> {
-  List<Map<String, dynamic>> recentRecords = [];
+  // Firestore に保存済みの記録（新しい順）
+  List<Map<String, dynamic>> savedRecords = [];
 
   bool isLoading = true;
+
+  // Firestore の変更を受け取り続けるための購読
+  // （タイマーを止めて保存されたら、開きなおさなくても一覧が変わる）
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    _loadRecentRecords();
+    _listenRecentRecords();
   }
 
-  Future<void> _loadRecentRecords() async {
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _listenRecentRecords() {
     if (widget.userId.isEmpty) {
-      if (!mounted) return;
-
-      setState(() {
-        isLoading = false;
-      });
-
+      isLoading = false;
       return;
     }
 
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(widget.userId)
-          .collection("studyRecords")
-          .get();
+    // 並べかえはアプリの中で行う。
+    // （Firestore に「新しい順」で頼むと、索引（インデックス）が必要になるため）
+    _subscription = FirebaseFirestore.instance
+        .collection("users")
+        .doc(widget.userId)
+        .collection("studyRecords")
+        .snapshots()
+        .listen(
+          (snapshot) {
+            final records = snapshot.docs.map((doc) {
+              final data = doc.data();
 
-      final records = snapshot.docs.map((doc) {
-        final data = doc.data();
+              return <String, dynamic>{
+                "date": doc.id,
+                "studyTime": (data["studyTime"] as num?)?.toInt() ?? 0,
+              };
+            }).toList();
 
-        return {
-          "date": doc.id,
-          "studyTime": (data["studyTime"] as num?)?.toInt() ?? 0,
-        };
-      }).toList();
+            // 文書のIDは "2026-11-12" の形なので、文字の順＝日付の順。
+            // 新しい順に並べる
+            records.sort(
+              (a, b) => (b["date"] as String).compareTo(a["date"] as String),
+            );
 
-      // 日付が新しい順に並べる
-      records.sort((a, b) {
-        final dateA = DateTime.parse(a["date"] as String);
+            if (!mounted) return;
 
-        final dateB = DateTime.parse(b["date"] as String);
+            setState(() {
+              savedRecords = records;
+              isLoading = false;
+            });
+          },
+          onError: (e) {
+            debugPrint("最近の学習記録の取得に失敗しました: $e");
 
-        return dateB.compareTo(dateA);
-      });
+            if (!mounted) return;
 
-      // 最新3件だけ
-      final latestRecords = records.take(3).toList();
+            setState(() {
+              isLoading = false;
+            });
+          },
+        );
+  }
 
-      if (!mounted) return;
+  String _todayId() {
+    final now = DateTime.now();
 
-      setState(() {
-        recentRecords = latestRecords;
-        isLoading = false;
-      });
-    } catch (e) {
-      debugPrint("最近の学習記録の取得に失敗しました: $e");
+    return "${now.year.toString().padLeft(4, '0')}-"
+        "${now.month.toString().padLeft(2, '0')}-"
+        "${now.day.toString().padLeft(2, '0')}";
+  }
 
-      if (!mounted) return;
+  // 表示する3件
+  // ・今日の行は、タイマーの今の値（todayStudySeconds）を使う
+  // ・今日の記録がまだ保存されていなくても、勉強中なら先頭に出す
+  List<Map<String, dynamic>> _recentRecords(int todaySeconds) {
+    final todayId = _todayId();
 
-      setState(() {
-        isLoading = false;
+    // 今日の行は下で入れなおすので、ここでは除く（多くても4件あれば足りる）
+    final records = <Map<String, dynamic>>[
+      ...savedRecords.where((record) => record["date"] != todayId).take(3),
+    ];
+
+    final savedToday = savedRecords.any((record) => record["date"] == todayId);
+
+    if (savedToday || todaySeconds > 0) {
+      records.insert(0, <String, dynamic>{
+        "date": todayId,
+        "studyTime": todaySeconds,
       });
     }
+
+    return records.take(3).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return _buildRecentRecords();
+    // 今日の学習時間が変わるたびに描き直す
+    return ValueListenableBuilder<int>(
+      valueListenable: todayStudySeconds,
+      builder: (context, todaySeconds, child) {
+        return _buildRecentRecords(_recentRecords(todaySeconds));
+      },
+    );
   }
 
-  Widget _buildRecentRecords() {
+  Widget _buildRecentRecords(List<Map<String, dynamic>> recentRecords) {
+    // バーの長さの基準（並んでいる中でいちばん長い日）
+    final maxSeconds = recentRecords.fold<int>(0, (max, record) {
+      final seconds = (record["studyTime"] as num?)?.toInt() ?? 0;
+      return seconds > max ? seconds : max;
+    });
+
     return _card(
       Column(
         children: [
@@ -154,7 +205,7 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
             ],
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
 
           if (isLoading)
             const Padding(
@@ -175,81 +226,18 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
               final record = entry.value;
               final studyTime = (record["studyTime"] as num?)?.toInt() ?? 0;
 
-              return _recordItem(
-                _formatDate(record["date"] as String),
-                "未設定",
-                _formatStudyTime(studyTime),
+              return StudyRecordRow(
+                dateId: record["date"] as String,
+                seconds: studyTime,
+                maxSeconds: maxSeconds,
+                textColor: widget.textColor,
+                secondaryColor: widget.secondaryColor,
                 showDivider: index != recentRecords.length - 1,
               );
             }),
         ],
       ),
     );
-  }
-
-  Widget _recordItem(
-    String date,
-    String subject,
-    String time, {
-    bool showDivider = true,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: showDivider
-          ? BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.divider)),
-            )
-          : null,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 82,
-            child: Text(
-              date,
-              style: TextStyle(color: widget.secondaryColor, fontSize: 12),
-            ),
-          ),
-
-          Expanded(
-            child: Text(
-              subject,
-              style: TextStyle(color: widget.textColor, fontSize: 13),
-            ),
-          ),
-
-          Text(time, style: TextStyle(color: widget.textColor, fontSize: 13)),
-
-          // const SizedBox(width: 4),
-
-          //  Icon(Icons.chevron_right, color: widget.secondaryColor, size: 20),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(String date) {
-    final dateTime = DateTime.parse(date);
-
-    const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
-
-    return "${dateTime.month}/${dateTime.day}"
-        "（${weekdays[dateTime.weekday - 1]}）";
-  }
-
-  String _formatStudyTime(int seconds) {
-    final hours = seconds ~/ 3600;
-    final minutes = (seconds % 3600) ~/ 60;
-    final remainingSeconds = seconds % 60;
-
-    if (hours > 0) {
-      return "$hours時間$minutes分$remainingSeconds秒";
-    }
-
-    if (minutes > 0) {
-      return "$minutes分$remainingSeconds秒";
-    }
-
-    return "$remainingSeconds秒";
   }
 
   Widget _card(Widget child) {
@@ -264,7 +252,7 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
       decoration: BoxDecoration(
         color: widget.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.pal.border),
       ),
       child: child,
     );

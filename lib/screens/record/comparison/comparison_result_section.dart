@@ -103,23 +103,6 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
   }
 
   // ==============================================================
-  // 期間タイトル
-  // ==============================================================
-
-  String _periodText() {
-    switch (selectedPeriod) {
-      case 1:
-        return "月";
-
-      case 2:
-        return "年";
-
-      default:
-        return "週";
-    }
-  }
-
-  // ==============================================================
   // 初期化
   // ==============================================================
   @override
@@ -400,148 +383,104 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
   // ==============================================================
 
   Widget _buildComparisonTimeCard(Color cardColor, Color textColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final secondaryColor = isDark ? Colors.white70 : const Color(0xFF666666);
+
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: isDark ? Colors.white12 : AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ========================================================
-          // 上部
-          // paddingあり
-          // ========================================================
-          Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // ------------------------------------------------
-                // 期間選択
-                // ------------------------------------------------
-                PopupMenuButton<int>(
-                  color: Colors.white,
-                  offset: const Offset(0, 8),
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  onSelected: (value) {
-                    setState(() {
-                      selectedPeriod = value;
-                    });
-
-                    _loadMyStudyHours();
-                    _loadAverageStudyHours();
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem<int>(
-                      value: 0,
-                      child: Row(
-                        children: [
-                          Icon(
-                            selectedPeriod == 0
-                                ? Icons.check
-                                : Icons.circle_outlined,
-                            size: 18,
-                            color: selectedPeriod == 0
-                                ? AppColors.primary
-                                : Colors.grey,
-                          ),
-                          const SizedBox(width: 10),
-                          const Text("週"),
-                        ],
-                      ),
-                    ),
-
-                    PopupMenuItem<int>(
-                      value: 1,
-                      child: Row(
-                        children: [
-                          Icon(
-                            selectedPeriod == 1
-                                ? Icons.check
-                                : Icons.circle_outlined,
-                            size: 18,
-                            color: selectedPeriod == 1
-                                ? AppColors.primary
-                                : Colors.grey,
-                          ),
-                          const SizedBox(width: 10),
-                          const Text("月"),
-                        ],
-                      ),
-                    ),
-
-                    PopupMenuItem<int>(
-                      value: 2,
-                      child: Row(
-                        children: [
-                          Icon(
-                            selectedPeriod == 2
-                                ? Icons.check
-                                : Icons.circle_outlined,
-                            size: 18,
-                            color: selectedPeriod == 2
-                                ? AppColors.primary
-                                : Colors.grey,
-                          ),
-                          const SizedBox(width: 10),
-                          const Text("年"),
-                        ],
-                      ),
-                    ),
-                  ],
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "学習時間の比較 "
-                        "(${_periodText()})",
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(width: 3),
-
-                      Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.grey.shade600,
-                        size: 19,
-                      ),
-                    ],
+          // ------------------------------------------------------
+          // 見出しと期間
+          // ------------------------------------------------------
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "学習時間の比較",
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-
-                // ------------------------------------------------
-                // 日付
-                // ------------------------------------------------
-                Text(
-                  _selectedDateText(),
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                ),
-              ],
-            ),
+              ),
+              Text(
+                _selectedDateText(),
+                style: TextStyle(color: secondaryColor, fontSize: 13),
+              ),
+            ],
           ),
 
-          // ========================================================
-          // 下部
-          // paddingなし
-          // ========================================================
-          if (!widget.isCompared) _buildNotCompared(textColor),
+          const SizedBox(height: 14),
 
-          if (widget.isCompared && widget.comparisonTarget == "全体のユーザー")
-            _buildAllUsersComparison(textColor),
+          // 週・月・年の切りかえ（グラフと同じ形）
+          _buildPeriodSelector(textColor, isDark),
 
-          if (widget.isCompared && widget.comparisonTarget == "特定のユーザー")
-            _buildSpecificUserComparison(textColor),
+          const SizedBox(height: 16),
+
+          if (!widget.isCompared)
+            _buildNotCompared(secondaryColor, isDark)
+          else if (widget.comparisonTarget == "全体のユーザー")
+            _buildAllUsersComparison(textColor, secondaryColor, isDark)
+          else
+            _buildSpecificUserComparison(textColor, secondaryColor),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodSelector(Color textColor, bool isDark) {
+    const titles = ["週", "月", "年"];
+
+    return Container(
+      height: 33,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white10 : AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: List.generate(titles.length, (index) {
+          final selected = selectedPeriod == index;
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                if (selectedPeriod == index) return;
+
+                setState(() {
+                  selectedPeriod = index;
+                });
+
+                _loadMyStudyHours();
+                _loadAverageStudyHours();
+              },
+              child: Container(
+                margin: const EdgeInsets.all(2),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  titles[index],
+                  style: TextStyle(
+                    color: selected ? Colors.white : textColor,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -550,21 +489,35 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
   // 比較前
   // ==============================================================
 
-  Widget _buildNotCompared(Color textColor) {
-    return Transform.translate(
-      offset: const Offset(0, -4),
-      child: SizedBox(
-        width: double.infinity,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 18),
-          child: Center(
-            child: Text(
-              "「比較する」を押してください",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+  Widget _buildNotCompared(Color secondaryColor, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark
+                  ? AppColors.primary.withValues(alpha: 0.18)
+                  : AppColors.primarySoft,
+            ),
+            child: const Icon(
+              Icons.compare_arrows_rounded,
+              color: AppColors.primary,
+              size: 20,
             ),
           ),
-        ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              "上の「比較する」を押すと、ここに結果が出ます",
+              style: TextStyle(color: secondaryColor, fontSize: 13),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -573,199 +526,227 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
   // 全体のユーザーとの比較
   // ==============================================================
 
-  Widget _buildAllUsersComparison(Color textColor) {
-    final averageHours = averageStudyHours ?? 0.0;
+  Widget _buildAllUsersComparison(
+    Color textColor,
+    Color secondaryColor,
+    bool isDark,
+  ) {
+    final isLoading = isLoadingMyStudyTime || isLoadingAverage;
 
-    final myHours = (myStudySeconds ?? 0) / 3600.0;
+    final mySeconds = myStudySeconds ?? 0;
+    final averageSeconds = ((averageStudyHours ?? 0) * 3600).round();
 
-    final difference = myHours - averageHours;
+    final difference = mySeconds - averageSeconds;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 13),
-      child: Stack(
-        children: [
-          // ========================================================
-          // 3等分
-          // ========================================================
-          Row(
-            children: [
-              Expanded(
-                child: _comparisonValue(
-                  "自分の学習時間",
-                  isLoadingMyStudyTime
-                      ? "--"
-                      : formatStudyTime(myStudySeconds ?? 0),
-                  "",
-                  AppColors.primary,
-                ),
-              ),
+    // 横の棒の長さの基準（長いほうをいっぱいにする）
+    final maxSeconds = mySeconds > averageSeconds ? mySeconds : averageSeconds;
 
-              Expanded(
-                child: _comparisonValue(
-                  "全体平均",
-                  isLoadingAverage
-                      ? "--"
-                      : formatStudyTime((averageHours * 3600).round()),
-                  "",
-                  textColor,
-                ),
-              ),
+    // 平均より多いときは青、少ないときは赤
+    final differenceColor = difference >= 0
+        ? AppColors.primary
+        : const Color(0xFFE5534B);
 
-              Expanded(
-                child: _comparisonValue(
-                  "差分",
-                  (isLoadingMyStudyTime || isLoadingAverage)
-                      ? "--"
-                      : "${difference > 0
-                                ? '+'
-                                : difference < 0
-                                ? '-'
-                                : ''}"
-                            "${formatStudyTime((difference.abs() * 3600).round())}",
-                  "",
-                  const Color(0xFFE52B72),
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ------------------------------------------------------
+        // あなた／全体平均の横の棒
+        // ------------------------------------------------------
+        _barRow(
+          title: "あなた",
+          value: isLoading ? "--" : formatStudyTime(mySeconds),
+          ratio: maxSeconds > 0 ? mySeconds / maxSeconds : 0,
+          barColor: AppColors.primary,
+          valueColor: AppColors.primary,
+          secondaryColor: secondaryColor,
+          isDark: isDark,
+        ),
+
+        const SizedBox(height: 12),
+
+        _barRow(
+          title: "全体平均",
+          value: isLoading ? "--" : formatStudyTime(averageSeconds),
+          ratio: maxSeconds > 0 ? averageSeconds / maxSeconds : 0,
+          barColor: isDark ? Colors.white38 : const Color(0xFFBDBDBD),
+          valueColor: textColor,
+          secondaryColor: secondaryColor,
+          isDark: isDark,
+        ),
+
+        const SizedBox(height: 16),
+
+        // ------------------------------------------------------
+        // 差（「平均より ○分 多い／少ない」）
+        // ------------------------------------------------------
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isLoading
+                ? (isDark ? Colors.white10 : AppColors.background)
+                : differenceColor.withValues(alpha: isDark ? 0.18 : 0.08),
+            borderRadius: BorderRadius.circular(12),
           ),
-
-          // ========================================================
-          // 縦線
-          // ========================================================
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Row(
-                children: [
-                  const Expanded(child: SizedBox()),
-
-                  Container(width: 1, height: 55, color: Colors.grey.shade300),
-
-                  const Expanded(child: SizedBox()),
-
-                  Container(width: 1, height: 55, color: Colors.grey.shade300),
-
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+          child: isLoading
+              ? Text(
+                  "読み込み中…",
+                  style: TextStyle(color: secondaryColor, fontSize: 13),
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      difference > 0
+                          ? Icons.trending_up_rounded
+                          : difference < 0
+                          ? Icons.trending_down_rounded
+                          : Icons.trending_flat_rounded,
+                      color: differenceColor,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "平均より",
+                      style: TextStyle(color: secondaryColor, fontSize: 13),
+                    ),
+                    const SizedBox(width: 6),
+                    if (difference != 0) ...[
+                      _buildStudyTimeRichText(
+                        formatStudyTime(difference.abs()),
+                        "",
+                        differenceColor,
+                        numberSize: 20,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      difference > 0
+                          ? "多い"
+                          : difference < 0
+                          ? "少ない"
+                          : "同じ",
+                      style: TextStyle(
+                        color: differenceColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ],
     );
   }
 
-  // ==============================================================
-  // 特定ユーザーとの比較
-  // ==============================================================
+  // 横の棒1本（左に名前、右に時間、下に長さの棒）
+  Widget _barRow({
+    required String title,
+    required String value,
+    required double ratio,
+    required Color barColor,
+    required Color valueColor,
+    required Color secondaryColor,
+    required bool isDark,
+  }) {
+    // 少しでも勉強していれば、短くても見えるようにする
+    final shownRatio = ratio > 0 && ratio < 0.03 ? 0.03 : ratio;
 
-  Widget _buildSpecificUserComparison(Color textColor) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _comparisonValue(
-            "自分の学習時間",
-            isLoadingMyStudyTime ? "--" : formatStudyTime(myStudySeconds ?? 0),
-            "",
-            AppColors.primary,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(color: secondaryColor, fontSize: 12.5),
+              ),
+            ),
+            _buildStudyTimeRichText(value, "", valueColor, numberSize: 20),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Stack(
+            children: [
+              Container(
+                height: 8,
+                color: isDark ? Colors.white10 : AppColors.background,
+              ),
+              FractionallySizedBox(
+                widthFactor: shownRatio.clamp(0.0, 1.0),
+                child: Container(height: 8, color: barColor),
+              ),
+            ],
           ),
         ),
-
-        Container(width: 1, height: 65, color: Colors.grey.shade300),
-
-        Expanded(child: _comparisonValue("比較相手", "--", "時間", textColor)),
       ],
     );
   }
 
   // ==============================================================
-  // 数値表示
+  // 特定ユーザーとの比較（相手を選ぶ機能は準備中）
   // ==============================================================
 
-  Widget _comparisonValue(
-    String title,
-    String value,
-    String unit,
-    Color color,
-  ) {
-    return Container(
-      width: double.infinity,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11),
+  Widget _buildSpecificUserComparison(Color textColor, Color secondaryColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Text(
+                "あなた",
+                style: TextStyle(color: secondaryColor, fontSize: 12.5),
+              ),
             ),
-          ),
-
-          const SizedBox(height: 10),
-
-          SizedBox(
-            width: double.infinity,
-            height: 32,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: _buildStudyTimeRichText(value, unit, color),
+            _buildStudyTimeRichText(
+              isLoadingMyStudyTime
+                  ? "--"
+                  : formatStudyTime(myStudySeconds ?? 0),
+              "",
+              AppColors.primary,
+              numberSize: 20,
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          "比較する相手を選ぶ機能は準備中です",
+          style: TextStyle(color: secondaryColor, fontSize: 12),
+        ),
+      ],
     );
   }
 
-  Widget _buildStudyTimeRichText(String value, String unit, Color color) {
+  // ==============================================================
+  // 時間の文字（数字は Roboto で大きく、単位は小さく）
+  // ==============================================================
+
+  Widget _buildStudyTimeRichText(
+    String value,
+    String unit,
+    Color color, {
+    double numberSize = 24,
+  }) {
     // 読み込み中
     if (value == "--") {
       return Text(
         "--",
         style: GoogleFonts.roboto(
           color: color,
-          fontSize: 24,
+          fontSize: numberSize,
           fontWeight: FontWeight.bold,
         ),
       );
     }
 
-    // 時間・分が含まれていない普通の値の場合
-    if (!value.contains("時間") && !value.contains("分")) {
-      return RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: value,
-              style: GoogleFonts.roboto(
-                color: color,
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (unit.isNotEmpty)
-              TextSpan(
-                text: " $unit",
-                style: TextStyle(
-                  color: color,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-
-    // 例:
-    // 12時間34分
-    // 45分
-    // +3時間20分
-    // -1時間30分
-    // 123.4時間
-    final regex = RegExp(r'([+-]?\d+(?:\.\d+)?)(時間|分)');
+    // 例: 12時間34分 / 45分 / 123.4時間
+    final regex = RegExp(r'(\d+(?:\.\d+)?)(時間|分)');
 
     final spans = <TextSpan>[];
 
@@ -775,7 +756,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
           text: match.group(1),
           style: GoogleFonts.roboto(
             color: color,
-            fontSize: 24,
+            fontSize: numberSize,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -784,9 +765,22 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
       spans.add(
         TextSpan(
           text: match.group(2),
-          style: GoogleFonts.roboto(
+          style: TextStyle(
             color: color,
-            fontSize: 13,
+            fontSize: numberSize * 0.56,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    if (unit.isNotEmpty) {
+      spans.add(
+        TextSpan(
+          text: " $unit",
+          style: TextStyle(
+            color: color,
+            fontSize: numberSize * 0.56,
             fontWeight: FontWeight.bold,
           ),
         ),

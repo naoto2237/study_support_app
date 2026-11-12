@@ -12,6 +12,7 @@ import 'package:study_support_app/screens/link/user_profile_screen.dart';
 import 'dart:async';
 import 'package:study_support_app/screens/notification/notification_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/empty_message.dart';
 
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
@@ -236,35 +237,8 @@ class UserList extends StatelessWidget {
     required String text,
     required bool isDark,
   }) {
-    return Align(
-      alignment: const Alignment(0, -0.5),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDark
-                  ? _blue.withValues(alpha: 0.18)
-                  : AppColors.primarySoft,
-            ),
-            child: Icon(icon, color: _blue, size: 28),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13.5,
-              height: 1.5,
-              color: isDark ? Colors.white60 : Colors.black45,
-            ),
-          ),
-        ],
-      ),
-    );
+    // アプリ全体で共通の「何もないときの案内」を使う
+    return EmptyMessage(icon: icon, text: text);
   }
 
   @override

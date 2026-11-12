@@ -7,6 +7,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 class RoomShareNoteScreen extends StatelessWidget {
@@ -20,32 +21,32 @@ class RoomShareNoteScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          _buildNoteTile("英単語まとめノート", "更新：今日 09:15"),
-          _buildNoteTile("数学の公式まとめ", "更新：昨日 21:30"),
-          _buildNoteTile("化学 重要ポイント", "更新：7/1 18:45"),
-          _buildNoteTile("現代文 読解メモ", "更新：6/30 22:10"),
-          _buildNoteTile("物理 演習問題集", "更新：6/29 20:05"),
+          _buildNoteTile(context, "英単語まとめノート", "更新：今日 09:15"),
+          _buildNoteTile(context, "数学の公式まとめ", "更新：昨日 21:30"),
+          _buildNoteTile(context, "化学 重要ポイント", "更新：7/1 18:45"),
+          _buildNoteTile(context, "現代文 読解メモ", "更新：6/30 22:10"),
+          _buildNoteTile(context, "物理 演習問題集", "更新：6/29 20:05"),
         ],
       ),
     );
   }
 
-  Widget _buildNoteTile(String title, String updatedAt) {
+  Widget _buildNoteTile(BuildContext context, String title, String updatedAt) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
-      color: Colors.white,
+      color: context.pal.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: context.pal.border),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         leading: Container(
           width: 42,
           height: 42,
-          decoration: const BoxDecoration(
-            color: AppColors.primarySoft,
+          decoration: BoxDecoration(
+            color: context.pal.primarySoft,
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -59,12 +60,9 @@ class RoomShareNoteScreen extends StatelessWidget {
         ),
         subtitle: Text(
           updatedAt,
-          style: const TextStyle(fontSize: 12, color: Colors.black54),
+          style: TextStyle(fontSize: 12, color: context.pal.secondary),
         ),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          color: Colors.black38,
-        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: context.pal.muted),
       ),
     );
   }

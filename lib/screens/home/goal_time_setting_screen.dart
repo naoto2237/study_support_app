@@ -8,6 +8,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/main.dart' as app;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -98,7 +99,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
 
     final result = await showModalBottomSheet<int>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: context.pal.card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -373,7 +374,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
   Color _dayColor(int index) {
     if (index == 6) return _sundayRed;
     if (index == 5) return primaryBlue;
-    return Colors.black87;
+    return context.pal.text;
   }
 
   // 「1時間30分」のような時間を、数字は大きく・単位は小さく表示する
@@ -413,9 +414,9 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
   // 時間の表示（設定済みは青の太字、未設定は灰色）
   Widget _buildTimeValue(int minutes, {double numberSize = 17}) {
     if (minutes <= 0) {
-      return const Text(
+      return Text(
         '未設定',
-        style: TextStyle(fontSize: 14, color: Colors.black38),
+        style: TextStyle(fontSize: 14, color: context.pal.muted),
       );
     }
 
@@ -434,18 +435,18 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       // ============================================================
       // AppBar
       // ============================================================
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.pal.card,
         elevation: 0,
         titleSpacing: 0,
 
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
+          icon: Icon(Icons.arrow_back_rounded, color: context.pal.text),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -453,12 +454,12 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
 
         title: Transform.translate(
           offset: const Offset(-2, 0),
-          child: const Text(
+          child: Text(
             '曜日ごとの目標設定',
             style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: context.pal.text,
             ),
           ),
         ),
@@ -472,9 +473,9 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               '曜日ごとに学習目標時間を設定できます。',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
+              style: TextStyle(fontSize: 13, color: context.pal.secondary),
             ),
 
             const SizedBox(height: 12),
@@ -483,7 +484,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
             // 全て同じ時間を設定（カード全体を押せる）
             // ======================================================
             Material(
-              color: Colors.white,
+              color: context.pal.card,
               borderRadius: BorderRadius.circular(18),
               child: InkWell(
                 borderRadius: BorderRadius.circular(18),
@@ -502,7 +503,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                   padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: context.pal.border),
                   ),
                   child: Row(
                     children: [
@@ -510,7 +511,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
+                          color: context.pal.primarySoft,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -522,7 +523,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
 
                       const SizedBox(width: 12),
 
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -531,7 +532,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: context.pal.text,
                               ),
                             ),
                             SizedBox(height: 2),
@@ -539,7 +540,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                               'すべての曜日をまとめて設定',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.black54,
+                                color: context.pal.secondary,
                               ),
                             ),
                           ],
@@ -550,10 +551,10 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
 
                       _buildTimeValue(sameTimeMinutes),
 
-                      const Icon(
+                      Icon(
                         Icons.chevron_right_rounded,
                         size: 22,
-                        color: Colors.black38,
+                        color: context.pal.muted,
                       ),
                     ],
                   ),
@@ -566,14 +567,14 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
             // ======================================================
             // 曜日ごとの目標時間
             // ======================================================
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(left: 2),
               child: Text(
                 '曜日ごとの目標時間',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.pal.text,
                 ),
               ),
             ),
@@ -584,14 +585,14 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
             // 1つの一覧として表示（行全体を押せる）
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.pal.card,
                 borderRadius: BorderRadius.circular(18),
               ),
 
               // 枠線は中身の上に描く（中の行の色で、角の枠線が隠れないように）
               foregroundDecoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.pal.border),
               ),
 
               clipBehavior: Clip.antiAlias,
@@ -604,7 +605,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                   return Column(
                     children: [
                       Material(
-                        color: Colors.white,
+                        color: context.pal.card,
                         child: InkWell(
                           onTap: () {
                             _selectTime(
@@ -663,10 +664,10 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
 
                                   const SizedBox(width: 2),
 
-                                  const Icon(
+                                  Icon(
                                     Icons.chevron_right_rounded,
                                     size: 22,
-                                    color: Colors.black38,
+                                    color: context.pal.muted,
                                   ),
                                 ],
                               ),
@@ -679,7 +680,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                         Container(
                           height: 1,
                           margin: const EdgeInsets.only(left: 58),
-                          color: AppColors.divider,
+                          color: context.pal.divider,
                         ),
                     ],
                   );
@@ -694,9 +695,9 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
       // 下に固定：今週の合計と保存ボタン（いつでも押せる）
       // ============================================================
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: AppColors.border)),
+        decoration: BoxDecoration(
+          color: context.pal.card,
+          border: Border(top: BorderSide(color: context.pal.border)),
         ),
         child: SafeArea(
           top: false,
@@ -708,9 +709,12 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '今週の目標合計',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.pal.secondary,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     _buildTimeValue(weeklyTotal, numberSize: 20),

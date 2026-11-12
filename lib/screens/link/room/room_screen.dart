@@ -72,11 +72,10 @@ class RoomScreen extends StatelessWidget {
             ),
           ],
           bottom: TabBar(
-            // 選んだタブの下線は、文字の幅だけの短い線にする
-            indicatorSize: TabBarIndicatorSize.label,
+            // 選んだタブの下線は、タブの幅いっぱいの長い線にする
+            indicatorSize: TabBarIndicatorSize.tab,
 
             indicator: const UnderlineTabIndicator(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
               borderSide: BorderSide(color: AppColors.primary, width: 3),
             ),
 
@@ -86,6 +85,8 @@ class RoomScreen extends StatelessWidget {
             tabs: const [
               Tab(
                 child: Row(
+                  // アイコンと文字を、まん中に寄せて並べる
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.group_add_outlined, size: 20),
@@ -103,6 +104,7 @@ class RoomScreen extends StatelessWidget {
 
               Tab(
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.search, size: 20),

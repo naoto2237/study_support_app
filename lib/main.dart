@@ -2,12 +2,12 @@
 // アプリの入口
 //
 // 主なクラス: MyApp / AppStartScreen / MainNavigationScreen
-// ・main()：.env の読み込み、Firebase の初期化、タイマー通知の準備
+// ・main()：.env の読み込み、Firebase の初期化、ダークモードの読み込み、タイマー通知の準備
 // ・MyApp：テーマ（ライト／ダーク）と日本語設定
 // ・AppStartScreen：ログインと登録の状態を見て、最初の画面を決める
 // ・MainNavigationScreen：下のタブ（ホーム／AIサポート／Link／学習記録／マイページ）
 // ・アプリ全体で共有する値：isDarkModeNotifier, dailyTargetHours,
-//   todayStudySeconds, weeklyStudySeconds
+//   todayStudySeconds, weeklyStudySeconds, currentDay
 // ======================================================================
 
 import 'package:flutter/material.dart';
@@ -27,6 +27,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/screens/start/splash_screen.dart';
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 // アプリ全体で共有するダークモードの状態変数（初期値: false = ライト）
@@ -41,6 +42,13 @@ final ValueNotifier<int> todayStudySeconds = ValueNotifier<int>(0);
 // 今週の学習時間
 final ValueNotifier<int> weeklyStudySeconds = ValueNotifier<int>(0);
 
+// 今日の日付（時刻は 0:00）。
+// ホーム画面が日付の変わり目に気づいたら新しい日付に変える。
+// 学習記録の画面などは、これが変わったら集計を読み直す。
+final ValueNotifier<DateTime> currentDay = ValueNotifier<DateTime>(
+  DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
+);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -52,11 +60,30 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  await _restoreDarkMode();
+
   if (!kIsWeb) {
     initForegroundService();
   }
 
   runApp(const MyApp());
+}
+
+// ======================================================================
+// ダークモードの保存と読み込み
+// ・前に選んだモードを、起動したときに読み込む（アプリを終了しても戻らない）
+// ・設定画面などでモードが変わったら、そのたびにスマホに保存する
+// ======================================================================
+const _darkModeKey = 'isDarkMode';
+
+Future<void> _restoreDarkMode() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  isDarkModeNotifier.value = prefs.getBool(_darkModeKey) ?? false;
+
+  isDarkModeNotifier.addListener(() {
+    prefs.setBool(_darkModeKey, isDarkModeNotifier.value);
+  });
 }
 
 void initForegroundService() {

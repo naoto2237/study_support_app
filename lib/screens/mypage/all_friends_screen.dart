@@ -6,6 +6,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
@@ -17,15 +18,15 @@ class AllFriendsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.pal.card,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
 
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: context.pal.text),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -33,12 +34,12 @@ class AllFriendsScreen extends StatelessWidget {
 
         title: Transform.translate(
           offset: const Offset(-19, 0),
-          child: const Text(
+          child: Text(
             '友達',
             style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: context.pal.text,
             ),
           ),
         ),
@@ -67,10 +68,10 @@ class AllFriendsScreen extends StatelessWidget {
 
           // 友達がいない場合
           if (friends.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 '友達がここに表示されます',
-                style: TextStyle(fontSize: 16, color: Colors.black54),
+                style: TextStyle(fontSize: 16, color: context.pal.secondary),
               ),
             );
           }
@@ -90,14 +91,14 @@ class AllFriendsScreen extends StatelessWidget {
 
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.pal.card,
                   borderRadius: BorderRadius.circular(14),
                 ),
 
                 child: ListTile(
-                  leading: const CircleAvatar(
+                  leading: CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppColors.primarySoft,
+                    backgroundColor: context.pal.primarySoft,
 
                     child: Icon(
                       Icons.person,

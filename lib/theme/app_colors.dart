@@ -38,4 +38,18 @@ class AppColors {
 
   // 一覧の行と行の間の線
   static const Color divider = Color(0xFFEEF0F3);
+
+  // ---------------- グラフの吹き出し ----------------
+  // 棒をタップしたときに出る吹き出し（うすい青。2026-11-12 に決定）
+  // 面はうすい青、枠は少し濃いうすい青、時間の数字は濃い青
+  static const Color tooltipBackground = primarySoft;
+  static const Color tooltipBorder = Color(0xFFC9DFF4);
+  static const Color tooltipText = primaryDeep;
+  static const Color tooltipSubText = Color(0xFF4A7DB0);
+
+  // ダークモードのとき（暗いカードの上で、青みのある面にする）
+  static const Color tooltipBackgroundDark = Color(0xFF1E3550);
+  static const Color tooltipBorderDark = Color(0xFF2F5478);
+  static const Color tooltipTextDark = Colors.white;
+  static const Color tooltipSubTextDark = Color(0xFFB5D4F4);
 }

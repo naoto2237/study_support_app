@@ -2,7 +2,7 @@
 // 【タブ】学習記録の「他の人と比較」タブ
 //
 // 主なクラス: ComparisonScreen
-// ・比較する相手（全体のユーザー／特定のユーザー）を選ぶ
+// ・比較する相手（全体のユーザー／特定のユーザー）を切りかえボタンで選ぶ
 // ・その下に比較結果（comparison_result_section.dart）を表示
 // ======================================================================
 
@@ -103,60 +103,6 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   }
 
   // ============================================================
-  // 比較対象の選択
-  // ============================================================
-
-  void _showComparisonTargetSelector() {
-    showModalBottomSheet(
-      context: context,
-      builder: (bottomSheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text(
-                  "比較する相手を選択",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-
-              ListTile(
-                title: const Text("全体のユーザー"),
-                trailing: comparisonTarget == "全体のユーザー"
-                    ? const Icon(Icons.check, color: AppColors.primary)
-                    : null,
-                onTap: () {
-                  setState(() {
-                    comparisonTarget = "全体のユーザー";
-                  });
-
-                  Navigator.pop(bottomSheetContext);
-                },
-              ),
-
-              ListTile(
-                title: const Text("特定のユーザー"),
-                trailing: comparisonTarget == "特定のユーザー"
-                    ? const Icon(Icons.check, color: AppColors.primary)
-                    : null,
-                onTap: () {
-                  setState(() {
-                    comparisonTarget = "特定のユーザー";
-                  });
-
-                  Navigator.pop(bottomSheetContext);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ============================================================
   // 比較条件カード
   // ============================================================
 
@@ -165,8 +111,11 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     Color textColor,
     Color secondaryColor,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return _card(
       cardColor,
+      isDark,
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -179,68 +128,102 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             ),
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
 
-          Row(
-            children: [
-              Expanded(
-                child: _dropdown(
-                  title: "比較する相手",
-                  value: comparisonTarget,
-                  textColor: textColor,
-                  onTap: _showComparisonTargetSelector,
-                ),
-              ),
-            ],
+          Text("比較する相手", style: TextStyle(color: secondaryColor, fontSize: 12)),
+
+          const SizedBox(height: 6),
+
+          // 相手の切りかえ（グラフの「週・月・年」と同じ形）
+          _segmented(
+            options: const ["全体のユーザー", "特定のユーザー"],
+            selected: comparisonTarget == "全体のユーザー" ? 0 : 1,
+            textColor: textColor,
+            isDark: isDark,
+            onSelected: (index) {
+              setState(() {
+                comparisonTarget = index == 0 ? "全体のユーザー" : "特定のユーザー";
+              });
+            },
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // ユーザー数
-          // 全体のユーザーを選択しているときだけ表示
-          if (comparisonTarget == "全体のユーザー") ...[
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.groups, color: AppColors.primary, size: 44),
-
-                  const SizedBox(width: 14),
-
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "全体のユーザー数",
-                        style: TextStyle(color: textColor, fontSize: 13),
-                      ),
-
-                      const SizedBox(height: 3),
-
-                      Text(
-                        isUserCountLoading ? "読み込み中..." : "$userCount 人",
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  Icon(Icons.info_outline, color: AppColors.primary),
-                ],
-              ),
+          // 相手についての説明（うすい青の面）
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.primary.withValues(alpha: 0.18)
+                  : AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white10 : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    comparisonTarget == "全体のユーザー"
+                        ? Icons.groups_rounded
+                        : Icons.person_search_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
 
-            const SizedBox(height: 14),
-          ],
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: comparisonTarget == "全体のユーザー"
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "全体のユーザー数",
+                              style: TextStyle(
+                                color: secondaryColor,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isUserCountLoading ? "読み込み中…" : "$userCount人",
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "勉強しなかった人も、0時間として平均に入れます",
+                              style: TextStyle(
+                                color: secondaryColor,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          "比較する相手を選ぶ機能は準備中です。\nいまは自分の記録だけを表示します",
+                          style: TextStyle(
+                            color: secondaryColor,
+                            fontSize: 12.5,
+                            height: 1.5,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
 
           // 比較するボタン
           SizedBox(
@@ -260,9 +243,12 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                "比較する",
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              child: Text(
+                isCompared ? "もう一度比較する" : "比較する",
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -272,65 +258,68 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   }
 
   // ============================================================
+  // 切りかえボタン（グラフの「週・月・年」と同じ形）
+  // ============================================================
+
+  Widget _segmented({
+    required List<String> options,
+    required int selected,
+    required Color textColor,
+    required bool isDark,
+    required ValueChanged<int> onSelected,
+  }) {
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white10 : AppColors.background,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: List.generate(options.length, (index) {
+          final isSelected = index == selected;
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onSelected(index),
+              child: Container(
+                margin: const EdgeInsets.all(2),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  options[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : textColor,
+                    fontSize: 13.5,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ============================================================
   // カード
   // ============================================================
 
-  Widget _card(Color color, Widget child) {
+  Widget _card(Color color, bool isDark, Widget child) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: isDark ? Colors.white12 : AppColors.border),
       ),
       child: child,
-    );
-  }
-
-  // ============================================================
-  // ドロップダウン風UI
-  // ============================================================
-
-  Widget _dropdown({
-    required String title,
-    required String value,
-    required Color textColor,
-    VoidCallback? onTap,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: const TextStyle(fontSize: 12)),
-
-        const SizedBox(height: 7),
-
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: textColor, fontSize: 12),
-                  ),
-                ),
-
-                const Icon(Icons.keyboard_arrow_down, size: 20),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

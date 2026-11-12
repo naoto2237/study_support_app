@@ -8,6 +8,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 class RoomChatScreen extends StatefulWidget {
@@ -125,10 +126,10 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
               final messages = snapshot.data?.docs ?? [];
 
               if (messages.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
                     'まだメッセージはありません',
-                    style: TextStyle(color: Colors.black45, fontSize: 14),
+                    style: TextStyle(color: context.pal.muted, fontSize: 14),
                   ),
                 );
               }
@@ -226,9 +227,9 @@ class _ChatInputArea extends StatelessWidget {
           child: Container(
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: context.pal.field,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border, width: 1),
+              border: Border.all(color: context.pal.border, width: 1),
             ),
             child: Stack(
               alignment: Alignment.bottomRight,
@@ -322,14 +323,14 @@ class RoomChatBubble extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 282),
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
           decoration: BoxDecoration(
-            color: isMine ? AppColors.primaryTrack : Colors.white,
+            color: isMine ? AppColors.primaryTrack : context.pal.card,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
             message,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
-              color: Colors.black87,
+              color: context.pal.text,
               height: 1.4,
             ),
           ),
@@ -351,7 +352,7 @@ class RoomChatBubble extends StatelessWidget {
                 child: Container(
                   width: 10,
                   height: 18,
-                  color: isMine ? AppColors.primaryTrack : Colors.white,
+                  color: isMine ? AppColors.primaryTrack : context.pal.card,
                 ),
               ),
             ),
@@ -370,9 +371,9 @@ class RoomChatBubble extends StatelessWidget {
           // アイコン
           Transform.translate(
             offset: const Offset(0, -27),
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.white,
+              backgroundColor: context.pal.card,
               child: Icon(Icons.person, color: AppColors.primary, size: 20),
             ),
           ),
@@ -385,10 +386,10 @@ class RoomChatBubble extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black45,
+                  color: context.pal.muted,
                 ),
               ),
 
@@ -405,10 +406,7 @@ class RoomChatBubble extends StatelessWidget {
                     offset: const Offset(0, -6),
                     child: Text(
                       time,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.black45,
-                      ),
+                      style: TextStyle(fontSize: 10, color: context.pal.muted),
                     ),
                   ),
                 ],
@@ -430,7 +428,7 @@ class RoomChatBubble extends StatelessWidget {
           offset: const Offset(0, -6),
           child: Text(
             time,
-            style: const TextStyle(fontSize: 10, color: Colors.black45),
+            style: TextStyle(fontSize: 10, color: context.pal.muted),
           ),
         ),
 

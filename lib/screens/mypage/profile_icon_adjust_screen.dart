@@ -10,6 +10,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:study_support_app/theme/app_colors.dart';
@@ -159,27 +160,27 @@ class _ProfileIconAdjustScreenState extends State<ProfileIconAdjustScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       // ==================================================
       // AppBar
       // ==================================================
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.pal.card,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
 
-        title: const Text(
+        title: Text(
           'アイコンを調整',
           style: TextStyle(
-            color: Colors.black87,
+            color: context.pal.text,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
         ),
 
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black87),
+          icon: Icon(Icons.close, color: context.pal.text),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -250,7 +251,7 @@ class _ProfileIconAdjustScreenState extends State<ProfileIconAdjustScreen> {
 
                       child: ClipRect(
                         child: Container(
-                          color: Colors.white,
+                          color: context.pal.card,
 
                           child: Transform.translate(
                             offset: _offset,
@@ -334,7 +335,7 @@ class _ProfileIconAdjustScreenState extends State<ProfileIconAdjustScreen> {
                 bottom: 16,
 
                 child: Material(
-                  color: Colors.white,
+                  color: context.pal.card,
                   shape: const CircleBorder(),
                   elevation: 2,
 

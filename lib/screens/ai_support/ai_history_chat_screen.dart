@@ -8,6 +8,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -18,7 +19,6 @@ import 'package:study_support_app/screens/ai_support/ai_chat_input_bar.dart';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/screens/ai_support/ai_chat_message_list.dart';
-import 'package:study_support_app/theme/app_colors.dart';
 
 class AiHistoryChatScreen extends StatefulWidget {
   final String chatId;
@@ -251,7 +251,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
       },
 
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.pal.page,
 
         appBar: AppBar(
           leadingWidth: 56,
@@ -265,17 +265,17 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
 
           title: Transform.translate(
             offset: const Offset(-19, 0),
-            child: const Text(
+            child: Text(
               "AIサポート",
               style: TextStyle(
-                color: Colors.black87,
+                color: context.pal.text,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           centerTitle: false,
-          backgroundColor: Colors.white,
+          backgroundColor: context.pal.card,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
@@ -283,7 +283,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 7),
               child: IconButton(
-                icon: const Icon(Icons.history, color: Colors.black87),
+                icon: Icon(Icons.history, color: context.pal.text),
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
