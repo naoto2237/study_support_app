@@ -6,6 +6,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class ProfileEditFields extends StatelessWidget {
   final TextEditingController gradeController;
@@ -22,7 +23,7 @@ class ProfileEditFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(height: 1, thickness: 1, color: Color(0xFFE5E7EB)),
+        const Divider(height: 1, thickness: 1, color: AppColors.border),
 
         const SizedBox(height: 18),
 
@@ -69,7 +70,7 @@ class _EditField extends StatelessWidget {
             style: const TextStyle(fontSize: 15, color: Colors.black87),
             decoration: InputDecoration(
               filled: true,
-              fillColor: const Color(0xFFF7F7F7),
+              fillColor: AppColors.background,
 
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
@@ -95,7 +96,7 @@ class _EditField extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: const BorderSide(
-                  color: Color(0xFF3D96E8),
+                  color: AppColors.primary,
                   width: 1.5,
                 ),
               ),

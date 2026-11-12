@@ -8,9 +8,11 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/main.dart' as app;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class GoalTimeSettingScreen extends StatefulWidget {
   const GoalTimeSettingScreen({super.key});
@@ -20,7 +22,7 @@ class GoalTimeSettingScreen extends StatefulWidget {
 }
 
 class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
-  static const Color primaryBlue = Color(0xFF258EDB);
+  static const Color primaryBlue = AppColors.primary;
 
   final List<String> weekdays = const [
     '月曜日',
@@ -81,25 +83,6 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
     setState(() {
       goalMinutes = loadedGoals;
     });
-  }
-
-  // ==============================================================
-  // 時間表示
-  // ==============================================================
-
-  String _formatTime(int minutes) {
-    if (minutes <= 0) {
-      return '未設定';
-    }
-
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-
-    if (remainingMinutes == 0) {
-      return '$hours時間00分';
-    }
-
-    return '$hours時間${remainingMinutes.toString().padLeft(2, '0')}分';
   }
 
   // ==============================================================
@@ -197,7 +180,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                                           ? FontWeight.bold
                                           : FontWeight.normal,
                                       color: isSelected
-                                          ? const Color(0xFF258EDB)
+                                          ? AppColors.primary
                                           : Colors.grey,
                                     ),
                                   ),
@@ -248,7 +231,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                                           ? FontWeight.bold
                                           : FontWeight.normal,
                                       color: isSelected
-                                          ? const Color(0xFF258EDB)
+                                          ? AppColors.primary
                                           : Colors.grey,
                                     ),
                                   ),
@@ -280,7 +263,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF258EDB),
+                        color: AppColors.primary,
                       ),
                     ),
 
@@ -295,12 +278,11 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
                           Navigator.pop(context, tempHours * 60 + tempMinutes);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF258EDB),
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
+                          // 両端が丸いボタン
+                          shape: const StadiumBorder(),
                         ),
                         child: const Text(
                           '適用する',
@@ -385,6 +367,65 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
   // UI
   // ==============================================================
 
+  // 曜日ごとの色（土曜は青、日曜は赤、それ以外は黒）
+  static const Color _sundayRed = Color(0xFFE53935);
+
+  Color _dayColor(int index) {
+    if (index == 6) return _sundayRed;
+    if (index == 5) return primaryBlue;
+    return Colors.black87;
+  }
+
+  // 「1時間30分」のような時間を、数字は大きく・単位は小さく表示する
+  List<TextSpan> _timeSpans(
+    int minutes,
+    Color color, {
+    double numberSize = 17,
+    double unitSize = 11,
+  }) {
+    final hours = minutes ~/ 60;
+    final rest = minutes % 60;
+
+    TextSpan number(String text) => TextSpan(
+      text: text,
+      style: GoogleFonts.roboto(
+        fontSize: numberSize,
+        fontWeight: FontWeight.bold,
+        color: color,
+      ),
+    );
+
+    TextSpan unit(String text) => TextSpan(
+      text: text,
+      style: TextStyle(
+        fontSize: unitSize,
+        fontWeight: FontWeight.bold,
+        color: color,
+      ),
+    );
+
+    return [
+      if (hours > 0) ...[number('$hours'), unit('時間')],
+      if (rest > 0 || hours == 0) ...[number('$rest'), unit('分')],
+    ];
+  }
+
+  // 時間の表示（設定済みは青の太字、未設定は灰色）
+  Widget _buildTimeValue(int minutes, {double numberSize = 17}) {
+    if (minutes <= 0) {
+      return const Text(
+        '未設定',
+        style: TextStyle(fontSize: 14, color: Colors.black38),
+      );
+    }
+
+    return Text.rich(
+      TextSpan(
+        children: _timeSpans(minutes, primaryBlue, numberSize: numberSize),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final weeklyTotal = goalMinutes.fold<int>(
@@ -393,7 +434,7 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
     );
 
     return Scaffold(
-      backgroundColor: Color(0xFFF7F7F7),
+      backgroundColor: AppColors.background,
 
       // ============================================================
       // AppBar
@@ -422,342 +463,290 @@ class _GoalTimeSettingScreenState extends State<GoalTimeSettingScreen> {
           ),
         ),
       ),
+
       // ============================================================
-      // Body
+      // Body（画面が小さくても下まで見られるよう、スクロールできる）
       // ============================================================
       body: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+        padding: const EdgeInsets.fromLTRB(17, 14, 17, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
               '曜日ごとに学習目標時間を設定できます。',
-              style: TextStyle(fontSize: 14, color: Colors.black87),
+              style: TextStyle(fontSize: 13, color: Colors.black54),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
             // ======================================================
-            // 全て同じ時間を設定
+            // 全て同じ時間を設定（カード全体を押せる）
             // ======================================================
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_month_rounded,
-                    color: primaryBlue,
-                    size: 24,
-                  ),
-
-                  const SizedBox(width: 9),
-
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '全て同じ時間を設定',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-
-                        SizedBox(height: 2),
-
-                        Text(
-                          'すべての曜日を同じ目標時間にします。',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // 時間選択
-                  InkWell(
-                    borderRadius: BorderRadius.circular(16),
-
-                    onTap: () {
-                      _selectTime(
-                        currentMinutes: sameTimeMinutes,
-                        onSelected: (value) {
-                          setState(() {
-                            sameTimeMinutes = value;
-                            goalMinutes = List<int>.filled(7, value);
-                          });
-                        },
-                      );
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () {
+                  _selectTime(
+                    currentMinutes: sameTimeMinutes,
+                    onSelected: (value) {
+                      setState(() {
+                        sameTimeMinutes = value;
+                        goalMinutes = List<int>.filled(7, value);
+                      });
                     },
-
-                    child: Container(
-                      width: 105,
-
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 10,
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_month_rounded,
+                          color: primaryBlue,
+                          size: 22,
+                        ),
                       ),
 
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
-                      ),
+                      const SizedBox(width: 12),
 
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-
-                        children: [
-                          Flexible(
-                            child: Text(
-                              _formatTime(sameTimeMinutes),
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 12.5,
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '全て同じ時間を設定',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
                             ),
-                          ),
-
-                          const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            size: 18,
-                            color: Colors.grey,
-                          ),
-                        ],
+                            SizedBox(height: 2),
+                            Text(
+                              'すべての曜日をまとめて設定',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+
+                      const SizedBox(width: 8),
+
+                      _buildTimeValue(sameTimeMinutes),
+
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 22,
+                        color: Colors.black38,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
 
             // ======================================================
             // 曜日ごとの目標時間
             // ======================================================
-            const Text(
-              '曜日ごとの目標時間',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            const Padding(
+              padding: EdgeInsets.only(left: 2),
+              child: Text(
+                '曜日ごとの目標時間',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             ),
 
-            const SizedBox(height: 7),
+            const SizedBox(height: 8),
 
             // カードの中にカードを入れない
-            // 1つの一覧として表示
+            // 1つの一覧として表示（行全体を押せる）
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                borderRadius: BorderRadius.circular(18),
+              ),
+
+              // 枠線は中身の上に描く（中の行の色で、角の枠線が隠れないように）
+              foregroundDecoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.border),
               ),
 
               clipBehavior: Clip.antiAlias,
 
               child: Column(
                 children: List.generate(7, (index) {
-                  final isSaturday = index == 5;
-                  final isSunday = index == 6;
+                  final isWeekend = index >= 5;
+                  final dayColor = _dayColor(index);
 
                   return Column(
                     children: [
-                      SizedBox(
-                        height: 59,
+                      Material(
+                        color: Colors.white,
+                        child: InkWell(
+                          onTap: () {
+                            _selectTime(
+                              currentMinutes: goalMinutes[index],
 
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  weekdays[index],
-
-                                  style: TextStyle(
-                                    color: isSunday
-                                        ? const Color(0xFFE53935)
-                                        : isSaturday
-                                        ? primaryBlue
-                                        : Colors.black87,
-
-                                    fontSize: 14,
-
-                                    fontWeight: isSaturday || isSunday
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-
-                              InkWell(
-                                borderRadius: BorderRadius.circular(16),
-
-                                onTap: () {
-                                  _selectTime(
-                                    currentMinutes: goalMinutes[index],
-
-                                    onSelected: (value) {
-                                      setState(() {
-                                        goalMinutes[index] = value;
-                                      });
-                                    },
-                                  );
-                                },
-
-                                child: Container(
-                                  width: 145,
-
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 11,
-                                    vertical: 9,
-                                  ),
-
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: const Color(0xFFE5E7EB),
+                              onSelected: (value) {
+                                setState(() {
+                                  goalMinutes[index] = value;
+                                });
+                              },
+                            );
+                          },
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 56),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
+                              child: Row(
+                                children: [
+                                  // 曜日の頭文字の丸印
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: dayColor.withValues(
+                                        alpha: isWeekend ? 0.12 : 0.06,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      weekdays[index].substring(0, 1),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: dayColor,
+                                      ),
                                     ),
                                   ),
 
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          _formatTime(goalMinutes[index]),
+                                  const SizedBox(width: 12),
 
-                                          textAlign: TextAlign.center,
-
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
+                                  Expanded(
+                                    child: Text(
+                                      weekdays[index],
+                                      style: TextStyle(
+                                        color: dayColor,
+                                        fontSize: 15,
+                                        fontWeight: isWeekend
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
                                       ),
-
-                                      const Icon(
-                                        Icons.keyboard_arrow_down_rounded,
-                                        size: 18,
-                                        color: Colors.grey,
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                ),
+
+                                  _buildTimeValue(goalMinutes[index]),
+
+                                  const SizedBox(width: 2),
+
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 22,
+                                    color: Colors.black38,
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
 
                       if (index < 6)
-                        Container(height: 1, color: const Color(0xFFE5E7EB)),
+                        Container(
+                          height: 1,
+                          margin: const EdgeInsets.only(left: 58),
+                          color: AppColors.divider,
+                        ),
                     ],
                   );
                 }),
               ),
             ),
+          ],
+        ),
+      ),
 
-            const SizedBox(height: 16),
+      // ============================================================
+      // 下に固定：今週の合計と保存ボタン（いつでも押せる）
+      // ============================================================
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(17, 12, 17, 12),
+            child: Row(
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '今週の目標合計',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 2),
+                    _buildTimeValue(weeklyTotal, numberSize: 20),
+                  ],
+                ),
 
-            // ======================================================
-            // 今週の目標合計
-            // ======================================================
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+                const SizedBox(width: 16),
 
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _saveGoals,
 
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
 
-                    children: const [
-                      Icon(
-                        Icons.bar_chart_rounded,
-                        color: primaryBlue,
-                        size: 20,
+                        // 両端が丸いボタン
+                        shape: const StadiumBorder(),
                       ),
 
-                      SizedBox(width: 6),
-
-                      Text(
-                        '今週の目標合計',
+                      child: const Text(
+                        '保存する',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
                         ),
                       ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 7),
-
-                  Text(
-                    weeklyTotal == 0 ? '未設定' : _formatTime(weeklyTotal),
-
-                    style: const TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // ======================================================
-            // 保存ボタン
-            // ======================================================
-            SizedBox(
-              height: 48,
-
-              child: ElevatedButton(
-                onPressed: _saveGoals,
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryBlue,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
                 ),
-
-                child: const Text(
-                  '保存する',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

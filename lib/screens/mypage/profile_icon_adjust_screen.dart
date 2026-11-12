@@ -12,6 +12,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class ProfileIconAdjustScreen extends StatefulWidget {
   final File image;
@@ -158,7 +159,7 @@ class _ProfileIconAdjustScreenState extends State<ProfileIconAdjustScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: AppColors.background,
 
       // ==================================================
       // AppBar
@@ -190,7 +191,7 @@ class _ProfileIconAdjustScreenState extends State<ProfileIconAdjustScreen> {
             child: const Text(
               '決定',
               style: TextStyle(
-                color: Color(0xFF258EDB),
+                color: AppColors.primary,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
@@ -353,7 +354,7 @@ class _ProfileIconAdjustScreenState extends State<ProfileIconAdjustScreen> {
 
                       child: Icon(
                         Icons.refresh_rounded,
-                        color: Color(0xFF258EDB),
+                        color: AppColors.primary,
                         size: 25,
                       ),
                     ),

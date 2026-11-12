@@ -8,6 +8,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class WallpaperAdjustScreen extends StatefulWidget {
   final File image;
@@ -29,7 +30,7 @@ class _WallpaperAdjustScreenState extends State<WallpaperAdjustScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: AppColors.background,
 
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -63,7 +64,7 @@ class _WallpaperAdjustScreenState extends State<WallpaperAdjustScreen> {
             child: const Text(
               '決定',
               style: TextStyle(
-                color: Color(0xFF258EDB),
+                color: AppColors.primary,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
@@ -175,7 +176,7 @@ class _WallpaperAdjustScreenState extends State<WallpaperAdjustScreen> {
                       height: 48,
                       child: Icon(
                         Icons.refresh_rounded,
-                        color: Color(0xFF258EDB),
+                        color: AppColors.primary,
                         size: 25,
                       ),
                     ),

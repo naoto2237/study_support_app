@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class AllStudyRecordsScreen extends StatefulWidget {
   final String userId;
@@ -93,7 +94,7 @@ class _AllStudyRecordsScreenState extends State<AllStudyRecordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Transform.translate(
           offset: const Offset(-18, 0),

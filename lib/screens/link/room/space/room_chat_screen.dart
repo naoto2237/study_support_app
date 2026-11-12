@@ -8,6 +8,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class RoomChatScreen extends StatefulWidget {
   final String roomId;
@@ -225,9 +226,9 @@ class _ChatInputArea extends StatelessWidget {
           child: Container(
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F7),
+              color: AppColors.background,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+              border: Border.all(color: AppColors.border, width: 1),
             ),
             child: Stack(
               alignment: Alignment.bottomRight,
@@ -243,7 +244,7 @@ class _ChatInputArea extends StatelessWidget {
                     minLines: 1,
                     maxLines: 10,
                     style: const TextStyle(fontSize: 16, height: 1.4),
-                    cursorColor: const Color(0xFF258EDB),
+                    cursorColor: AppColors.primary,
                     decoration: const InputDecoration(
                       hintText: 'メッセージを送る...',
                       border: InputBorder.none,
@@ -268,7 +269,7 @@ class _ChatInputArea extends StatelessWidget {
                         width: 36,
                         height: 36,
                         decoration: const BoxDecoration(
-                          color: Color(0xFF258EDB),
+                          color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),
                         child: const Center(
@@ -321,7 +322,7 @@ class RoomChatBubble extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 282),
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
           decoration: BoxDecoration(
-            color: isMine ? const Color(0xFFC9E9FF) : Colors.white,
+            color: isMine ? AppColors.primaryTrack : Colors.white,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
@@ -350,7 +351,7 @@ class RoomChatBubble extends StatelessWidget {
                 child: Container(
                   width: 10,
                   height: 18,
-                  color: isMine ? const Color(0xFFC9E9FF) : Colors.white,
+                  color: isMine ? AppColors.primaryTrack : Colors.white,
                 ),
               ),
             ),
@@ -372,7 +373,7 @@ class RoomChatBubble extends StatelessWidget {
             child: const CircleAvatar(
               radius: 16,
               backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: Color(0xFF258EDB), size: 20),
+              child: Icon(Icons.person, color: AppColors.primary, size: 20),
             ),
           ),
 

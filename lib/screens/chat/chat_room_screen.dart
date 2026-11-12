@@ -9,6 +9,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String userName;
@@ -98,7 +99,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
       appBar: AppBar(
         centerTitle: false,
-        backgroundColor: const Color(0xFF258EDB),
+        backgroundColor: AppColors.primary,
 
         title: Transform.translate(
           offset: const Offset(-19, 0),
@@ -178,7 +179,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
                         decoration: BoxDecoration(
                           color: isMe
-                              ? const Color(0xFF258EDB)
+                              ? AppColors.primary
                               : isDark
                               ? const Color(0xFF2D2D2D)
                               : Colors.grey[300],
@@ -252,7 +253,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 const SizedBox(width: 8),
 
                 IconButton(
-                  icon: const Icon(Icons.send, color: Color(0xFF258EDB)),
+                  icon: const Icon(Icons.send, color: AppColors.primary),
 
                   onPressed: _sendMessage,
                 ),

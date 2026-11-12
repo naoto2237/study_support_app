@@ -17,6 +17,7 @@ import 'package:study_support_app/screens/record/my_record/recent_records_sectio
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/screens/mypage/friend_request_dialog.dart';
 import 'package:study_support_app/screens/mypage/all_friends_screen.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class MypageProfileSection extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -32,7 +33,7 @@ class MypageProfileSection extends StatelessWidget {
     required this.isPublic,
   });
 
-  static const Color primaryBlue = Color(0xFF258EDB);
+  static const Color primaryBlue = AppColors.primary;
 
   void _openEditScreen(BuildContext context) {
     if (!isMyPage) return;
@@ -61,7 +62,7 @@ class MypageProfileSection extends StatelessWidget {
         // あるいはそのまま表示（必要に応じて調整可能）
         // ------------------------------------------
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 17),
           child: Row(
             children: [
               Expanded(
@@ -119,7 +120,7 @@ class MypageProfileSection extends StatelessWidget {
         // ------------------------------------------
         if ((data["comment"] ?? "").toString().trim().isNotEmpty) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 17),
             child: Text(
               data["comment"],
               style: const TextStyle(color: Colors.black87, fontSize: 14),
@@ -134,11 +135,11 @@ class MypageProfileSection extends StatelessWidget {
         // 境界線【共通】
         // ------------------------------------------
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 17),
           child: const Divider(
             height: 1,
             thickness: 1,
-            color: Color(0xFFE5E7EB),
+            color: AppColors.border,
           ),
         ),
 
@@ -148,7 +149,7 @@ class MypageProfileSection extends StatelessWidget {
         // プロフィール見出し【共通】
         // ------------------------------------------
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18),
+          padding: EdgeInsets.symmetric(horizontal: 17),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -168,7 +169,7 @@ class MypageProfileSection extends StatelessWidget {
         // プロフィール項目【共通】（学年や目標などは常に表示）
         // ------------------------------------------
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 17),
           child: Column(
             children: [
               _ProfileRow(
@@ -204,7 +205,7 @@ class MypageProfileSection extends StatelessWidget {
         // 学習時間（非公開の場合はグラフの代わりに非公開メッセージを表示）
         // ------------------------------------------
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 17),
           child: isPrivateOther
               ? Container(
                   padding: const EdgeInsets.symmetric(vertical: 30),
@@ -400,7 +401,7 @@ class _ProfileStatItem extends StatelessWidget {
           style: GoogleFonts.roboto(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF3D96E8),
+            color: AppColors.primary,
           ),
         ),
 
@@ -426,7 +427,7 @@ class _ProfileRow extends StatelessWidget {
 
   const _ProfileRow({required this.title, required this.value, this.onTap});
 
-  static const Color primaryBlue = Color(0xFF258EDB);
+  static const Color primaryBlue = AppColors.primary;
 
   @override
   Widget build(BuildContext context) {
@@ -435,7 +436,7 @@ class _ProfileRow extends StatelessWidget {
       child: Container(
         height: 54,
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+          border: Border(bottom: BorderSide(color: AppColors.border)),
         ),
         child: Row(
           children: [

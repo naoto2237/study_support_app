@@ -11,14 +11,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:jumping_dot/jumping_dot.dart';
-import 'package:flutter/services.dart';
 import 'package:study_support_app/screens/ai_support/ai_history_screen.dart';
 import 'package:study_support_app/screens/ai_support/ai_chat_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/screens/ai_support/ai_chat_input_bar.dart';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:study_support_app/screens/ai_support/ai_chat_message_list.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class AiHistoryChatScreen extends StatefulWidget {
   final String chatId;
@@ -251,7 +251,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
       },
 
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: AppColors.background,
 
         appBar: AppBar(
           leadingWidth: 56,
@@ -300,10 +300,7 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(17, 14, 17, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [_buildAnswerCard()],
@@ -335,107 +332,10 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
       return const SizedBox.shrink();
     }
 
+    // 会話の表示は共通の部品（ai_chat_message_list.dart）
     return Padding(
-      padding: const EdgeInsets.only(top: 0, right: 0, left: 0, bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ..._messages.map((message) {
-            if (message.isUser) {
-              // ユーザーの質問
-              return Align(
-                alignment: Alignment.centerRight,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 277),
-                  child: Container(
-                    margin: const EdgeInsets.only(top: 6, bottom: 17),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      message.text,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            // AIの回答
-            return SizedBox(
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message.text,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 15,
-                      height: 1.6,
-                    ),
-                  ),
-
-                  Row(
-                    children: [
-                      Transform.translate(
-                        offset: const Offset(-9, 2),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            splashColor: Colors.grey.withOpacity(0.15),
-                            highlightColor: Colors.grey.withOpacity(0.08),
-                            onTap: () async {
-                              await Clipboard.setData(
-                                ClipboardData(text: message.text),
-                              );
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Icon(
-                                Icons.content_copy_outlined,
-                                size: 18,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          }),
-
-          if (_isLoading)
-            Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  // const を削除
-                  JumpingDots(
-                    color: Color(0xFF2196F3),
-                    radius: 5,
-                    numberOfDots: 3,
-                    animationDuration: Duration(milliseconds: 250),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
+      padding: const EdgeInsets.only(bottom: 15),
+      child: AiChatMessageList(messages: _messages, isLoading: _isLoading),
     );
   }
 }

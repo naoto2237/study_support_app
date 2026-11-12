@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class FriendRequestDialog {
   // =========================================================
@@ -150,7 +151,7 @@ class FriendRequestDialog {
                         },
 
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF258EDB),
+                    backgroundColor: AppColors.primary,
                   ),
 
                   child: isSending

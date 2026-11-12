@@ -8,68 +8,82 @@
 
 import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/home/goal_time_setting_screen.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class WeekdayGoalButton extends StatelessWidget {
   const WeekdayGoalButton({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark
+        ? AppColors.primary.withValues(alpha: 0.16)
+        : AppColors.primarySoft;
+    final fg = isDark ? const Color(0xFF8CC4F2) : AppColors.primaryDeep;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const GoalTimeSettingScreen(),
-            ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF258EDB), width: 1.2),
-          ),
-          child: const Row(
-            children: [
-              Icon(
-                Icons.calendar_month_rounded,
-                color: Color(0xFF258EDB),
-                size: 25,
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Material(
+        color: bg,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const GoalTimeSettingScreen(),
               ),
-
-              SizedBox(width: 10),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '曜日ごとの目標を設定',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      '曜日ごとに目標時間をカスタマイズできます',
-                      style: TextStyle(fontSize: 11.5, color: Colors.black54),
-                    ),
-                  ],
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+            child: Row(
+              children: [
+                // アイコン（白い丸の中）
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.calendar_month_rounded,
+                    color: fg,
+                    size: 22,
+                  ),
                 ),
-              ),
 
-              Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFF258EDB),
-                size: 27,
-              ),
-            ],
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '曜日ごとの目標を設定',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: fg,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '曜日ごとに目標時間をカスタマイズできます',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: fg.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Icon(Icons.chevron_right_rounded, color: fg, size: 26),
+              ],
+            ),
           ),
         ),
       ),

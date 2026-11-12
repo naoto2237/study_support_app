@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class AllFriendsScreen extends StatelessWidget {
   final String userId;
@@ -16,7 +17,7 @@ class AllFriendsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: AppColors.background,
 
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -96,11 +97,11 @@ class AllFriendsScreen extends StatelessWidget {
                 child: ListTile(
                   leading: const CircleAvatar(
                     radius: 24,
-                    backgroundColor: Color(0xFFEAF4FF),
+                    backgroundColor: AppColors.primarySoft,
 
                     child: Icon(
                       Icons.person,
-                      color: Color(0xFF258EDB),
+                      color: AppColors.primary,
                       size: 27,
                     ),
                   ),
@@ -115,7 +116,7 @@ class AllFriendsScreen extends StatelessWidget {
 
                   trailing: const Icon(
                     Icons.chevron_right,
-                    color: Color(0xFF258EDB),
+                    color: AppColors.primary,
                   ),
 
                   onTap: () {

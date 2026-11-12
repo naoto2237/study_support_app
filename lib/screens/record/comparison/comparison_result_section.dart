@@ -11,6 +11,7 @@ import 'package:study_support_app/screens/record/comparison/comparison_chart_sec
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class ComparisonResultSection extends StatefulWidget {
   final int totalSeconds;
@@ -404,7 +405,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,7 +448,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
                                 : Icons.circle_outlined,
                             size: 18,
                             color: selectedPeriod == 0
-                                ? const Color(0xFF258EDB)
+                                ? AppColors.primary
                                 : Colors.grey,
                           ),
                           const SizedBox(width: 10),
@@ -466,7 +467,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
                                 : Icons.circle_outlined,
                             size: 18,
                             color: selectedPeriod == 1
-                                ? const Color(0xFF258EDB)
+                                ? AppColors.primary
                                 : Colors.grey,
                           ),
                           const SizedBox(width: 10),
@@ -485,7 +486,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
                                 : Icons.circle_outlined,
                             size: 18,
                             color: selectedPeriod == 2
-                                ? const Color(0xFF258EDB)
+                                ? AppColors.primary
                                 : Colors.grey,
                           ),
                           const SizedBox(width: 10),
@@ -595,7 +596,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
                       ? "--"
                       : formatStudyTime(myStudySeconds ?? 0),
                   "",
-                  const Color(0xFF258EDB),
+                  AppColors.primary,
                 ),
               ),
 
@@ -665,7 +666,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
             "自分の学習時間",
             isLoadingMyStudyTime ? "--" : formatStudyTime(myStudySeconds ?? 0),
             "",
-            const Color(0xFF258EDB),
+            AppColors.primary,
           ),
         ),
 

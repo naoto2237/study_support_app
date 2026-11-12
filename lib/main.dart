@@ -27,6 +27,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/screens/start/splash_screen.dart';
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 // アプリ全体で共有するダークモードの状態変数（初期値: false = ライト）
 final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
@@ -73,7 +74,7 @@ void initForegroundService() {
       playSound: false,
     ),
     foregroundTaskOptions: ForegroundTaskOptions(
-      eventAction: ForegroundTaskEventAction.repeat(250),
+      eventAction: ForegroundTaskEventAction.repeat(100),
       stopWithTask: false,
       allowWakeLock: true,
     ),
@@ -108,13 +109,14 @@ class MyApp extends StatelessWidget {
           // ライトモード時のテーマ
           theme: ThemeData(
             useMaterial3: true,
-            colorSchemeSeed: const Color(0xFFF7F7F7),
+            // 標準の部品（ボタン・くるくる回る印など）の色のもとになる色
+            colorSchemeSeed: AppColors.primary,
             brightness: Brightness.light,
             textTheme: GoogleFonts.notoSansJpTextTheme(),
             textSelectionTheme: const TextSelectionThemeData(
-              cursorColor: Color(0xFF2196F3),
-              selectionColor: Color(0x552196F3),
-              selectionHandleColor: Color(0xFF2196F3),
+              cursorColor: AppColors.primary,
+              selectionColor: AppColors.selection,
+              selectionHandleColor: AppColors.primary,
             ),
           ),
 
@@ -128,7 +130,7 @@ class MyApp extends StatelessWidget {
             // ダークモード時のボトムナビゲーションの色を統一
             bottomNavigationBarTheme: const BottomNavigationBarThemeData(
               backgroundColor: Color(0xFF1E1E1E),
-              selectedItemColor: Color(0xFF3D96E8),
+              selectedItemColor: AppColors.primary,
               unselectedItemColor: Colors.white60,
             ),
 
@@ -136,9 +138,9 @@ class MyApp extends StatelessWidget {
               ThemeData.dark().textTheme, // ダークモード用の文字色を適用
             ),
             textSelectionTheme: const TextSelectionThemeData(
-              cursorColor: Color(0xFF2196F3),
-              selectionColor: Color(0x552196F3),
-              selectionHandleColor: Color(0xFF2196F3),
+              cursorColor: AppColors.primary,
+              selectionColor: AppColors.selection,
+              selectionHandleColor: AppColors.primary,
             ),
           ),
 
@@ -316,7 +318,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     final selected = _selectedIndex == index;
 
     // 選択中・非選択中の色をダークモードに応じて分岐
-    final selectedColor = const Color(0xFF3D96E8);
+    final selectedColor = AppColors.primary;
     final unselectedColor = isDark ? Colors.white60 : const Color(0xFFB5B5B5);
     final unselectedTextCol = isDark ? Colors.white60 : const Color(0xFF9E9E9E);
 

@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'package:study_support_app/screens/start/onboarding_screen.dart'; // もしくは OnboardingScreen があるファイル
+import 'package:study_support_app/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -66,13 +67,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
     return Scaffold(
       // ★ ダークモード時は黒ベース、ライトモード時は白系に切り替える
-      backgroundColor: isDark
-          ? const Color(0xFF121212)
-          : const Color(0xFFF8F9FA),
+      backgroundColor: isDark ? const Color(0xFF121212) : AppColors.background,
       body: Center(
         child: CircularProgressIndicator(
           // くるくる回るインジケーターの色もダークモードで見えやすく調整可能
-          color: const Color(0xFF3D96E8),
+          color: AppColors.primary,
         ),
       ),
     );

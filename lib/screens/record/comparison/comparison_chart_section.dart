@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class ComparisonChartSection extends StatefulWidget {
   final int totalSeconds;
@@ -87,7 +88,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _legend(const Color(0xFF258EDB), "あなた"),
+              _legend(AppColors.primary, "あなた"),
 
               const SizedBox(width: 14),
 
@@ -111,7 +112,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
     return Container(
       height: 33,
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F7),
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -138,7 +139,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
           margin: const EdgeInsets.all(2),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFF258EDB) : Colors.transparent,
+            color: selected ? AppColors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
@@ -237,7 +238,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
             BarChartRodData(
               toY: myValues[index],
               width: 10,
-              color: const Color(0xFF258EDB),
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(4),
             ),
 
@@ -278,7 +279,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColors.border),
       ),
       child: child,
     );

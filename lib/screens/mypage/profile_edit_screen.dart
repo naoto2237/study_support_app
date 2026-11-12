@@ -17,6 +17,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:study_support_app/screens/mypage/profile_icon_adjust_screen.dart';
 import 'package:study_support_app/screens/mypage/profile_edit_fields.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -238,7 +239,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             decoration: InputDecoration(
               hintText: "名前を入力する",
               filled: true,
-              fillColor: const Color(0xFFF7F7F7),
+              fillColor: AppColors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -263,7 +264,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               child: const Text(
                 "変更",
                 style: TextStyle(
-                  color: Color(0xFF3D96E8),
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -300,7 +301,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             decoration: InputDecoration(
               hintText: "ユーザーIDを入力する",
               filled: true,
-              fillColor: const Color(0xFFF7F7F7),
+              fillColor: AppColors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -326,7 +327,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               child: const Text(
                 "変更",
                 style: TextStyle(
-                  color: Color(0xFF3D96E8),
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -381,7 +382,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ListTile(
                   leading: const Icon(
                     Icons.camera_alt_outlined,
-                    color: Color(0xFF3D96E8),
+                    color: AppColors.primary,
                   ),
                   title: const Text("カメラで撮影"),
                   onTap: _showIconOptions,
@@ -390,7 +391,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ListTile(
                   leading: const Icon(
                     Icons.photo_library_outlined,
-                    color: Color(0xFF3D96E8),
+                    color: AppColors.primary,
                   ),
                   title: const Text("写真を選択"),
                   onTap: () {
@@ -606,8 +607,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
     return CircleAvatar(
       radius: 50,
-      backgroundColor: const Color(0xFF3D96E8).withOpacity(0.12),
-      child: const Icon(Icons.person, size: 65, color: Color(0xFF3D96E8)),
+      backgroundColor: AppColors.primary.withOpacity(0.12),
+      child: const Icon(Icons.person, size: 65, color: AppColors.primary),
     );
   }
 
@@ -647,7 +648,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             child: const Text(
               "保存",
               style: TextStyle(
-                color: Color(0xFF3D96E8),
+                color: AppColors.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
               ),
@@ -681,7 +682,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3D96E8),
+                          color: AppColors.primary,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 3),
                         ),
@@ -705,7 +706,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 child: const Text(
                   "アイコンを変更",
                   style: TextStyle(
-                    color: Color(0xFF3D96E8),
+                    color: AppColors.primary,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
@@ -738,7 +739,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F7F7),
+                  color: AppColors.background,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -787,7 +788,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F7F7),
+                  color: AppColors.background,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -839,7 +840,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 hintText: "プロフィールコメントを入力する",
                 hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                 filled: true,
-                fillColor: const Color(0xFFF7F7F7),
+                fillColor: AppColors.background,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -851,7 +852,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: const BorderSide(
-                    color: Color(0xFF3D96E8),
+                    color: AppColors.primary,
                     width: 1.5,
                   ),
                 ),

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/link/room/create_tab/create_room_tab.dart';
 import 'package:study_support_app/screens/link/room/search_tab/search_room_tab.dart';
 import 'package:study_support_app/screens/notification/notification_screen.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class RoomScreen extends StatelessWidget {
   const RoomScreen({super.key});
@@ -28,7 +29,7 @@ class RoomScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: isDark
             ? const Color(0xFF121212)
-            : const Color(0xFFF7F7F7),
+            : AppColors.background,
 
         appBar: AppBar(
           backgroundColor: cardColor,
@@ -71,13 +72,15 @@ class RoomScreen extends StatelessWidget {
             ),
           ],
           bottom: TabBar(
-            indicatorSize: TabBarIndicatorSize.tab,
+            // 選んだタブの下線は、文字の幅だけの短い線にする
+            indicatorSize: TabBarIndicatorSize.label,
 
             indicator: const UnderlineTabIndicator(
-              borderSide: BorderSide(color: Color(0xFF258EDB), width: 3),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
+              borderSide: BorderSide(color: AppColors.primary, width: 3),
             ),
 
-            labelColor: const Color(0xFF258EDB),
+            labelColor: AppColors.primary,
             unselectedLabelColor: unselectedLabelColor,
 
             tabs: const [

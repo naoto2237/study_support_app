@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 
 import 'package:study_support_app/screens/link/room/create_tab/room_making_screen.dart';
 import 'package:study_support_app/screens/link/room/create_tab/room_card.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class CreateRoomTab extends StatelessWidget {
   const CreateRoomTab({super.key});
@@ -21,7 +22,7 @@ class CreateRoomTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final bgColor = isDark ? const Color(0xFF121212) : AppColors.background;
 
     final textColor = isDark ? Colors.white70 : Colors.black87;
 
@@ -29,14 +30,14 @@ class CreateRoomTab extends StatelessWidget {
       color: bgColor,
 
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(17, 14, 17, 24),
 
         children: [
           // =================================================
           // ルーム作成カード
           // =================================================
           InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
 
             onTap: () {
               Navigator.push(
@@ -47,34 +48,35 @@ class CreateRoomTab extends StatelessWidget {
             },
 
             child: Container(
-              padding: const EdgeInsets.all(20),
+              // 上下の余白をそろえて、中身をカードのまん中に置く
+              padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
 
               decoration: BoxDecoration(
-                color: const Color(0xFF3D96E8),
+                color: AppColors.primary,
 
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(18),
               ),
 
               child: Row(
                 children: [
                   Container(
-                    width: 65,
-                    height: 65,
+                    width: 52,
+                    height: 52,
 
                     decoration: BoxDecoration(
                       color: Colors.white24,
 
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
 
                     child: const Icon(
                       Icons.group_add,
                       color: Colors.white,
-                      size: 38,
+                      size: 28,
                     ),
                   ),
 
-                  const SizedBox(width: 18),
+                  const SizedBox(width: 14),
 
                   const Expanded(
                     child: Column(
@@ -86,29 +88,33 @@ class CreateRoomTab extends StatelessWidget {
 
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 22,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
 
-                        SizedBox(height: 8),
+                        SizedBox(height: 4),
 
                         Text(
                           "同じ目標を持つ仲間を集めよう",
 
-                          style: TextStyle(color: Colors.white70, fontSize: 15),
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
                         ),
                       ],
                     ),
                   ),
 
-                  const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ],
               ),
             ),
           ),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 22),
 
           // =================================================
           // マイルーム
@@ -117,13 +123,13 @@ class CreateRoomTab extends StatelessWidget {
             "マイルーム",
 
             style: TextStyle(
-              fontSize: 17,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
               color: textColor,
             ),
           ),
 
-          const SizedBox(height: 15),
+          const SizedBox(height: 10),
 
           // =================================================
           // Firestore
@@ -221,24 +227,34 @@ class _MyRoomList extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
 
               border: Border.all(
-                color: isDark ? Colors.grey.shade800 : Colors.transparent,
+                color: isDark ? Colors.grey.shade800 : AppColors.border,
               ),
             ),
 
             child: Column(
               children: [
-                Icon(Icons.groups_outlined, size: 50, color: subtitleColor),
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark
+                        ? AppColors.primary.withValues(alpha: 0.18)
+                        : AppColors.primarySoft,
+                  ),
+                  child: Icon(
+                    Icons.groups_outlined,
+                    size: 28,
+                    color: AppColors.primary,
+                  ),
+                ),
 
                 const SizedBox(height: 12),
 
                 Text(
                   "まだルームを作成していません",
 
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
+                  style: TextStyle(fontSize: 15, color: textColor),
                 ),
 
                 const SizedBox(height: 6),
@@ -246,7 +262,7 @@ class _MyRoomList extends StatelessWidget {
                 Text(
                   "「ルームを作る」から作成しましょう",
 
-                  style: TextStyle(color: subtitleColor),
+                  style: TextStyle(fontSize: 12.5, color: subtitleColor),
                 ),
               ],
             ),

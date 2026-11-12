@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/link/room/space/room_space_screen.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 // =============================================================
 // 公開ルームカード
@@ -117,7 +118,7 @@ class PublicRoomCard extends StatelessWidget {
 
     final subtitleColor = isDark ? Colors.white60 : Colors.grey;
 
-    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+    final borderColor = isDark ? Colors.grey.shade800 : AppColors.border;
 
     return Card(
       elevation: 0,
@@ -261,7 +262,7 @@ class PublicRoomCard extends StatelessWidget {
                           },
 
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3D96E8),
+                            backgroundColor: AppColors.primary,
 
                             foregroundColor: Colors.white,
                           ),
@@ -287,7 +288,7 @@ class PublicRoomCard extends StatelessWidget {
               },
 
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3D96E8),
+                backgroundColor: AppColors.primary,
 
                 foregroundColor: Colors.white,
 

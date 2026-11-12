@@ -15,6 +15,7 @@ import 'package:study_support_app/screens/chat/chat_list_screen.dart';
 import 'package:study_support_app/screens/notification/notification_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class LinkScreen extends StatelessWidget {
   const LinkScreen({super.key});
@@ -23,14 +24,12 @@ class LinkScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
-    final appBarColor = isDark
-        ? const Color(0xFF258EDB)
-        : const Color(0xFF258EDB);
+    final bgColor = isDark ? const Color(0xFF121212) : AppColors.background;
+    final appBarColor = isDark ? AppColors.primary : AppColors.primary;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subtitleColor = isDark ? Colors.white70 : Colors.black54;
-    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB);
+    final borderColor = isDark ? Colors.grey.shade800 : AppColors.border;
     final trailingColor = isDark ? Colors.white60 : Colors.grey;
 
     return Scaffold(
@@ -177,8 +176,11 @@ class LinkScreen extends StatelessWidget {
         ],
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      // スクロールできる作りにして、キーボードで縦が縮んだときも
+      // はみ出し（黄色と黒の縞）が出ないようにする
+      body: SingleChildScrollView(
+        // 見出しの文字の高さを、ホームの日付の高さにそろえる
+        padding: const EdgeInsets.fromLTRB(17, 11, 17, 24),
 
         child: Column(
           children: [
@@ -193,7 +195,7 @@ class LinkScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF258EDB),
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 3.5),
@@ -210,7 +212,7 @@ class LinkScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             _buildMenuCard(
               context,
@@ -225,7 +227,7 @@ class LinkScreen extends StatelessWidget {
               trailingColor: trailingColor,
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
             _buildMenuCard(
               context,
@@ -240,7 +242,7 @@ class LinkScreen extends StatelessWidget {
               trailingColor: trailingColor,
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
             _buildMenuCard(
               context,
@@ -275,6 +277,8 @@ class LinkScreen extends StatelessWidget {
     return Card(
       color: cardColor,
       elevation: 0,
+      // カードの外側の余白をなくし、画面の左右の余白（16）をほかの画面とそろえる
+      margin: EdgeInsets.zero,
 
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -284,7 +288,7 @@ class LinkScreen extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
 
-        leading: Icon(icon, size: 36, color: const Color(0xFF258EDB)),
+        leading: Icon(icon, size: 36, color: AppColors.primary),
 
         title: Text(
           title,

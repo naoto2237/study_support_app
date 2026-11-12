@@ -16,6 +16,7 @@ import 'package:study_support_app/screens/record/my_record/my_record_screen.dart
 import 'package:study_support_app/screens/record/comparison/comparison_screen.dart';
 import 'package:study_support_app/screens/chat/chat_list_screen.dart';
 import 'package:study_support_app/screens/notification/notification_screen.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class RecordScreen extends StatefulWidget {
   final String? userId;
@@ -113,14 +114,14 @@ class _RecordScreenState extends State<RecordScreen> {
       child: Scaffold(
         backgroundColor: isDark
             ? const Color(0xFF121212)
-            : const Color(0xFFF7F7F7),
+            : AppColors.background,
 
         // ========================================================
         // AppBar
         // ========================================================
         appBar: AppBar(
           centerTitle: false,
-          backgroundColor: const Color(0xFF258EDB),
+          backgroundColor: AppColors.primary,
 
           title: const Text(
             "学習記録",
@@ -265,13 +266,15 @@ class _RecordScreenState extends State<RecordScreen> {
             child: Container(
               color: Colors.white,
               child: TabBar(
-                indicatorSize: TabBarIndicatorSize.tab,
+                // 選んだタブの下線は、文字の幅だけの短い線にする
+                indicatorSize: TabBarIndicatorSize.label,
 
                 indicator: const UnderlineTabIndicator(
-                  borderSide: BorderSide(color: Color(0xFF258EDB), width: 3),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
+                  borderSide: BorderSide(color: AppColors.primary, width: 3),
                 ),
 
-                labelColor: const Color(0xFF258EDB),
+                labelColor: AppColors.primary,
 
                 unselectedLabelColor: unselectedLabelColor,
 

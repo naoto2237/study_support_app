@@ -11,6 +11,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/main.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -109,10 +110,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF258EDB);
+    const primaryColor = AppColors.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
 
       appBar: AppBar(
         backgroundColor: primaryColor,
@@ -222,7 +223,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF4FF),
+                    color: AppColors.primarySoft,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -315,7 +316,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required TextEditingController controller,
     required String? Function(String?) validator,
   }) {
-    const primaryColor = Color(0xFF258EDB);
+    const primaryColor = AppColors.primary;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

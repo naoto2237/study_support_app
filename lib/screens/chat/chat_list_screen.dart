@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/chat/chat_room_screen.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -63,7 +64,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
     final backgroundColor = isDark
         ? const Color(0xFF121212)
-        : Color(0xFFF7F7F7);
+        : AppColors.background;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -102,10 +103,10 @@ class _ChatListScreenState extends State<ChatListScreen>
               indicatorSize: TabBarIndicatorSize.tab,
 
               indicator: const UnderlineTabIndicator(
-                borderSide: BorderSide(color: Color(0xFF258EDB), width: 3),
+                borderSide: BorderSide(color: AppColors.primary, width: 3),
               ),
 
-              labelColor: const Color(0xFF258EDB),
+              labelColor: AppColors.primary,
 
               unselectedLabelColor: isDark ? Colors.grey : Colors.grey,
 
@@ -219,7 +220,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
           filled: true,
 
-          fillColor: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF7F7F7),
+          fillColor: isDark ? const Color(0xFF2D2D2D) : AppColors.background,
 
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -241,7 +242,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
 
-            borderSide: const BorderSide(color: Color(0xFF258EDB), width: 1.5),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
         ),
       ),
@@ -304,11 +305,11 @@ class _ChatListScreenState extends State<ChatListScreen>
 
                   leading: CircleAvatar(
                     radius: 24,
-                    backgroundColor: const Color(0xFF258EDB).withOpacity(0.12),
+                    backgroundColor: AppColors.primary.withOpacity(0.12),
 
                     child: const Icon(
                       Icons.person,
-                      color: Color(0xFF258EDB),
+                      color: AppColors.primary,
                       size: 27,
                     ),
                   ),
@@ -457,9 +458,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
                       leading: CircleAvatar(
                         radius: 24,
-                        backgroundColor: const Color(
-                          0xFF258EDB,
-                        ).withOpacity(0.12),
+                        backgroundColor: AppColors.primary.withOpacity(0.12),
 
                         backgroundImage: icon.isNotEmpty
                             ? NetworkImage(icon)
@@ -468,7 +467,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                         child: icon.isEmpty
                             ? const Icon(
                                 Icons.person,
-                                color: Color(0xFF258EDB),
+                                color: AppColors.primary,
                                 size: 27,
                               )
                             : null,

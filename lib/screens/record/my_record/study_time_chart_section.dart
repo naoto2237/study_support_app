@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:study_support_app/screens/record/my_record/recent_records_section.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class StudyTimeChartSection extends StatefulWidget {
   final Color cardColor;
@@ -208,7 +209,7 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _legend(const Color(0xFF258EDB), "学習時間"),
+              _legend(AppColors.primary, "学習時間"),
               const SizedBox(width: 14),
               _legend(const Color(0xFFBDBDBD), "目標時間"),
             ],
@@ -224,7 +225,7 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
     return Container(
       height: 33,
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F7),
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -253,13 +254,13 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
           margin: const EdgeInsets.all(2),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFF258EDB) : Colors.transparent,
+            color: selected ? AppColors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
             title,
             style: TextStyle(
-              color: selected ? Colors.white : Colors.black87,
+              color: selected ? Colors.white : widget.textColor,
               fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -405,7 +406,7 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
             getTitlesWidget: (value, meta) {
               return Text(
                 value.toInt().toString(),
-                style: const TextStyle(fontSize: 10),
+                style: TextStyle(fontSize: 11, color: widget.secondaryColor),
               );
             },
           ),
@@ -423,12 +424,20 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
                 return const SizedBox();
               }
 
+              // 週のグラフだけ、土曜は青・日曜は赤にする（月曜はじまり）
+              Color labelColor = widget.secondaryColor;
+              if (selectedPeriod == 0 && index == 5) {
+                labelColor = AppColors.primary;
+              } else if (selectedPeriod == 0 && index == 6) {
+                labelColor = const Color(0xFFE5534B);
+              }
+
               return Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   labels[index],
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 10),
+                  style: TextStyle(fontSize: 11, color: labelColor),
                 ),
               );
             },
@@ -449,7 +458,7 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
             BarChartRodData(
               toY: values[index],
               width: selectedPeriod == 2 ? 12 : 17,
-              color: const Color(0xFF258EDB),
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(5),
             ),
           ],
@@ -628,7 +637,10 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 5),
-        Text(text, style: const TextStyle(fontSize: 11)),
+        Text(
+          text,
+          style: TextStyle(fontSize: 12, color: widget.secondaryColor),
+        ),
       ],
     );
   }
@@ -640,7 +652,7 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColors.border),
       ),
       child: child,
     );

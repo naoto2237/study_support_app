@@ -13,6 +13,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/main.dart'; // main.dart の isDarkModeNotifier などを読み込む
 import 'package:study_support_app/screens/start/onboarding_screen.dart'; // OnboardingScreen があるファイル
+import 'package:study_support_app/theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -87,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text('明るい背景のテーマ'),
                     value: false,
                     groupValue: tempThemeOption,
-                    activeColor: Colors.blue,
+                    activeColor: AppColors.primary,
                     onChanged: (bool? value) {
                       setDialogState(() {
                         tempThemeOption = value!;
@@ -99,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text('暗めの落ち着いたテーマ'),
                     value: true,
                     groupValue: tempThemeOption,
-                    activeColor: Colors.blue,
+                    activeColor: AppColors.primary,
                     onChanged: (bool? value) {
                       setDialogState(() {
                         tempThemeOption = value!;
@@ -118,7 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -169,7 +170,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text('他のユーザーに学習記録を見せる'),
                     value: 'public',
                     groupValue: tempPrivacyOption,
-                    activeColor: Colors.blue,
+                    activeColor: AppColors.primary,
                     onChanged: (String? value) {
                       setDialogState(() {
                         tempPrivacyOption = value!;
@@ -181,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text('自分だけが学習記録を確認できる'),
                     value: 'private',
                     groupValue: tempPrivacyOption,
-                    activeColor: Colors.blue,
+                    activeColor: AppColors.primary,
                     onChanged: (String? value) {
                       setDialogState(() {
                         tempPrivacyOption = value!;
@@ -200,7 +201,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -324,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -349,7 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.blue, size: 24),
+        Icon(icon, color: AppColors.primary, size: 24),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -382,7 +383,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, isDark, child) {
         final backgroundColor = isDark
             ? const Color(0xFF121212)
-            : const Color(0xFFF8F9FA);
+            : AppColors.background;
         final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
         final textColor = isDark ? Colors.white70 : Colors.black87;
         final subTextColor = isDark ? Colors.white54 : Colors.grey;
@@ -427,7 +428,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ListTile(
                       leading: const Icon(
                         Icons.dark_mode_outlined,
-                        color: Colors.blue,
+                        color: AppColors.primary,
                       ),
                       title: Text('ダークモード', style: TextStyle(color: textColor)),
                       subtitle: Text(
@@ -451,7 +452,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ListTile(
                       leading: const Icon(
                         Icons.lock_outline,
-                        color: Colors.blue,
+                        color: AppColors.primary,
                       ),
                       title: Text(
                         '学習記録の公開',
@@ -499,7 +500,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 child: ListTile(
-                  leading: const Icon(Icons.help_outline, color: Colors.blue),
+                  leading: const Icon(
+                    Icons.help_outline,
+                    color: AppColors.primary,
+                  ),
                   title: Text('使い方ガイド', style: TextStyle(color: textColor)),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                   onTap: () => _showGuideDialog(context),

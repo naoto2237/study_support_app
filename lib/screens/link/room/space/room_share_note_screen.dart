@@ -7,6 +7,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class RoomShareNoteScreen extends StatelessWidget {
   const RoomShareNoteScreen({super.key});
@@ -36,7 +37,7 @@ class RoomShareNoteScreen extends StatelessWidget {
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+        side: const BorderSide(color: AppColors.border),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
@@ -44,12 +45,12 @@ class RoomShareNoteScreen extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: const BoxDecoration(
-            color: Color(0xFFEAF4FF),
+            color: AppColors.primarySoft,
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.description_rounded,
-            color: Color(0xFF258EDB),
+            color: AppColors.primary,
           ),
         ),
         title: Text(

@@ -6,6 +6,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class RoomMemberScreen extends StatelessWidget {
   final String roomId;
@@ -27,7 +28,7 @@ class RoomMemberScreen extends StatelessWidget {
         // ==============================
         if (memberSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF258EDB)),
+            child: CircularProgressIndicator(color: AppColors.primary),
           );
         }
 
@@ -134,7 +135,7 @@ class MemberTile extends StatelessWidget {
       shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+        side: const BorderSide(color: AppColors.border),
       ),
       child: const Padding(
         padding: EdgeInsets.all(20),
@@ -144,7 +145,7 @@ class MemberTile extends StatelessWidget {
             height: 22,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Color(0xFF258EDB),
+              color: AppColors.primary,
             ),
           ),
         ),
@@ -162,7 +163,7 @@ class MemberTile extends StatelessWidget {
       shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+        side: const BorderSide(color: AppColors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -171,8 +172,8 @@ class MemberTile extends StatelessWidget {
             // アイコン
             const CircleAvatar(
               radius: 24,
-              backgroundColor: Color(0xFFEAF4FF),
-              child: Icon(Icons.person, color: Color(0xFF258EDB)),
+              backgroundColor: AppColors.primarySoft,
+              child: Icon(Icons.person, color: AppColors.primary),
             ),
 
             const SizedBox(width: 14),

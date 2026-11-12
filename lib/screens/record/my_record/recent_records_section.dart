@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/screens/record/my_record/all_study_records_screen.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class RecentRecordsSection extends StatefulWidget {
   final Color cardColor;
@@ -196,7 +197,7 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: showDivider
           ? BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+              border: Border(bottom: BorderSide(color: AppColors.divider)),
             )
           : null,
       child: Row(
@@ -263,7 +264,7 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
       decoration: BoxDecoration(
         color: widget.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColors.border),
       ),
       child: child,
     );

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/screens/notification/friend_request_notification.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -24,7 +25,7 @@ class NotificationScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Color(0xFFF7F7F7),
+      backgroundColor: AppColors.background,
 
       appBar: AppBar(
         title: Transform.translate(
@@ -223,15 +224,15 @@ class _FriendAcceptedTile extends StatelessWidget {
 
     return CircleAvatar(
       radius: 24,
-      backgroundColor: const Color(0xFF258EDB).withOpacity(0.12),
-      child: const Icon(Icons.person, size: 27, color: Color(0xFF258EDB)),
+      backgroundColor: AppColors.primary.withOpacity(0.12),
+      child: const Icon(Icons.person, size: 27, color: AppColors.primary),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Color(0xFFF1F8FF),
+      color: AppColors.primarySoft,
 
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
 

@@ -20,6 +20,15 @@ class StudyTimerTaskHandler extends TaskHandler {
   // 開始時点までの累計時間
   int _baseMilliseconds = 0;
 
+  // 最後に通知に出した秒（同じ秒のあいだは書き換えない）
+  int? _lastShownSecond;
+
+  // 減るタイマーの設定時間（増えるタイマーのときは null）
+  int? _countdownTargetMilliseconds;
+
+  // 減るタイマーが0になったか
+  bool _countdownFinished = false;
+
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     // HomeScreenから開始時刻を受け取る
@@ -43,6 +52,12 @@ class StudyTimerTaskHandler extends TaskHandler {
       _baseMilliseconds = baseTime;
     }
 
+    // 減るタイマーの設定時間（増えるタイマーのときは null）
+    final target = data['countdownTargetMilliseconds'];
+    _countdownTargetMilliseconds = target is int ? target : null;
+    _countdownFinished = false;
+
+    _lastShownSecond = null;
     _updateTime();
   }
 
@@ -54,6 +69,9 @@ class StudyTimerTaskHandler extends TaskHandler {
   void _updateTime() {
     if (_startTimeMilliseconds == null) return;
 
+    // 減るタイマーが0になったあとは、何もしない（ホームが止めるのを待つ）
+    if (_countdownFinished) return;
+
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // HomeScreenと同じ計算
@@ -61,8 +79,40 @@ class StudyTimerTaskHandler extends TaskHandler {
 
     final totalMilliseconds = _baseMilliseconds + elapsedMilliseconds;
 
+    final target = _countdownTargetMilliseconds;
+
+    // ----------------------------------------------------------
+    // 減るタイマーが0になった
+    // ----------------------------------------------------------
+    if (target != null && totalMilliseconds >= target) {
+      _countdownFinished = true;
+
+      FlutterForegroundTask.updateService(
+        notificationTitle: '学習タイマー',
+        notificationText: '終了',
+      );
+
+      // ホームへ知らせて、止めて記録してもらう
+      FlutterForegroundTask.sendDataToMain({
+        'totalMilliseconds': target,
+        'countdownFinished': true,
+      });
+      return;
+    }
+
+    // 通知に出す秒（増える：たまった時間・切り捨て／減る：残り時間・切り上げ）
+    // ホームの表示と同じ計算なので、同じ瞬間に秒が変わる
+    final shownSeconds = target == null
+        ? totalMilliseconds ~/ 1000
+        : (target - totalMilliseconds + 999) ~/ 1000;
+
+    // 秒の数字が変わったときだけ通知を書き換える。
+    // 書き換えが多すぎると Android が間引いて、通知の表示が遅れるため。
+    if (shownSeconds == _lastShownSecond) return;
+    _lastShownSecond = shownSeconds;
+
     // 通知を更新
-    _updateNotification(Duration(milliseconds: totalMilliseconds));
+    _updateNotification(shownSeconds, isCountdown: target != null);
 
     // HomeScreenへ同じ時間を送る
     FlutterForegroundTask.sendDataToMain({
@@ -70,16 +120,18 @@ class StudyTimerTaskHandler extends TaskHandler {
     });
   }
 
-  void _updateNotification(Duration duration) {
-    final hours = duration.inHours.toString().padLeft(2, '0');
+  void _updateNotification(int totalSeconds, {required bool isCountdown}) {
+    final hours = (totalSeconds ~/ 3600).toString().padLeft(2, '0');
 
-    final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
+    final minutes = (totalSeconds ~/ 60 % 60).toString().padLeft(2, '0');
 
-    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
 
     FlutterForegroundTask.updateService(
       notificationTitle: '学習中',
-      notificationText: '$hours:$minutes:$seconds',
+      notificationText: isCountdown
+          ? '残り $hours:$minutes:$seconds'
+          : '$hours:$minutes:$seconds',
     );
   }
 

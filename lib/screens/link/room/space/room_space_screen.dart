@@ -18,6 +18,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/screens/link/room/space/room_feature_screen.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class RoomSpaceScreen extends StatefulWidget {
   final String roomTitle;
@@ -91,7 +92,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: const Color(0xFFE5E7EB)),
+        child: Container(height: 1, color: AppColors.border),
       ),
       flexibleSpace: Container(
         decoration: BoxDecoration(
@@ -226,7 +227,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        //border: Border.all(color: const Color(0xFFE5E7EB)),
+        //border: Border.all(color: AppColors.border),
         /*boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -250,7 +251,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               child: VerticalDivider(
                 width: 1,
                 thickness: 1,
-                color: const Color(0xFFE5E7EB),
+                color: AppColors.border,
               ),
             ),
 
@@ -281,8 +282,8 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
                 value: 0.45,
                 strokeWidth: 7.1,
                 strokeCap: StrokeCap.round,
-                backgroundColor: const Color(0xFFC9E9FF),
-                valueColor: const AlwaysStoppedAnimation(Color(0xFF258EDB)),
+                backgroundColor: AppColors.primaryTrack,
+                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
               ),
             ),
 
@@ -309,7 +310,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
                   child: Text(
                     _formatTime(),
                     style: GoogleFonts.roboto(
-                      color: Color(0xFF258EDB),
+                      color: AppColors.primary,
                       fontSize: 35.2,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.9,
@@ -353,7 +354,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Color(0xFF258EDB),
+              color: AppColors.primary,
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -381,11 +382,11 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+              border: Border.all(color: AppColors.border, width: 1.5),
             ),
             child: const Icon(
               Icons.refresh_rounded,
-              color: Color(0xFF258EDB),
+              color: AppColors.primary,
               size: 28,
             ),
           ),
@@ -462,7 +463,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               padding: const EdgeInsets.only(right: 0),
               child: SizedBox(
                 width: 120,
-                child: const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                child: const Divider(height: 1, color: AppColors.border),
               ),
             ),
           ),
@@ -471,7 +472,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             icon: Icons.hourglass_empty,
             title: "目標まで残り",
             value: "45分",
-            iconColor: const Color(0xFF258EDB),
+            iconColor: AppColors.primary,
           ),
 
           Align(
@@ -480,7 +481,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
               padding: const EdgeInsets.only(right: 0),
               child: SizedBox(
                 width: 120,
-                child: const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                child: const Divider(height: 1, color: AppColors.border),
               ),
             ),
           ),
@@ -489,7 +490,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             icon: Icons.timer_outlined,
             title: "今日の学習時間",
             value: "2時間15分",
-            iconColor: const Color(0xFF258EDB),
+            iconColor: AppColors.primary,
           ),
         ],
       ),
@@ -506,7 +507,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
           child: _buildFeatureButton(
             icon: Icons.groups_rounded,
             title: "メンバー",
-            iconColor: const Color(0xFF258EDB),
+            iconColor: AppColors.primary,
             iconSize: 36,
             onTap: () {
               _openFeatureScreen(
@@ -525,7 +526,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             icon: Icons.chat_rounded,
             title: "チャット",
 
-            iconColor: const Color(0xFF258EDB),
+            iconColor: AppColors.primary,
             badge: "3",
             iconSize: 29,
             onTap: () {
@@ -545,7 +546,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             icon: Icons.description_rounded,
             title: "共有ノート",
 
-            iconColor: const Color(0xFF258EDB),
+            iconColor: AppColors.primary,
             badge: "2",
             iconSize: 30,
             onTap: () {
@@ -579,7 +580,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+            border: Border.all(color: AppColors.border),
             /* boxShadow: [
              BoxShadow(
                 color: Colors.black.withValues(alpha: 0.035),
@@ -625,7 +626,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         children: [
@@ -636,11 +637,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
           const SizedBox(height: 16),
 
-          Container(
-            height: 1,
-            width: double.infinity,
-            color: const Color(0xFFE5E7EB),
-          ),
+          Container(height: 1, width: double.infinity, color: AppColors.border),
 
           const SizedBox(height: 16),
 
@@ -668,7 +665,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             child: Center(
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Color(0xFF258EDB),
+                color: AppColors.primary,
               ),
             ),
           );
@@ -713,7 +710,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
                     "すべて見る",
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF258EDB),
+                      color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -767,7 +764,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             ),
             child: const Icon(
               Icons.add_rounded,
-              color: Color(0xFF258EDB),
+              color: AppColors.primary,
               size: 30,
             ),
           ),
@@ -778,7 +775,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
             "招待する",
             style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF258EDB),
+              color: AppColors.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -804,7 +801,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
         _buildActivityItem(
           icon: Icons.play_arrow_rounded,
-          iconColor: const Color(0xFF258EDB),
+          iconColor: AppColors.primary,
           name: "Aさん",
           text: "学習を開始しました",
           time: "10:32",
@@ -814,7 +811,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
         _buildActivityItem(
           icon: Icons.description_rounded,
-          iconColor: const Color(0xFF258EDB),
+          iconColor: AppColors.primary,
           name: "Bさん",
           text: "共有ノートを更新しました",
           time: "10:18",
@@ -824,7 +821,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
         _buildActivityItem(
           icon: Icons.login_rounded,
-          iconColor: const Color(0xFF258EDB),
+          iconColor: AppColors.primary,
           name: "Cさん",
           text: "ルームに参加しました",
           time: "09:54",
@@ -846,7 +843,7 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
           width: 36,
           height: 36,
           decoration: const BoxDecoration(
-            color: Color(0xFFEAF4FF),
+            color: AppColors.primarySoft,
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor, size: 19),
@@ -1073,7 +1070,7 @@ class _MemberSummaryUser extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEAF4FF),
+                  color: AppColors.primarySoft,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -1115,14 +1112,14 @@ class _MemberSummaryUser extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF4FF),
+                color: AppColors.primarySoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Text(
                 "オーナー",
                 style: TextStyle(
                   fontSize: 9,
-                  color: Color(0xFF258EDB),
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),

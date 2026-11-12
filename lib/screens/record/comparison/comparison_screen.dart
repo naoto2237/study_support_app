@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/record/comparison/comparison_result_section.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class ComparisonScreen extends StatefulWidget {
   final int totalSeconds;
@@ -67,7 +68,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
     final backgroundColor = isDark
         ? const Color(0xFF121212)
-        : const Color(0xFFF8F8FC);
+        : AppColors.background;
 
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
@@ -78,7 +79,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     return Container(
       color: backgroundColor,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+        padding: const EdgeInsets.fromLTRB(17, 14, 17, 24),
         child: Column(
           children: [
             _buildConditionCard(cardColor, textColor, secondaryColor),
@@ -124,7 +125,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
               ListTile(
                 title: const Text("全体のユーザー"),
                 trailing: comparisonTarget == "全体のユーザー"
-                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
+                    ? const Icon(Icons.check, color: AppColors.primary)
                     : null,
                 onTap: () {
                   setState(() {
@@ -138,7 +139,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
               ListTile(
                 title: const Text("特定のユーザー"),
                 trailing: comparisonTarget == "特定のユーザー"
-                    ? const Icon(Icons.check, color: Color(0xFF258EDB))
+                    ? const Icon(Icons.check, color: AppColors.primary)
                     : null,
                 onTap: () {
                   setState(() {
@@ -201,12 +202,12 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF258EDB)),
+                border: Border.all(color: AppColors.primary),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.groups, color: Color(0xFF258EDB), size: 44),
+                  const Icon(Icons.groups, color: AppColors.primary, size: 44),
 
                   const SizedBox(width: 14),
 
@@ -233,7 +234,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
                   const Spacer(),
 
-                  Icon(Icons.info_outline, color: Color(0xFF258EDB)),
+                  Icon(Icons.info_outline, color: AppColors.primary),
                 ],
               ),
             ),
@@ -252,7 +253,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                 });
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF258EDB),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -281,7 +282,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColors.border),
       ),
       child: child,
     );
@@ -310,7 +311,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(color: AppColors.border),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(

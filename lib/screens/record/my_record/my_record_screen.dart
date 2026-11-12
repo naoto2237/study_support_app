@@ -15,6 +15,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class MyRecordScreen extends StatefulWidget {
   final String userId;
@@ -765,7 +766,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
 
     final backgroundColor = isDark
         ? const Color(0xFF121212)
-        : const Color(0xFFF8F8FC);
+        : AppColors.background;
 
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
@@ -779,7 +780,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
         return Container(
           color: backgroundColor,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+            padding: const EdgeInsets.fromLTRB(17, 14, 17, 24),
             child: Column(
               children: [
                 _buildSummaryCard(cardColor, textColor, secondaryColor),
@@ -897,7 +898,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         children: [
@@ -939,7 +940,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                                     : Icons.circle_outlined,
                                 size: 18,
                                 color: summaryPeriod == 0
-                                    ? const Color(0xFF258EDB)
+                                    ? AppColors.primary
                                     : secondaryColor,
                               ),
                               const SizedBox(width: 10),
@@ -967,7 +968,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                                     : Icons.circle_outlined,
                                 size: 18,
                                 color: summaryPeriod == 1
-                                    ? const Color(0xFF258EDB)
+                                    ? AppColors.primary
                                     : secondaryColor,
                               ),
                               const SizedBox(width: 10),
@@ -995,7 +996,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                                     : Icons.circle_outlined,
                                 size: 18,
                                 color: summaryPeriod == 2
-                                    ? const Color(0xFF258EDB)
+                                    ? AppColors.primary
                                     : secondaryColor,
                               ),
                               const SizedBox(width: 10),
@@ -1110,7 +1111,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                         Container(
                           width: 1,
                           height: 55,
-                          color: Colors.grey.shade300,
+                          color: AppColors.border,
                         ),
 
                         const Expanded(child: SizedBox()),
@@ -1118,7 +1119,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                         Container(
                           width: 1,
                           height: 55,
-                          color: Colors.grey.shade300,
+                          color: AppColors.border,
                         ),
 
                         const Expanded(child: SizedBox()),
@@ -1148,7 +1149,15 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(title, style: const TextStyle(fontSize: 11)),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : Colors.black54,
+          ),
+        ),
 
         const SizedBox(height: 9),
 

@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'package:study_support_app/screens/link/room/search_tab/public_room_card.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class SearchRoomTab extends StatefulWidget {
   const SearchRoomTab({super.key});
@@ -37,13 +38,11 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7);
+    final bgColor = isDark ? const Color(0xFF121212) : AppColors.background;
 
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     final textColor = isDark ? Colors.white70 : Colors.black87;
-
-    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
 
     return GestureDetector(
       onTap: () {
@@ -54,116 +53,121 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
         color: bgColor,
 
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(17, 14, 17, 24),
 
           children: [
             // =================================================
-            // 検索バー
+            // 検索欄（丸い形）と、絞り込みのボタン
             // =================================================
-            TextField(
-              controller: _searchController,
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
 
-              style: TextStyle(color: textColor),
+                    style: TextStyle(color: textColor, fontSize: 15),
 
-              cursorColor: const Color(0xFF3D96E8),
+                    cursorColor: AppColors.primary,
 
-              onChanged: (value) {
-                setState(() {
-                  _searchText = value.trim().toLowerCase();
-                });
-              },
+                    textInputAction: TextInputAction.search,
 
-              decoration: InputDecoration(
-                hintText: "ルーム名・資格名で検索",
+                    onChanged: (value) {
+                      setState(() {
+                        _searchText = value.trim().toLowerCase();
+                      });
+                    },
 
-                hintStyle: TextStyle(color: subtitleColor),
+                    decoration: InputDecoration(
+                      hintText: "ルーム名・資格名で検索",
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                        fontSize: 15,
+                      ),
+                      filled: true,
+                      fillColor: cardColor,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 14,
+                      ),
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 4),
+                        child: Icon(
+                          Icons.search_rounded,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 44),
+                      suffixIcon: _searchText.isNotEmpty
+                          ? IconButton(
+                              tooltip: "消す",
+                              icon: Icon(
+                                Icons.cancel_rounded,
+                                size: 20,
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
 
-                prefixIcon: Icon(Icons.search, color: subtitleColor),
-
-                suffixIcon: _searchText.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear, color: subtitleColor),
-
-                        onPressed: () {
-                          _searchController.clear();
-
-                          setState(() {
-                            _searchText = "";
-                          });
-                        },
-                      )
-                    : null,
-
-                filled: true,
-
-                fillColor: cardColor,
-
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-
-                  borderSide: BorderSide(
-                    color: isDark ? Colors.grey.shade800 : Colors.transparent,
-                  ),
-                ),
-
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-
-                  borderSide: BorderSide(
-                    color: isDark ? Colors.grey.shade800 : Colors.transparent,
-                  ),
-                ),
-
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-
-                  borderSide: const BorderSide(
-                    color: Color(0xFF3D96E8),
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // =================================================
-            // 絞り込み
-            // =================================================
-            SizedBox(
-              height: 45,
-
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // TODO:
-                  // 絞り込み機能
-                },
-
-                icon: const Icon(Icons.filter_list),
-
-                label: const Text("絞り込み"),
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: cardColor,
-
-                  foregroundColor: const Color(0xFF3D96E8),
-
-                  elevation: 0,
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-
-                    side: BorderSide(
-                      color: isDark
-                          ? Colors.grey.shade800
-                          : const Color(0xFFE5E7EB),
+                                setState(() {
+                                  _searchText = "";
+                                });
+                              },
+                            )
+                          : null,
+                      // ふだんは枠線なし（白い面だけで浮かせる）。入力中は青い枠
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(28),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(28),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(28),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+
+                const SizedBox(width: 10),
+
+                // 絞り込み（まだ作りかけ。押しても今は何もしない）
+                Material(
+                  color: cardColor,
+                  shape: CircleBorder(
+                    side: BorderSide(
+                      color: isDark ? Colors.grey.shade800 : AppColors.border,
+                    ),
+                  ),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () {
+                      // TODO:
+                      // 絞り込み機能
+                    },
+                    child: const SizedBox(
+                      width: 50,
+                      height: 50,
+                      child: Tooltip(
+                        message: "絞り込み",
+                        child: Icon(
+                          Icons.tune_rounded,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 22),
 
             // =================================================
             // 公開ルーム
@@ -172,13 +176,13 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
               "公開ルーム",
 
               style: TextStyle(
-                fontSize: 17,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
 
             // =================================================
             // Firestoreから公開ルームを取得
@@ -240,11 +244,29 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
                       color: cardColor,
 
                       borderRadius: BorderRadius.circular(18),
+
+                      border: Border.all(
+                        color: isDark ? Colors.grey.shade800 : AppColors.border,
+                      ),
                     ),
 
                     child: Column(
                       children: [
-                        Icon(Icons.public_off, size: 50, color: subtitleColor),
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark
+                                ? AppColors.primary.withValues(alpha: 0.18)
+                                : AppColors.primarySoft,
+                          ),
+                          child: Icon(
+                            Icons.meeting_room_outlined,
+                            size: 28,
+                            color: AppColors.primary,
+                          ),
+                        ),
 
                         const SizedBox(height: 12),
 
@@ -253,11 +275,7 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
                               ? "検索結果がありません"
                               : "公開されているルームはありません",
 
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
+                          style: TextStyle(fontSize: 15, color: textColor),
                         ),
                       ],
                     ),
@@ -302,11 +320,29 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
                       color: cardColor,
 
                       borderRadius: BorderRadius.circular(18),
+
+                      border: Border.all(
+                        color: isDark ? Colors.grey.shade800 : AppColors.border,
+                      ),
                     ),
 
                     child: Column(
                       children: [
-                        Icon(Icons.search_off, size: 50, color: subtitleColor),
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark
+                                ? AppColors.primary.withValues(alpha: 0.18)
+                                : AppColors.primarySoft,
+                          ),
+                          child: Icon(
+                            Icons.search_off,
+                            size: 28,
+                            color: AppColors.primary,
+                          ),
+                        ),
 
                         const SizedBox(height: 12),
 
@@ -315,11 +351,7 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
 
                           textAlign: TextAlign.center,
 
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
+                          style: TextStyle(fontSize: 15, color: textColor),
                         ),
                       ],
                     ),

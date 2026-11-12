@@ -13,13 +13,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:study_support_app/screens/settings/settings_screen.dart';
 import 'package:study_support_app/screens/mypage/mypage_profile_section.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class MypageScreen extends StatefulWidget {
   final String? targetUserId; // 他人のプロフィールを表示する場合のUID（省略時は自分）
 
   const MypageScreen({super.key, this.targetUserId});
 
-  static const Color primaryBlue = Color(0xFF258EDB);
+  static const Color primaryBlue = AppColors.primary;
 
   @override
   State<MypageScreen> createState() => _MypageScreenState();
@@ -134,7 +135,7 @@ class _MypageScreenState extends State<MypageScreen> {
                 //    ここだけスクロールする
                 // ======================================================
                 RefreshIndicator(
-                  color: const Color(0xFF258EDB),
+                  color: AppColors.primary,
                   onRefresh: _refreshProfile,
 
                   child: SingleChildScrollView(
@@ -345,13 +346,13 @@ class ProfileHeader extends StatelessWidget {
                                       fit: BoxFit.cover,
                                     )
                                   : Container(
-                                      color: const Color(
-                                        0xFF258EDB,
-                                      ).withOpacity(0.12),
+                                      color: AppColors.primary.withOpacity(
+                                        0.12,
+                                      ),
                                       child: Icon(
                                         Icons.person,
                                         size: iconSize * 0.65,
-                                        color: const Color(0xFF258EDB),
+                                        color: AppColors.primary,
                                       ),
                                     ),
                             ),

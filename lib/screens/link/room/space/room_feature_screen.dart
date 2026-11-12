@@ -16,6 +16,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 // =========================================================
 // 専用画面の共通レイアウト
@@ -234,7 +235,7 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
       ),
 
       body: Container(
-        color: const Color(0xFFF7F7F7),
+        color: AppColors.background,
         child: Stack(
           fit: StackFit.expand,
           children: [

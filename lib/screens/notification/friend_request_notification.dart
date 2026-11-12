@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class FriendRequestNotification extends StatelessWidget {
   final String requestId;
@@ -164,7 +165,7 @@ class FriendRequestNotification extends StatelessWidget {
     final isPending = status == 'pending';
 
     return Container(
-      color: const Color(0xFFF1F8FF),
+      color: AppColors.primarySoft,
 
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
 
@@ -175,14 +176,14 @@ class FriendRequestNotification extends StatelessWidget {
           // =================================================
           CircleAvatar(
             radius: 24,
-            backgroundColor: const Color(0xFF258EDB).withOpacity(0.12),
+            backgroundColor: AppColors.primary.withOpacity(0.12),
 
             backgroundImage: senderIcon.isNotEmpty
                 ? NetworkImage(senderIcon)
                 : null,
 
             child: senderIcon.isEmpty
-                ? const Icon(Icons.person, color: Color(0xFF258EDB), size: 27)
+                ? const Icon(Icons.person, color: AppColors.primary, size: 27)
                 : null,
           ),
 
@@ -228,7 +229,7 @@ class FriendRequestNotification extends StatelessWidget {
                           },
 
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF258EDB),
+                            backgroundColor: AppColors.primary,
                           ),
 
                           child: const Text('承認'),

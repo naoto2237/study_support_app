@@ -13,14 +13,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:jumping_dot/jumping_dot.dart';
-import 'package:flutter/services.dart';
 import 'package:study_support_app/screens/ai_support/ai_history_screen.dart';
 import 'package:study_support_app/screens/ai_support/ai_chat_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/screens/ai_support/ai_chat_input_bar.dart';
 import 'dart:io';
+import 'package:study_support_app/screens/ai_support/ai_chat_message_list.dart';
+import 'package:study_support_app/theme/app_colors.dart';
 
 class AiScreen extends StatefulWidget {
   final String? chatId;
@@ -298,7 +298,7 @@ class _AiScreenState extends State<AiScreen> {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: _hasStartedChat ? Color(0xFFF7F7F7) : Colors.white,
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           leadingWidth: 56,
           // デフォルトは56
@@ -344,9 +344,7 @@ class _AiScreenState extends State<AiScreen> {
             ),
           ),
           centerTitle: false,
-          backgroundColor: _hasStartedChat
-              ? Colors.white
-              : const Color(0xFF258EDB),
+          backgroundColor: _hasStartedChat ? Colors.white : AppColors.primary,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
@@ -377,110 +375,76 @@ class _AiScreenState extends State<AiScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
+                    // 見出しの文字の高さを、ホームの日付の高さにそろえる（チャット中は 14）
+                    padding: EdgeInsets.fromLTRB(
+                      17,
+                      _hasStartedChat ? 14 : 9.5,
+                      17,
+                      24,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!_hasStartedChat) ...[
+                          // ============================================
+                          // 見出し
+                          // ============================================
                           Padding(
                             padding: const EdgeInsets.only(left: 3),
                             child: const Text(
                               "学習の悩みをAIに相談しよう",
                               style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 19,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF258EDB),
+                                color: AppColors.primary,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 7),
+                          const SizedBox(height: 6),
 
                           Padding(
                             padding: const EdgeInsets.only(left: 3),
                             child: Text(
                               "勉強方法・問題解説・学習計画など\nAIがあなたの学習をサポートします",
-                              style: TextStyle(fontSize: 15, color: textColor),
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                height: 1.6,
+                                color: isDark ? Colors.white60 : Colors.black54,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 11),
+                          const SizedBox(height: 22),
 
+                          // ==============================================
+                          // 質問例（1列の一覧。行全体を押せる）
+                          // ==============================================
                           Padding(
-                            padding: const EdgeInsets.only(
-                              left: 4,
-                              right: 4,
-                              top: 11,
-                              bottom: 11,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            padding: const EdgeInsets.only(left: 2),
+                            child: Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.lightbulb_outline,
-                                      color: Color(0xFF258EDB),
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "質問例",
-                                      style: TextStyle(
-                                        fontSize: 15.6,
-                                        fontWeight: FontWeight.bold,
-                                        color: textColor,
-                                      ),
-                                    ),
-                                  ],
+                                const Icon(
+                                  Icons.lightbulb_outline,
+                                  color: AppColors.primary,
+                                  size: 18,
                                 ),
-
-                                const SizedBox(height: 9),
-
-                                SizedBox(
-                                  height: 240,
-                                  child: GridView.count(
-                                    crossAxisCount: 2,
-                                    // 2列
-                                    mainAxisSpacing: 10,
-                                    crossAxisSpacing: 10,
-                                    childAspectRatio: 2.6,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    children: [
-                                      _questionChip(
-                                        Icons.menu_book_outlined,
-                                        "効率的な勉強方法を教えて",
-                                      ),
-                                      _questionChip(
-                                        Icons.quiz_outlined,
-                                        "この問題を解説して",
-                                      ),
-                                      _questionChip(
-                                        Icons.calendar_month_outlined,
-                                        "一週間の学習計画を立てて",
-                                      ),
-                                      _questionChip(
-                                        Icons.psychology_alt_outlined,
-                                        "暗記のコツを教えて",
-                                      ),
-                                      _questionChip(
-                                        Icons.trending_up_outlined,
-                                        "集中力を上げる方法は？",
-                                      ),
-                                      _questionChip(
-                                        Icons.local_fire_department_outlined,
-                                        "やる気を維持する方法は？",
-                                      ),
-                                    ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  "質問例",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
                                   ),
                                 ),
                               ],
                             ),
                           ),
 
-                          const SizedBox(height: 13),
+                          const SizedBox(height: 8),
+
+                          _buildQuestionList(isDark),
+
+                          const SizedBox(height: 10),
                         ],
 
                         _buildAnswerCard(),
@@ -508,44 +472,106 @@ class _AiScreenState extends State<AiScreen> {
     );
   }
 
+  // 質問例（アイコンと文章）
+  static const List<(IconData, String)> _questionExamples = [
+    (Icons.menu_book_outlined, "効率的な勉強方法を教えて"),
+    (Icons.quiz_outlined, "この問題を解説して"),
+    (Icons.calendar_month_outlined, "一週間の学習計画を立てて"),
+    (Icons.psychology_alt_outlined, "暗記のコツを教えて"),
+    (Icons.trending_up_outlined, "集中力を上げる方法は？"),
+    (Icons.local_fire_department_outlined, "やる気を維持する方法は？"),
+  ];
+
+  // ==============================================================
+  // 質問例の一覧（押すと入力欄に文章が入る）
+  // ==============================================================
+  Widget _buildQuestionList(bool isDark) {
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDark ? Colors.grey.shade800 : AppColors.border;
+    final dividerColor = isDark ? Colors.grey.shade800 : AppColors.divider;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(18),
+      ),
+
+      // 枠線は中身の上に描く（中の行の色で、角の枠線が隠れないように）
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < _questionExamples.length; i++) ...[
+            _questionChip(_questionExamples[i].$1, _questionExamples[i].$2),
+            if (i < _questionExamples.length - 1)
+              Container(
+                height: 1,
+                margin: const EdgeInsets.only(left: 60),
+                color: dividerColor,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _questionChip(IconData icon, String text) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () {
-        setState(() {
-          _textController.text = text;
-        });
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _textController.text = text;
+          });
 
-        FocusScope.of(context).requestFocus(FocusNode());
-      },
-      child: Container(
-        padding: const EdgeInsets.only(left: 14, right: 14, top: 0),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? Colors.grey.shade800 : const Color(0xFFE5E7EB),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(0xFF258EDB), size: 23),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white : Colors.black87,
+          FocusScope.of(context).requestFocus(FocusNode());
+        },
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 54),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+            child: Row(
+              children: [
+                // アイコン（うすい青の丸の中）
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark
+                        ? AppColors.primary.withValues(alpha: 0.18)
+                        : AppColors.primarySoft,
+                  ),
+                  child: Icon(icon, color: AppColors.primary, size: 18),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+
+                // 入力欄に入ることを表す矢印
+                Icon(
+                  Icons.north_west_rounded,
+                  size: 17,
+                  color: isDark ? Colors.white38 : Colors.black26,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -553,120 +579,24 @@ class _AiScreenState extends State<AiScreen> {
 
   Widget _buildAnswerCard() {
     return Padding(
-      padding: const EdgeInsets.only(top: 0, right: 0, left: 0, bottom: 15),
+      padding: const EdgeInsets.only(bottom: 15),
       child: _messages.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.only(top: 73),
+          ? const Padding(
+              padding: EdgeInsets.only(top: 2),
               child: Center(
                 child: Text(
-                  "質問例をタップするか、\n下の入力欄から質問してみよう！",
+                  "タップすると入力欄に入ります",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 17,
-                    color: Colors.black54,
-                    height: 1.7,
+                    fontSize: 12.5,
+                    color: Colors.black45,
+                    height: 1.5,
                   ),
                 ),
               ),
             )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ..._messages.map((message) {
-                  if (message.isUser) {
-                    // ユーザーの質問
-                    return Align(
-                      alignment: Alignment.centerRight,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 277),
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 6, bottom: 17),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF258EDB),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            message.text,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              height: 1.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  // AIの回答
-                  return SizedBox(
-                    width: double.infinity,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          message.text,
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontSize: 15,
-                            height: 1.6,
-                          ),
-                        ),
-
-                        Row(
-                          children: [
-                            Transform.translate(
-                              offset: const Offset(-9, 2),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(20),
-                                  splashColor: Colors.grey.withOpacity(0.15),
-                                  highlightColor: Colors.grey.withOpacity(0.08),
-                                  onTap: () async {
-                                    await Clipboard.setData(
-                                      ClipboardData(text: message.text),
-                                    );
-                                  },
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(8),
-                                    child: Icon(
-                                      Icons.content_copy_outlined,
-                                      size: 18,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-
-                if (_isLoading)
-                  Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        JumpingDots(
-                          color: Color(0xFF258EDB),
-                          radius: 5,
-                          numberOfDots: 3,
-                          animationDuration: Duration(milliseconds: 250),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+          // 会話の表示は共通の部品（ai_chat_message_list.dart）
+          : AiChatMessageList(messages: _messages, isLoading: _isLoading),
     );
   }
 }
