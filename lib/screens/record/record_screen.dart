@@ -264,13 +264,12 @@ class _RecordScreenState extends State<RecordScreen> {
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
             child: Container(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               child: TabBar(
-                // 選んだタブの下線は、文字の幅だけの短い線にする
-                indicatorSize: TabBarIndicatorSize.label,
+                // 選んだタブの下線は、タブの幅いっぱいの長い線にする
+                indicatorSize: TabBarIndicatorSize.tab,
 
                 indicator: const UnderlineTabIndicator(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
                   borderSide: BorderSide(color: AppColors.primary, width: 3),
                 ),
 

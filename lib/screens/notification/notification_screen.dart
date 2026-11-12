@@ -7,6 +7,8 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
+import 'package:study_support_app/theme/empty_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/screens/notification/friend_request_notification.dart';
@@ -25,25 +27,25 @@ class NotificationScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       appBar: AppBar(
         title: Transform.translate(
           offset: const Offset(-19, 0),
-          child: const Text(
+          child: Text(
             '通知',
             style: TextStyle(
-              color: Colors.black87,
+              color: context.pal.text,
               fontSize: 19,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
 
-        backgroundColor: Colors.white,
+        backgroundColor: context.pal.card,
 
         // 左上の戻る矢印を黒にする
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: context.pal.text),
       ),
 
       // =====================================================
@@ -90,24 +92,10 @@ class NotificationScreen extends StatelessWidget {
               // 通知なし
               // =============================================
               if (requestDocs.isEmpty && notificationDocs.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.notifications_none,
-                        size: 60,
-                        color: Colors.grey,
-                      ),
-
-                      SizedBox(height: 12),
-
-                      Text(
-                        '通知はありません',
-                        style: TextStyle(color: Colors.grey, fontSize: 15),
-                      ),
-                    ],
-                  ),
+                return const EmptyMessage(
+                  icon: Icons.notifications_none_rounded,
+                  text: '通知はありません',
+                  subText: '友達申請やお知らせが届くと、ここに表示されます',
                 );
               }
 
@@ -152,7 +140,7 @@ class NotificationScreen extends StatelessWidget {
                 itemCount: allItems.length,
 
                 separatorBuilder: (_, _) {
-                  return Divider(height: 1, color: Colors.grey.shade200);
+                  return Divider(height: 1, color: context.pal.field);
                 },
 
                 itemBuilder: (context, index) {
@@ -224,7 +212,7 @@ class _FriendAcceptedTile extends StatelessWidget {
 
     return CircleAvatar(
       radius: 24,
-      backgroundColor: AppColors.primary.withOpacity(0.12),
+      backgroundColor: AppColors.primarySoft,
       child: const Icon(Icons.person, size: 27, color: AppColors.primary),
     );
   }
@@ -232,7 +220,7 @@ class _FriendAcceptedTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.primarySoft,
+      color: context.pal.primarySoft,
 
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
 
@@ -260,7 +248,7 @@ class _FriendAcceptedTile extends StatelessWidget {
 
                 Text(
                   message.isNotEmpty ? message : '$userNameさんが友達申請を承認しました',
-                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  style: TextStyle(fontSize: 13, color: context.pal.text),
                 ),
               ],
             ),

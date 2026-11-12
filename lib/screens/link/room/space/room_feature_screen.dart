@@ -8,6 +8,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -16,7 +17,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:study_support_app/theme/app_colors.dart';
 
 // =========================================================
 // 専用画面の共通レイアウト
@@ -197,13 +197,13 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
       resizeToAvoidBottomInset: false,
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.pal.card,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
 
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 24),
+          icon: Icon(Icons.arrow_back, color: context.pal.text, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
 
@@ -211,8 +211,8 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
           offset: const Offset(-8, 0),
           child: Text(
             widget.title,
-            style: const TextStyle(
-              color: Colors.black87,
+            style: TextStyle(
+              color: context.pal.text,
               fontSize: 19,
               fontWeight: FontWeight.bold,
             ),
@@ -223,11 +223,7 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
-              icon: const Icon(
-                Icons.wallpaper,
-                color: Colors.black87,
-                size: 24,
-              ),
+              icon: Icon(Icons.wallpaper, color: context.pal.text, size: 24),
               onPressed: _changeWallpaper,
             ),
           ),
@@ -235,7 +231,7 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
       ),
 
       body: Container(
-        color: AppColors.background,
+        color: context.pal.field,
         child: Stack(
           fit: StackFit.expand,
           children: [

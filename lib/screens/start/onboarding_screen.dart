@@ -10,6 +10,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/main.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
@@ -113,7 +114,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     const primaryColor = AppColors.primary;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       appBar: AppBar(
         backgroundColor: primaryColor,
@@ -205,13 +206,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                 const SizedBox(height: 5),
 
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: 48),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "※プロフィールは後からでも変更できます",
-                      style: TextStyle(color: Colors.black54, fontSize: 11),
+                      style: TextStyle(
+                        color: context.pal.secondary,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ),
@@ -223,7 +227,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
+                    color: context.pal.primarySoft,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -245,7 +249,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                       const SizedBox(width: 10),
 
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -263,7 +267,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             Text(
                               "他のユーザーがあなたを見つけるときに使用されます。学習記録やプロフィールを確認するときにも使われます。",
                               style: TextStyle(
-                                color: Colors.black87,
+                                color: context.pal.text,
                                 fontSize: 11,
                                 height: 1.5,
                               ),
@@ -373,12 +377,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: const TextStyle(fontSize: 15),
                 decoration: InputDecoration(
                   hintText: hint,
-                  hintStyle: const TextStyle(
-                    color: Colors.black45,
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: context.pal.muted, fontSize: 14),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.pal.card,
 
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,

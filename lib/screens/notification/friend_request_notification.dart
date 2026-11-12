@@ -6,6 +6,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/theme/app_colors.dart';
@@ -165,7 +166,7 @@ class FriendRequestNotification extends StatelessWidget {
     final isPending = status == 'pending';
 
     return Container(
-      color: AppColors.primarySoft,
+      color: context.pal.primarySoft,
 
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
 
@@ -176,7 +177,7 @@ class FriendRequestNotification extends StatelessWidget {
           // =================================================
           CircleAvatar(
             radius: 24,
-            backgroundColor: AppColors.primary.withOpacity(0.12),
+            backgroundColor: AppColors.primarySoft,
 
             backgroundImage: senderIcon.isNotEmpty
                 ? NetworkImage(senderIcon)

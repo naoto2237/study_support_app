@@ -81,10 +81,25 @@ class _MypageScreenState extends State<MypageScreen> {
     super.dispose();
   }
 
+  // ページの色（ほかの画面と同じ、うすい灰色。暗い画面では黒に近い色）
+  // その上に白いカードを並べる
+  Color _pageColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF121212)
+        : AppColors.background;
+  }
+
+  // 上の帯（スクロールしたときに出る）の文字とアイコンの色
+  Color _textColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _pageColor(context),
       body: SafeArea(
         top: false,
         bottom: !_isMyPage,
@@ -148,11 +163,11 @@ class _MypageScreenState extends State<MypageScreen> {
                         // 背景画像を見せるための上部スペース
                         SizedBox(height: _isMyPage ? 236 : 236),
 
-                        // 白いプロフィールエリア
+                        // プロフィールエリア（背景画像の上に重ねる、角の丸いシート）
                         Container(
                           width: double.infinity,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
+                          decoration: BoxDecoration(
+                            color: _pageColor(context),
                             borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(16),
                               topRight: Radius.circular(16),
@@ -226,7 +241,11 @@ class _MypageScreenState extends State<MypageScreen> {
       leading: !_isMyPage
           ? IconButton(
               icon: const Icon(Icons.arrow_back),
-              color: Color.lerp(Colors.white, Colors.black87, iconProgress),
+              color: Color.lerp(
+                Colors.white,
+                _textColor(context),
+                iconProgress,
+              ),
               onPressed: () {
                 Navigator.pop(context);
               },
@@ -236,15 +255,15 @@ class _MypageScreenState extends State<MypageScreen> {
       centerTitle: true,
       elevation: 0,
       scrolledUnderElevation: 0,
-      backgroundColor: showAppBar ? Colors.white : Colors.transparent,
+      backgroundColor: showAppBar ? _pageColor(context) : Colors.transparent,
 
       title: showAppBar
           ? Text(
               name,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17.5,
                 fontWeight: FontWeight.w900,
-                color: Colors.black87,
+                color: _textColor(context),
                 letterSpacing: -0.5,
               ),
             )
@@ -257,7 +276,11 @@ class _MypageScreenState extends State<MypageScreen> {
             padding: const EdgeInsets.only(right: 7),
             child: IconButton(
               icon: const Icon(Icons.settings_outlined),
-              color: Color.lerp(Colors.white, Colors.black87, iconProgress),
+              color: Color.lerp(
+                Colors.white,
+                _textColor(context),
+                iconProgress,
+              ),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -331,7 +354,8 @@ class ProfileHeader extends StatelessWidget {
                         Container(
                           width: iconSize,
                           height: iconSize,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
+                            // アイコンのまわりの縁は、明るい画面でも暗い画面でも白
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
@@ -346,8 +370,8 @@ class ProfileHeader extends StatelessWidget {
                                       fit: BoxFit.cover,
                                     )
                                   : Container(
-                                      color: AppColors.primary.withOpacity(
-                                        0.12,
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.12,
                                       ),
                                       child: Icon(
                                         Icons.person,
@@ -387,9 +411,11 @@ class ProfileHeader extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     data["userId"] ?? "",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Colors.black54,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white60
+                          : Colors.black54,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

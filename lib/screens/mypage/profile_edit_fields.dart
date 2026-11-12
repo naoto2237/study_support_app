@@ -6,6 +6,7 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 class ProfileEditFields extends StatelessWidget {
@@ -23,16 +24,16 @@ class ProfileEditFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(height: 1, thickness: 1, color: AppColors.border),
+        Divider(height: 1, thickness: 1, color: context.pal.border),
 
         const SizedBox(height: 18),
 
-        const Text(
+        Text(
           "プロフィール",
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: context.pal.text,
           ),
         ),
 
@@ -67,10 +68,10 @@ class _EditField extends StatelessWidget {
           // テキストフィールド
           TextField(
             controller: controller,
-            style: const TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(fontSize: 15, color: context.pal.text),
             decoration: InputDecoration(
               filled: true,
-              fillColor: AppColors.background,
+              fillColor: context.pal.field,
 
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,

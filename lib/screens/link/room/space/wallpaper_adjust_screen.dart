@@ -8,6 +8,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 class WallpaperAdjustScreen extends StatefulWidget {
@@ -30,24 +31,24 @@ class _WallpaperAdjustScreenState extends State<WallpaperAdjustScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.page,
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.pal.card,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
 
-        title: const Text(
+        title: Text(
           '壁紙を調整',
           style: TextStyle(
-            color: Colors.black87,
+            color: context.pal.text,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
         ),
 
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black87),
+          icon: Icon(Icons.close, color: context.pal.text),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -160,7 +161,7 @@ class _WallpaperAdjustScreenState extends State<WallpaperAdjustScreen> {
                 right: 16,
                 bottom: 16,
                 child: Material(
-                  color: Colors.white,
+                  color: context.pal.card,
                   shape: const CircleBorder(),
                   elevation: 2,
                   child: InkWell(

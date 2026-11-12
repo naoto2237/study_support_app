@@ -6,6 +6,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 class RoomMemberScreen extends StatelessWidget {
@@ -50,10 +51,10 @@ class RoomMemberScreen extends StatelessWidget {
         // メンバーなし
         // ==============================
         if (memberDocs.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               '参加しているメンバーはいません',
-              style: TextStyle(color: Colors.black54, fontSize: 14),
+              style: TextStyle(color: context.pal.secondary, fontSize: 14),
             ),
           );
         }
@@ -99,7 +100,7 @@ class MemberTile extends StatelessWidget {
         // ユーザー情報取得中
         // ==============================
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _loadingTile();
+          return _loadingTile(context);
         }
 
         // ==============================
@@ -120,7 +121,7 @@ class MemberTile extends StatelessWidget {
 
         final name = data['name']?.toString() ?? '名前未設定';
 
-        return _memberTile(name: name);
+        return _memberTile(context, name: name);
       },
     );
   }
@@ -129,13 +130,13 @@ class MemberTile extends StatelessWidget {
   // ローディング
   // =========================================================
 
-  Widget _loadingTile() {
+  Widget _loadingTile(BuildContext context) {
     return Card(
       elevation: 1,
       shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: context.pal.border),
       ),
       child: const Padding(
         padding: EdgeInsets.all(20),
@@ -157,22 +158,22 @@ class MemberTile extends StatelessWidget {
   // メンバー表示
   // =========================================================
 
-  Widget _memberTile({required String name}) {
+  Widget _memberTile(BuildContext context, {required String name}) {
     return Card(
       elevation: 1,
       shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: context.pal.border),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
             // アイコン
-            const CircleAvatar(
+            CircleAvatar(
               radius: 24,
-              backgroundColor: AppColors.primarySoft,
+              backgroundColor: context.pal.primarySoft,
               child: Icon(Icons.person, color: AppColors.primary),
             ),
 
@@ -193,9 +194,12 @@ class MemberTile extends StatelessWidget {
 
                   const SizedBox(height: 4),
 
-                  const Text(
+                  Text(
                     '今日 00:00:00',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.pal.secondary,
+                    ),
                   ),
                 ],
               ),

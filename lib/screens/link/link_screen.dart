@@ -216,7 +216,7 @@ class LinkScreen extends StatelessWidget {
 
             _buildMenuCard(
               context,
-              icon: Icons.search,
+              icon: Icons.person_search_rounded,
               title: 'ユーザー検索',
               subtitle: '同じ目標を持つ学習仲間を探す',
               screen: const UserSearchScreen(),
@@ -227,11 +227,11 @@ class LinkScreen extends StatelessWidget {
               trailingColor: trailingColor,
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
 
             _buildMenuCard(
               context,
-              icon: Icons.question_answer,
+              icon: Icons.forum_rounded,
               title: 'Q&A',
               subtitle: '質問・回答で疑問を解決する',
               screen: QnaListScreen(),
@@ -242,11 +242,11 @@ class LinkScreen extends StatelessWidget {
               trailingColor: trailingColor,
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
 
             _buildMenuCard(
               context,
-              icon: Icons.groups,
+              icon: Icons.groups_rounded,
               title: 'ルーム',
               subtitle: '同じ目標の仲間と交流する',
               screen: const RoomScreen(),
@@ -286,22 +286,45 @@ class LinkScreen extends StatelessWidget {
       ),
 
       child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
 
-        leading: Icon(icon, size: 36, color: AppColors.primary),
+        // アイコンは、うすい青の角丸の四角にのせる
+        // （ホームの「曜日ごとの目標を設定」やAIサポートの質問例と同じ形）
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.primary.withValues(alpha: 0.18)
+                : AppColors.primarySoft,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, size: 26, color: AppColors.primary),
+        ),
 
         title: Text(
           title,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.bold,
             color: textColor,
           ),
         ),
 
-        subtitle: Text(subtitle, style: TextStyle(color: subtitleColor)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            subtitle,
+            style: TextStyle(color: subtitleColor, fontSize: 13),
+          ),
+        ),
 
-        trailing: Icon(Icons.arrow_forward_ios, color: trailingColor, size: 18),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: trailingColor,
+          size: 24,
+        ),
 
         onTap: () {
           Navigator.push(

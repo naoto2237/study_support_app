@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/screens/record/my_record/recent_records_section.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
@@ -58,6 +59,9 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
 
   late int selectedYear;
   late DateTime selectedMonth;
+
+  // タップしている棒の番号（タップしていないときは -1）
+  int _touchedIndex = -1;
 
   @override
   void initState() {
@@ -206,26 +210,21 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
               ),
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _legend(AppColors.primary, "学習時間"),
-              const SizedBox(width: 14),
-              _legend(const Color(0xFFBDBDBD), "目標時間"),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(height: 270, child: BarChart(_createChart())),
+          _buildPeriodSummary(textColor, secondaryColor),
+          const SizedBox(height: 18),
+          SizedBox(height: 240, child: BarChart(_createChart())),
         ],
       ),
     );
   }
 
   Widget _buildPeriodSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       height: 33,
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: isDark ? Colors.white10 : AppColors.background,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -270,26 +269,104 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
   }
 
   BarChartData _createChart() {
-    final values = _chartValues();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // データに合わせて最大値を自動調整
-    final maxValue = values.isEmpty
-        ? 5.0
-        : values.reduce((a, b) => a > b ? a : b);
+    final hourValues = _chartValues();
 
-    final maxY = maxValue <= 5 ? 5.0 : (maxValue / 5).ceil() * 5.0;
+    final maxHours = hourValues.isEmpty
+        ? 0.0
+        : hourValues.reduce((a, b) => a > b ? a : b);
+
+    // ----------------------------------------------------------
+    // 目盛りの単位
+    // いちばん長い棒が1時間未満なら「分」、それ以外は「時間」。
+    // （短い時間でも棒が点にならないようにする）
+    // ----------------------------------------------------------
+    final useMinutes = maxHours < 1;
+
+    // 1目盛りあたりの秒（ツールチップで秒にもどすため）
+    final secondsPerUnit = useMinutes ? 60 : 3600;
+
+    final values = useMinutes
+        ? hourValues.map((v) => v * 60).toList()
+        : hourValues;
+
+    final maxValue = useMinutes ? maxHours * 60 : maxHours;
+
+    // きりのいい上限を選ぶ（目盛りは5本）
+    double maxY;
+
+    if (useMinutes) {
+      maxY = [
+        5.0,
+        10.0,
+        15.0,
+        30.0,
+        60.0,
+      ].firstWhere((candidate) => maxValue <= candidate, orElse: () => 60.0);
+    } else {
+      maxY = maxValue <= 5 ? 5.0 : (maxValue / 5).ceil() * 5.0;
+    }
+
+    final interval = maxY / 5;
+
+    final unitLabel = useMinutes ? "分" : "時間";
+
+    final currentIndex = _currentIndex();
+
+    final gridColor = isDark ? Colors.white12 : AppColors.divider;
+
+    // 期間の合計（吹き出しで「合計の何%か」を出すため）
+    final totalSecondsInPeriod = hourValues.fold<double>(
+      0,
+      (total, v) => total + v * 3600,
+    );
+
+    // 吹き出しの色（うすい青。色は app_colors.dart の tooltip〜 で決める）
+    final tooltipColor = isDark
+        ? AppColors.tooltipBackgroundDark
+        : AppColors.tooltipBackground;
+    final tooltipBorderColor = isDark
+        ? AppColors.tooltipBorderDark
+        : AppColors.tooltipBorder;
+    final tooltipTextColor = isDark
+        ? AppColors.tooltipTextDark
+        : AppColors.tooltipText;
+    final tooltipSubColor = isDark
+        ? AppColors.tooltipSubTextDark
+        : AppColors.tooltipSubText;
 
     return BarChartData(
       barTouchData: BarTouchData(
         enabled: true,
+
+        // タップした棒を覚えて、その棒だけ色を濃くする
+        touchCallback: (event, response) {
+          final index = event.isInterestedForInteractions
+              ? (response?.spot?.touchedBarGroupIndex ?? -1)
+              : -1;
+
+          if (index != _touchedIndex) {
+            setState(() {
+              _touchedIndex = index;
+            });
+          }
+        },
+
         touchTooltipData: BarTouchTooltipData(
-          getTooltipColor: (_) => Colors.white,
+          getTooltipColor: (_) => tooltipColor,
+          tooltipBorder: BorderSide(color: tooltipBorderColor),
           tooltipRoundedRadius: 10,
           tooltipPadding: const EdgeInsets.symmetric(
             horizontal: 12,
             vertical: 8,
           ),
           tooltipMargin: 8,
+
+          // 端の棒をタップしても、吹き出しがカードの外にはみ出さないようにする
+          fitInsideHorizontally: true,
+          fitInsideVertically: true,
+
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
             final labels = _chartLabels();
 
@@ -307,8 +384,15 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
 
               const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
+              final now = DateTime.now();
+              final isToday =
+                  date.year == now.year &&
+                  date.month == now.month &&
+                  date.day == now.day;
+
               title =
-                  "${date.month}/${date.day}（${weekdays[date.weekday - 1]}）";
+                  "${date.month}/${date.day}（${weekdays[date.weekday - 1]}）"
+                  "${isToday ? "・今日" : ""}";
             } else if (selectedPeriod == 1) {
               // 月
               final targetMonth = selectedMonth;
@@ -340,47 +424,55 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
               final displayEnd = weekEnd.isAfter(lastDay) ? lastDay : weekEnd;
 
               title =
-                  "${groupIndex + 1}週目\n"
+                  "${groupIndex + 1}週目（"
                   "${displayStart.month}/${displayStart.day}"
                   "～"
-                  "${displayEnd.month}/${displayEnd.day}";
+                  "${displayEnd.month}/${displayEnd.day}）";
             } else {
               // 年
-              title = label;
+              title = "$selectedYear年$label";
             }
 
-            final totalSeconds = (rod.toY * 3600).round();
+            final seconds = (rod.toY * secondsPerUnit).round();
 
-            final hours = totalSeconds ~/ 3600;
-            final minutes = (totalSeconds % 3600) ~/ 60;
+            // 期間の合計のうち、この棒が何%か
+            final percent = totalSecondsInPeriod > 0
+                ? (seconds / totalSecondsInPeriod * 100).round()
+                : 0;
 
-            String timeText;
-
-            if (hours > 0) {
-              timeText = "$hours時間";
-              if (minutes > 0) {
-                timeText += "$minutes分";
-              }
-            } else {
-              timeText = "$minutes分";
-            }
+            final periodName = selectedPeriod == 0
+                ? "週"
+                : selectedPeriod == 1
+                ? "月"
+                : "年";
 
             return BarTooltipItem(
               "$title\n",
-              const TextStyle(
-                color: Color(0xFF202124),
+              TextStyle(
+                color: tooltipSubColor,
                 fontSize: 11,
                 fontWeight: FontWeight.normal,
+                height: 1.5,
               ),
               children: [
                 TextSpan(
-                  text: timeText,
-                  style: const TextStyle(
-                    color: Color(0xFF202124),
-                    fontSize: 15,
+                  text: _formatTooltipTime(seconds),
+                  style: TextStyle(
+                    color: tooltipTextColor,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    height: 1.4,
                   ),
                 ),
+                if (seconds > 0)
+                  TextSpan(
+                    text: "\nこの$periodNameの $percent%",
+                    style: TextStyle(
+                      color: tooltipSubColor,
+                      fontSize: 11,
+                      height: 1.5,
+                    ),
+                  ),
               ],
             );
           },
@@ -392,7 +484,9 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
-        horizontalInterval: maxY <= 10 ? 1 : 5,
+        horizontalInterval: interval,
+        getDrawingHorizontalLine: (value) =>
+            FlLine(color: gridColor, strokeWidth: 1),
       ),
 
       borderData: FlBorderData(show: false),
@@ -401,12 +495,23 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 32,
-            interval: maxY <= 10 ? 1 : 5,
+            reservedSize: 36,
+            interval: interval,
             getTitlesWidget: (value, meta) {
-              return Text(
-                value.toInt().toString(),
-                style: TextStyle(fontSize: 11, color: widget.secondaryColor),
+              // いちばん上の目盛りには単位（分・時間）を出す
+              final number = value == value.roundToDouble()
+                  ? value.toInt().toString()
+                  : value.toStringAsFixed(1);
+
+              final text = value == meta.max ? unitLabel : number;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Text(
+                  text,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 10, color: widget.secondaryColor),
+                ),
               );
             },
           ),
@@ -452,14 +557,39 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
       ),
 
       barGroups: List.generate(values.length, (index) {
+        // 今の日・週・月の棒だけ濃い青、ほかはうすい青
+        final isCurrent = index == currentIndex;
+
+        // タップしている棒も濃くする
+        final isTouched = index == _touchedIndex;
+
         return BarChartGroupData(
           x: index,
           barRods: [
             BarChartRodData(
               toY: values[index],
-              width: selectedPeriod == 2 ? 12 : 17,
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(5),
+              width: selectedPeriod == 2 ? 14 : 20,
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: (isCurrent || isTouched)
+                    ? const [AppColors.primaryDeep, AppColors.primaryLight]
+                    : [
+                        AppColors.primary.withValues(alpha: 0.45),
+                        AppColors.primaryLight.withValues(alpha: 0.45),
+                      ],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(6),
+              ),
+              // 棒のうしろに、上限までのうすい土台を出す
+              backDrawRodData: BackgroundBarChartRodData(
+                show: true,
+                toY: maxY,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.04)
+                    : AppColors.background,
+              ),
             ),
           ],
         );
@@ -627,32 +757,193 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
     return List.generate(12, (index) => "${index + 1}月");
   }
 
-  Widget _legend(Color color, String text) {
+  // ==========================================================
+  // 期間の合計と1日の平均
+  // ==========================================================
+
+  // 表示している期間の、最初の日と最後の日
+  (DateTime, DateTime) _periodRange() {
+    if (selectedPeriod == 0) {
+      final start = DateTime(
+        selectedWeekStart.year,
+        selectedWeekStart.month,
+        selectedWeekStart.day,
+      );
+      return (start, start.add(const Duration(days: 6)));
+    }
+
+    if (selectedPeriod == 1) {
+      return (
+        DateTime(selectedMonth.year, selectedMonth.month, 1),
+        DateTime(selectedMonth.year, selectedMonth.month + 1, 0),
+      );
+    }
+
+    return (DateTime(selectedYear, 1, 1), DateTime(selectedYear, 12, 31));
+  }
+
+  // 平均を出すときの日数（期間のうち、今日までの日数）
+  int _elapsedDays() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final (start, end) = _periodRange();
+
+    if (today.isBefore(start)) return 0;
+
+    final last = today.isBefore(end) ? today : end;
+
+    return last.difference(start).inDays + 1;
+  }
+
+  // 吹き出し用：1時間未満は秒まで（「15分27秒」）、1時間以上は分まで（「1時間5分」）
+  String _formatTooltipTime(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final remainingSeconds = seconds % 60;
+
+    if (hours > 0) {
+      return minutes > 0 ? "$hours時間$minutes分" : "$hours時間";
+    }
+
+    if (minutes > 0) {
+      return "$minutes分$remainingSeconds秒";
+    }
+
+    return "$remainingSeconds秒";
+  }
+
+  String _formatSeconds(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+
+    if (hours > 0) {
+      return minutes > 0 ? "$hours時間$minutes分" : "$hours時間";
+    }
+
+    return "$minutes分";
+  }
+
+  Widget _buildPeriodSummary(Color textColor, Color secondaryColor) {
+    final values = _chartValues();
+
+    final totalSeconds = (values.fold<double>(0, (sum, v) => sum + v) * 3600)
+        .round();
+
+    final days = _elapsedDays();
+    final averageSeconds = days > 0 ? totalSeconds ~/ days : 0;
+
+    final periodName = selectedPeriod == 0
+        ? "この週"
+        : selectedPeriod == 1
+        ? "この月"
+        : "この年";
+
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "$periodNameの合計",
+                style: TextStyle(color: secondaryColor, fontSize: 12),
+              ),
+              const SizedBox(height: 2),
+              _timeText(
+                _formatSeconds(totalSeconds),
+                color: textColor,
+                numberSize: 25,
+                unitSize: 14,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(width: 5),
-        Text(
-          text,
-          style: TextStyle(fontSize: 12, color: widget.secondaryColor),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              "1日の平均",
+              style: TextStyle(color: secondaryColor, fontSize: 12),
+            ),
+            const SizedBox(height: 2),
+            _timeText(
+              _formatSeconds(averageSeconds),
+              color: AppColors.primary,
+              numberSize: 18,
+              unitSize: 12,
+            ),
+          ],
         ),
       ],
     );
   }
 
+  // 「23分」「1時間5分」を、数字は Roboto で大きく、単位は小さく出す
+  // （上のサマリーカードの数字と同じ書き方にそろえる）
+  Widget _timeText(
+    String value, {
+    required Color color,
+    required double numberSize,
+    required double unitSize,
+  }) {
+    final spans = RegExp(r'(\d+)(時間|分|秒)').allMatches(value).expand((m) {
+      return [
+        TextSpan(
+          text: m.group(1),
+          style: GoogleFonts.roboto(
+            color: color,
+            fontSize: numberSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        TextSpan(
+          text: m.group(2),
+          style: TextStyle(
+            color: color,
+            fontSize: unitSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ];
+    }).toList();
+
+    return RichText(text: TextSpan(children: spans));
+  }
+
+  // 今の日・週・月にあたる棒の番号（表示している期間に今日がなければ -1）
+  int _currentIndex() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final (start, end) = _periodRange();
+
+    if (today.isBefore(start) || today.isAfter(end)) return -1;
+
+    if (selectedPeriod == 0) {
+      return today.difference(start).inDays;
+    }
+
+    if (selectedPeriod == 1) {
+      // カレンダーの第1週の月曜日から数える
+      final firstMonday = start.subtract(Duration(days: start.weekday - 1));
+      return today.difference(firstMonday).inDays ~/ 7;
+    }
+
+    return today.month - 1;
+  }
+
   Widget _card(Color color, Widget child) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: isDark ? Colors.white12 : AppColors.border),
       ),
       child: child,
     );

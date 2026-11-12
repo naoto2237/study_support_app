@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:study_support_app/screens/mypage/profile_icon_adjust_screen.dart';
@@ -227,7 +228,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: context.pal.card,
           title: const Text(
             "名前を変更",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -239,7 +240,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             decoration: InputDecoration(
               hintText: "名前を入力する",
               filled: true,
-              fillColor: AppColors.background,
+              fillColor: context.pal.field,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -289,7 +290,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: context.pal.card,
           title: const Text(
             "ユーザーIDを変更",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -301,7 +302,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             decoration: InputDecoration(
               hintText: "ユーザーIDを入力する",
               filled: true,
-              fillColor: AppColors.background,
+              fillColor: context.pal.field,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -348,7 +349,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _showIconOptions() async {
     final result = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: context.pal.card,
       isScrollControlled: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -365,7 +366,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: context.pal.border,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -605,10 +606,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       );
     }
 
-    return CircleAvatar(
+    // 初期アイコン：マイページと同じ、うすい青の丸に青い人のマーク
+    // （透ける色だと、暗い画面では紺色に見えてしまうので、透けない色で塗る）
+    return const CircleAvatar(
       radius: 50,
-      backgroundColor: AppColors.primary.withOpacity(0.12),
-      child: const Icon(Icons.person, size: 65, color: AppColors.primary),
+      backgroundColor: AppColors.primarySoft,
+      child: Icon(Icons.person, size: 65, color: AppColors.primary),
     );
   }
 
@@ -617,24 +620,24 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     final name = widget.data["name"] ?? "名前未設定";
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.pal.card,
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.pal.card,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
 
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: context.pal.text),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
 
-        title: const Text(
+        title: Text(
           "プロフィールを編集",
           style: TextStyle(
-            color: Colors.black87,
+            color: context.pal.text,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -684,7 +687,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
+                          // 縁は画面の背景と同じ色（アイコンから切りぬいたように見せる）
+                          border: Border.all(color: context.pal.card, width: 3),
                         ),
                         child: const Icon(
                           Icons.camera_alt,
@@ -739,7 +743,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: context.pal.field,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -747,10 +751,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     Expanded(
                       child: Text(
                         name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           // fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: context.pal.text,
                         ),
                       ),
                     ),
@@ -788,7 +792,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: context.pal.field,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -798,10 +802,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         _userIdController.text.isEmpty
                             ? "未設定"
                             : _userIdController.text,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           //fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: context.pal.text,
                         ),
                       ),
                     ),
@@ -840,7 +844,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 hintText: "プロフィールコメントを入力する",
                 hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                 filled: true,
-                fillColor: AppColors.background,
+                fillColor: context.pal.field,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,

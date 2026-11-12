@@ -25,7 +25,9 @@ import 'package:study_support_app/theme/app_colors.dart';
 // ================================================================
 class StopwatchWidget extends StatefulWidget {
   final Function(Duration) onStop;
-  final Future<void> Function(int seconds) onSaveStudyTime;
+  // start: 今回の計測を始めた時刻、seconds: 今回の計測の秒
+  // （0時をまたいだ計測を、日ごとに分けて保存するために開始時刻も渡す）
+  final Future<void> Function(DateTime start, int seconds) onSaveStudyTime;
   final Function(Duration)? onTick;
 
   const StopwatchWidget({
@@ -101,6 +103,9 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     );
 
     _currentSessionTime = Duration(milliseconds: elapsedMilliseconds);
+
+    // アプリを閉じる前に始めた計測の開始時刻
+    _timerStartTime = DateTime.fromMillisecondsSinceEpoch(startTime);
 
     _stopwatch.start();
 
@@ -206,9 +211,15 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
   final Stopwatch _stopwatch = Stopwatch();
 
+  // 今回の計測を始めた時刻（保存するときに、0時をまたいだか調べるのに使う）
   DateTime? _timerStartTime;
   bool _sessionAlreadySaved = false;
   Timer? _timer;
+
+  // 保存に渡す開始時刻。分からないときは「今から計測した時間だけ前」とする
+  DateTime _sessionStart(Duration sessionTime) {
+    return _timerStartTime ?? DateTime.now().subtract(sessionTime);
+  }
 
   // ---------------- 減るタイマー ----------------
   // false: 増えるタイマー / true: 減るタイマー
@@ -422,7 +433,10 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     if (sessionTime > Duration.zero) {
       try {
-        await widget.onSaveStudyTime(sessionTime.inSeconds);
+        await widget.onSaveStudyTime(
+          _sessionStart(sessionTime),
+          sessionTime.inSeconds,
+        );
 
         widget.onStop(sessionTime);
 
@@ -470,7 +484,10 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     // まだ保存されていない場合だけ保存
     if (!_sessionAlreadySaved && sessionTime > Duration.zero) {
       try {
-        await widget.onSaveStudyTime(sessionTime.inSeconds);
+        await widget.onSaveStudyTime(
+          _sessionStart(sessionTime),
+          sessionTime.inSeconds,
+        );
 
         widget.onStop(sessionTime);
 
