@@ -1,0 +1,304 @@
+// ======================================================================
+// 【部品】比較グラフ（週／月／年）
+//
+// 主なクラス: ComparisonChartSection
+// ・旧ファイル名: comparison_screen3.dart
+// ======================================================================
+
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:study_support_app/theme/app_colors.dart';
+
+class ComparisonChartSection extends StatefulWidget {
+  final int totalSeconds;
+  final String comparisonTarget;
+
+  const ComparisonChartSection({
+    super.key,
+    required this.totalSeconds,
+    required this.comparisonTarget,
+  });
+
+  @override
+  State<ComparisonChartSection> createState() => _ComparisonChartSectionState();
+}
+
+class _ComparisonChartSectionState extends State<ComparisonChartSection> {
+  int selectedPeriod = 0;
+
+  double get studyHours {
+    return widget.totalSeconds / 3600.0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+
+    final textColor = isDark ? Colors.white : const Color(0xFF202124);
+
+    final secondaryColor = isDark ? Colors.white70 : const Color(0xFF666666);
+
+    return Column(
+      children: [
+        _buildComparisonChart(cardColor, textColor, secondaryColor),
+
+        Padding(
+          padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
+          child: Text(
+            "※グラフの表示には時間がかかる場合があります",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: secondaryColor, fontSize: 11),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==============================================================
+  // 学習時間の比較グラフ
+  // ==============================================================
+
+  Widget _buildComparisonChart(
+    Color cardColor,
+    Color textColor,
+    Color secondaryColor,
+  ) {
+    return _card(
+      cardColor,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "学習時間の比較グラフ",
+            style: TextStyle(
+              color: textColor,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          _buildPeriodSelector(),
+
+          const SizedBox(height: 12),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _legend(AppColors.primary, "あなた"),
+
+              const SizedBox(width: 14),
+
+              _legend(const Color(0xFFBDBDBD), "全体平均"),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          SizedBox(height: 270, child: BarChart(_createChart())),
+        ],
+      ),
+    );
+  }
+
+  // ==============================================================
+  // 週 / 月 / 年
+  // ==============================================================
+
+  Widget _buildPeriodSelector() {
+    return Container(
+      height: 33,
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          _periodButton("週", 0),
+          _periodButton("月", 1),
+          _periodButton("年", 2),
+        ],
+      ),
+    );
+  }
+
+  Widget _periodButton(String title, int index) {
+    final selected = selectedPeriod == index;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            selectedPeriod = index;
+          });
+        },
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.black87,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==============================================================
+  // グラフデータ
+  // ==============================================================
+
+  BarChartData _createChart() {
+    final myValues = _myValues();
+
+    const averageValues = [0.4, 0.9, 1.6, 2.3, 1.4, 1.6, 0.4];
+
+    return BarChartData(
+      maxY: 5,
+      minY: 0,
+
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        horizontalInterval: 1,
+      ),
+
+      borderData: FlBorderData(show: false),
+
+      titlesData: FlTitlesData(
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 28,
+            interval: 1,
+            getTitlesWidget: (value, meta) {
+              return Text(
+                value.toInt().toString(),
+                style: const TextStyle(fontSize: 10),
+              );
+            },
+          ),
+        ),
+
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 42,
+            getTitlesWidget: (value, meta) {
+              final index = value.toInt();
+
+              const labels = [
+                "日\n8/16",
+                "月\n8/17",
+                "火\n8/18",
+                "水\n8/19",
+                "木\n8/20",
+                "金\n8/21",
+                "土\n8/22",
+              ];
+
+              if (index < 0 || index >= labels.length) {
+                return const SizedBox();
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  labels[index],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10),
+                ),
+              );
+            },
+          ),
+        ),
+
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      ),
+
+      barGroups: List.generate(7, (index) {
+        return BarChartGroupData(
+          x: index,
+          barsSpace: 3,
+          barRods: [
+            BarChartRodData(
+              toY: myValues[index],
+              width: 10,
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(4),
+            ),
+
+            BarChartRodData(
+              toY: averageValues[index],
+              width: 10,
+              color: const Color(0xFFBDBDBD),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  List<double> _myValues() {
+    final hours = studyHours;
+
+    return [
+      hours * 0.04,
+      hours * 0.10,
+      hours * 0.17,
+      hours * 0.30,
+      hours * 0.15,
+      hours * 0.20,
+      hours * 0.04,
+    ];
+  }
+
+  // ==============================================================
+  // 共通
+  // ==============================================================
+
+  Widget _card(Color color, Widget child) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _legend(Color color, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+
+        const SizedBox(width: 5),
+
+        Text(text, style: const TextStyle(fontSize: 11)),
+      ],
+    );
+  }
+}

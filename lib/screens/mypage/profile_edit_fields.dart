@@ -1,0 +1,109 @@
+// ======================================================================
+// 【部品】プロフィール編集の入力欄（学年・職種／学習目標 など）
+//
+// 主なクラス: ProfileEditFields
+// ・旧ファイル名: profile_edit_screen2.dart
+// ======================================================================
+
+import 'package:flutter/material.dart';
+import 'package:study_support_app/theme/app_colors.dart';
+
+class ProfileEditFields extends StatelessWidget {
+  final TextEditingController gradeController;
+  final TextEditingController goalController;
+
+  const ProfileEditFields({
+    super.key,
+    required this.gradeController,
+    required this.goalController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1, thickness: 1, color: AppColors.border),
+
+        const SizedBox(height: 18),
+
+        const Text(
+          "プロフィール",
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        _EditField(title: "学年・職種（任意）", controller: gradeController),
+
+        _EditField(title: "学習目標", controller: goalController),
+      ],
+    );
+  }
+}
+
+class _EditField extends StatelessWidget {
+  final String title;
+  final TextEditingController controller;
+
+  const _EditField({required this.title, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // タイトル
+          Text(title, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+
+          const SizedBox(height: 8),
+
+          // テキストフィールド
+          TextField(
+            controller: controller,
+            style: const TextStyle(fontSize: 15, color: Colors.black87),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.background,
+
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+
+              suffixIcon: const Icon(
+                Icons.edit_outlined,
+                color: Colors.grey,
+                size: 19,
+              ),
+
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
