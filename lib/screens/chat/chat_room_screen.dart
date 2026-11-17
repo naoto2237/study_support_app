@@ -2,7 +2,9 @@
 // 【画面】1対1のチャット
 //
 // 主なクラス: ChatRoomScreen
-// 開き方: チャットの相手一覧（chat_list_screen.dart）
+// 開き方: チャットの相手一覧（chat_list_screen.dart）・相手のマイページの「メッセージ」
+// ・送れない相手（chat_permission.dart）には、入力欄の代わりに案内を出す
+// ・送ると users/{自分}/chats/{相手} と users/{相手}/chats/{自分} に会話の記録を残す
 // ・使うデータ: chats/{id}/messages, users
 // ======================================================================
 
@@ -10,6 +12,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/screens/chat/chat_permission.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String userName;
@@ -60,31 +63,48 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       };
 
-      // =========================================
-      // 自分側に保存
-      // users / 自分 / chats / 相手 / messages
-      // =========================================
-      await firestore
+      final myChat = firestore
           .collection('users')
           .doc(myUid)
           .collection('chats')
+          .doc(friendUid);
+
+      final theirChat = firestore
+          .collection('users')
           .doc(friendUid)
-          .collection('messages')
-          .doc(messageId)
-          .set(messageData);
+          .collection('chats')
+          .doc(myUid);
+
+      final batch = firestore.batch();
 
       // =========================================
-      // 相手側に保存
+      // 自分側・相手側の両方に保存
+      // users / 自分 / chats / 相手 / messages
       // users / 相手 / chats / 自分 / messages
       // =========================================
-      await firestore
-          .collection('users')
-          .doc(friendUid)
-          .collection('chats')
-          .doc(myUid)
-          .collection('messages')
-          .doc(messageId)
-          .set(messageData);
+      batch.set(myChat.collection('messages').doc(messageId), messageData);
+      batch.set(theirChat.collection('messages').doc(messageId), messageData);
+
+      // =========================================
+      // 会話の記録（チャット一覧に出すため）
+      // userId: 話している相手 / lastMessage・updatedAt: 最後のメッセージ
+      // 相手側には otherSent: true（相手から見て「こちらから届いた」）を残す
+      //   → 相手は、設定に関係なく返事を送れる（chat_permission.dart）
+      // =========================================
+      batch.set(myChat, {
+        'userId': friendUid,
+        'lastMessage': text,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      batch.set(theirChat, {
+        'userId': myUid,
+        'lastMessage': text,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'otherSent': true,
+      }, SetOptions(merge: true));
+
+      await batch.commit();
     } catch (e) {
       debugPrint('メッセージ送信エラー: $e');
     }
@@ -208,60 +228,105 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
           ),
 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
-
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
+          // 送れない相手には、入力欄の代わりに案内を出す
+          CanMessageBuilder(
+            userId: widget.userId,
+            builder: (context, canMessage, loading) {
+              if (!canMessage && !loading) {
+                return SafeArea(
+                  top: false,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
                     ),
-
-                    decoration: InputDecoration(
-                      hintText: 'メッセージを入力...',
-
-                      hintStyle: TextStyle(
-                        color: isDark ? Colors.grey[500] : Colors.grey[400],
-                      ),
-
-                      filled: true,
-
-                      fillColor: isDark
-                          ? const Color(0xFF2D2D2D)
-                          : Colors.white,
-
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-
-                        borderSide: BorderSide.none,
-                      ),
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          size: 18,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '友達になると、メッセージを送れます',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              color: isDark ? Colors.white60 : Colors.black54,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                );
+              }
 
-                const SizedBox(width: 8),
-
-                IconButton(
-                  icon: const Icon(Icons.send, color: AppColors.primary),
-
-                  onPressed: _sendMessage,
-                ),
-              ],
-            ),
+              return _buildInput(isDark);
+            },
           ),
         ],
       ),
+    );
+  }
+
+  // メッセージの入力欄と送るボタン
+  Widget _buildInput(bool isDark) {
+    return Builder(
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+
+                  decoration: InputDecoration(
+                    hintText: 'メッセージを入力...',
+
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.grey[500] : Colors.grey[400],
+                    ),
+
+                    filled: true,
+
+                    fillColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              IconButton(
+                icon: const Icon(Icons.send, color: AppColors.primary),
+
+                onPressed: _sendMessage,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

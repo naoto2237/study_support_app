@@ -12,6 +12,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/screens/record/my_record/recent_records_section.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/screens/record/chart_tooltip_layout.dart';
+import 'package:study_support_app/main.dart' show currentDay, todayStudyLoaded;
 
 class StudyTimeChartSection extends StatefulWidget {
   final Color cardColor;
@@ -24,10 +26,17 @@ class StudyTimeChartSection extends StatefulWidget {
   final double weeklyStudyHours;
   final double weeklyGoalHours;
   final int achievementRate;
+
+  // 記録を読みこみ中か（読みこみ中は、合計と1日の平均を「--」にする）
+  final bool isLoading;
   final ValueChanged<int> onPeriodChanged;
   final ValueChanged<DateTime> onWeekChanged;
   final ValueChanged<DateTime> onMonthChanged;
   final ValueChanged<int> onYearChanged;
+
+  // 日付が変わって、表示する週・月・年が新しい今日に移ったとき
+  final void Function(DateTime weekStart, DateTime month, int year)
+  onDayFollowed;
   final String userId;
 
   const StudyTimeChartSection({
@@ -42,10 +51,12 @@ class StudyTimeChartSection extends StatefulWidget {
     required this.weeklyStudyHours,
     required this.weeklyGoalHours,
     required this.achievementRate,
+    this.isLoading = false,
     required this.onPeriodChanged,
     required this.onWeekChanged,
     required this.onMonthChanged,
     required this.onYearChanged,
+    required this.onDayFollowed,
     required this.userId,
   });
 
@@ -63,6 +74,14 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
   // タップしている棒の番号（タップしていないときは -1）
   int _touchedIndex = -1;
 
+  // 押している位置（グラフの中の座標）。指を離すと null
+  Offset? _touchPosition;
+
+  // 左の目盛り（数字と単位）の幅
+  // グラフの部品が教えてくる「押した位置」は、この幅を除いた場所から数えた値なので、
+  // 吹き出しを置くときはこの幅を足す
+  static const double _leftAxisWidth = 36;
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +91,63 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
     final now = DateTime.now();
     selectedMonth = DateTime(now.year, now.month, 1);
     selectedYear = now.year;
+
+    _shownDay = DateTime(now.year, now.month, now.day);
+
+    // 日付が変わったら（ホーム画面が知らせる）、表示する週・月・年を合わせる
+    currentDay.addListener(_onDayChanged);
+  }
+
+  @override
+  void dispose() {
+    currentDay.removeListener(_onDayChanged);
+    super.dispose();
+  }
+
+  // ==========================================================
+  // 日付が変わったとき
+  //
+  // 「今日をふくむ週・月・年」を見ていたときだけ、新しい今日をふくむ
+  // 週・月・年へ移る。前の週などに動かして見ているときは、そのままにする。
+  // ==========================================================
+
+  // グラフが「今日」として扱っている日（時刻は 0:00）
+  late DateTime _shownDay;
+
+  static DateTime _weekStartOf(DateTime day) {
+    final d = DateTime(day.year, day.month, day.day);
+    return d.subtract(Duration(days: d.weekday - 1));
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  void _onDayChanged() {
+    final oldDay = _shownDay;
+    final newDay = currentDay.value;
+
+    if (_sameDay(oldDay, newDay) || !mounted) return;
+
+    _shownDay = DateTime(newDay.year, newDay.month, newDay.day);
+
+    final followWeek = _sameDay(selectedWeekStart, _weekStartOf(oldDay));
+    final followMonth =
+        selectedMonth.year == oldDay.year &&
+        selectedMonth.month == oldDay.month;
+    final followYear = selectedYear == oldDay.year;
+
+    if (!followWeek && !followMonth && !followYear) return;
+
+    setState(() {
+      if (followWeek) selectedWeekStart = _weekStartOf(newDay);
+      if (followMonth) selectedMonth = DateTime(newDay.year, newDay.month, 1);
+      if (followYear) selectedYear = newDay.year;
+    });
+
+    // 学習記録の画面にも同じ週・月・年を伝える
+    // （記録の読み直しは、学習記録の画面が日付の変わり目に行う）
+    widget.onDayFollowed(selectedWeekStart, selectedMonth, selectedYear);
   }
 
   String formatDate(DateTime date) {
@@ -210,9 +286,36 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
               ),
             ],
           ),
-          _buildPeriodSummary(textColor, secondaryColor),
+          // 今日の時間の読みこみが終わったら描き直す
+          ValueListenableBuilder<bool>(
+            valueListenable: todayStudyLoaded,
+            builder: (context, todayLoaded, child) {
+              return _buildPeriodSummary(textColor, secondaryColor);
+            },
+          ),
           const SizedBox(height: 18),
-          SizedBox(height: 240, child: BarChart(_createChart())),
+          SizedBox(
+            height: 240,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                BarChart(_createChart()),
+
+                // 押している間だけ、押した位置の少し上に吹き出しを出す
+                if (_touchedIndex >= 0 && _touchPosition != null)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomSingleChildLayout(
+                        delegate: ChartTooltipLayoutDelegate(
+                          _touchPosition! + const Offset(_leftAxisWidth, 0),
+                        ),
+                        child: _buildTouchTooltip(_touchedIndex),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -268,6 +371,142 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
     );
   }
 
+  // ==========================================================
+  // 吹き出し（押している棒の日付・時間・期間の何%か）
+  // 見た目は前のグラフの部品の吹き出しと同じ（うすい青。色は app_colors.dart の tooltip〜）
+  // ==========================================================
+  Widget _buildTouchTooltip(int groupIndex) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final tooltipColor = isDark
+        ? AppColors.tooltipBackgroundDark
+        : AppColors.tooltipBackground;
+    final tooltipBorderColor = isDark
+        ? AppColors.tooltipBorderDark
+        : AppColors.tooltipBorder;
+    final tooltipTextColor = isDark
+        ? AppColors.tooltipTextDark
+        : AppColors.tooltipText;
+    final tooltipSubColor = isDark
+        ? AppColors.tooltipSubTextDark
+        : AppColors.tooltipSubText;
+
+    final hourValues = _chartValues();
+    final labels = _chartLabels();
+
+    if (groupIndex < 0 ||
+        groupIndex >= labels.length ||
+        groupIndex >= hourValues.length) {
+      return const SizedBox.shrink();
+    }
+
+    final label = labels[groupIndex];
+
+    // 期間の合計（「合計の何%か」を出すため）
+    final totalSecondsInPeriod = hourValues.fold<double>(
+      0,
+      (total, v) => total + v * 3600,
+    );
+
+    String title;
+
+    if (selectedPeriod == 0) {
+      // 週
+      final date = selectedWeekStart.add(Duration(days: groupIndex));
+
+      const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
+
+      final now = DateTime.now();
+      final isToday =
+          date.year == now.year &&
+          date.month == now.month &&
+          date.day == now.day;
+
+      title =
+          "${date.month}/${date.day}（${weekdays[date.weekday - 1]}）"
+          "${isToday ? "・今日" : ""}";
+    } else if (selectedPeriod == 1) {
+      // 月
+      final targetMonth = selectedMonth;
+
+      final firstDay = DateTime(targetMonth.year, targetMonth.month, 1);
+      final lastDay = DateTime(targetMonth.year, targetMonth.month + 1, 0);
+
+      // タップしたバーの週まで進める
+      final weekStart = firstDay
+          .subtract(Duration(days: firstDay.weekday - 1))
+          .add(Duration(days: groupIndex * 7));
+      final weekEnd = weekStart.add(const Duration(days: 6));
+
+      // 月の範囲内だけ表示
+      final displayStart = weekStart.isBefore(firstDay) ? firstDay : weekStart;
+      final displayEnd = weekEnd.isAfter(lastDay) ? lastDay : weekEnd;
+
+      title =
+          "${groupIndex + 1}週目（"
+          "${displayStart.month}/${displayStart.day}"
+          "～"
+          "${displayEnd.month}/${displayEnd.day}）";
+    } else {
+      // 年
+      title = "$selectedYear年$label";
+    }
+
+    final seconds = (hourValues[groupIndex] * 3600).round();
+
+    // 期間の合計のうち、この棒が何%か
+    final percent = totalSecondsInPeriod > 0
+        ? (seconds / totalSecondsInPeriod * 100).round()
+        : 0;
+
+    final periodName = selectedPeriod == 0
+        ? "週"
+        : selectedPeriod == 1
+        ? "月"
+        : "年";
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: tooltipColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: tooltipBorderColor),
+      ),
+      child: Text.rich(
+        TextSpan(
+          text: "$title\n",
+          style: TextStyle(
+            color: tooltipSubColor,
+            fontSize: 11,
+            fontWeight: FontWeight.normal,
+            height: 1.5,
+          ),
+          children: [
+            TextSpan(
+              text: _formatTooltipTime(seconds),
+              style: TextStyle(
+                color: tooltipTextColor,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                height: 1.4,
+              ),
+            ),
+            if (seconds > 0)
+              TextSpan(
+                text: "\nこの$periodNameの $percent%",
+                style: TextStyle(
+                  color: tooltipSubColor,
+                  fontSize: 11,
+                  height: 1.5,
+                ),
+              ),
+          ],
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
   BarChartData _createChart() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -283,9 +522,6 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
     // （短い時間でも棒が点にならないようにする）
     // ----------------------------------------------------------
     final useMinutes = maxHours < 1;
-
-    // 1目盛りあたりの秒（ツールチップで秒にもどすため）
-    final secondsPerUnit = useMinutes ? 60 : 3600;
 
     final values = useMinutes
         ? hourValues.map((v) => v * 60).toList()
@@ -316,166 +552,31 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
 
     final gridColor = isDark ? Colors.white12 : AppColors.divider;
 
-    // 期間の合計（吹き出しで「合計の何%か」を出すため）
-    final totalSecondsInPeriod = hourValues.fold<double>(
-      0,
-      (total, v) => total + v * 3600,
-    );
-
-    // 吹き出しの色（うすい青。色は app_colors.dart の tooltip〜 で決める）
-    final tooltipColor = isDark
-        ? AppColors.tooltipBackgroundDark
-        : AppColors.tooltipBackground;
-    final tooltipBorderColor = isDark
-        ? AppColors.tooltipBorderDark
-        : AppColors.tooltipBorder;
-    final tooltipTextColor = isDark
-        ? AppColors.tooltipTextDark
-        : AppColors.tooltipText;
-    final tooltipSubColor = isDark
-        ? AppColors.tooltipSubTextDark
-        : AppColors.tooltipSubText;
-
     return BarChartData(
       barTouchData: BarTouchData(
         enabled: true,
 
-        // タップした棒を覚えて、その棒だけ色を濃くする
+        // 押している棒と、押している位置を覚える
+        // （その棒だけ色を濃くし、押した位置の少し上に吹き出しを出す。指を離すと消える）
         touchCallback: (event, response) {
           final index = event.isInterestedForInteractions
               ? (response?.spot?.touchedBarGroupIndex ?? -1)
               : -1;
 
-          if (index != _touchedIndex) {
+          final position = index >= 0 ? event.localPosition : null;
+
+          if (index != _touchedIndex || position != _touchPosition) {
             setState(() {
               _touchedIndex = index;
+              _touchPosition = position;
             });
           }
         },
 
+        // 吹き出しは、グラフの部品のものではなく、押した位置の少し上に自分で出す
+        // （_buildTouchTooltip。グラフの部品の吹き出しは棒のてっぺんにしか出せないため）
         touchTooltipData: BarTouchTooltipData(
-          getTooltipColor: (_) => tooltipColor,
-          tooltipBorder: BorderSide(color: tooltipBorderColor),
-          tooltipRoundedRadius: 10,
-          tooltipPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
-          tooltipMargin: 8,
-
-          // 端の棒をタップしても、吹き出しがカードの外にはみ出さないようにする
-          fitInsideHorizontally: true,
-          fitInsideVertically: true,
-
-          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-            final labels = _chartLabels();
-
-            if (groupIndex < 0 || groupIndex >= labels.length) {
-              return null;
-            }
-
-            final label = labels[groupIndex];
-
-            String title;
-
-            if (selectedPeriod == 0) {
-              // 週
-              final date = selectedWeekStart.add(Duration(days: groupIndex));
-
-              const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
-
-              final now = DateTime.now();
-              final isToday =
-                  date.year == now.year &&
-                  date.month == now.month &&
-                  date.day == now.day;
-
-              title =
-                  "${date.month}/${date.day}（${weekdays[date.weekday - 1]}）"
-                  "${isToday ? "・今日" : ""}";
-            } else if (selectedPeriod == 1) {
-              // 月
-              final targetMonth = selectedMonth;
-
-              final firstDay = DateTime(targetMonth.year, targetMonth.month, 1);
-
-              final lastDay = DateTime(
-                targetMonth.year,
-                targetMonth.month + 1,
-                0,
-              );
-
-              final firstDayOffset = firstDay.weekday - 1;
-
-              DateTime weekStart = firstDay.subtract(
-                Duration(days: firstDayOffset),
-              );
-
-              // タップしたバーの週まで進める
-              weekStart = weekStart.add(Duration(days: groupIndex * 7));
-
-              DateTime weekEnd = weekStart.add(const Duration(days: 6));
-
-              // 月の範囲内だけ表示
-              final displayStart = weekStart.isBefore(firstDay)
-                  ? firstDay
-                  : weekStart;
-
-              final displayEnd = weekEnd.isAfter(lastDay) ? lastDay : weekEnd;
-
-              title =
-                  "${groupIndex + 1}週目（"
-                  "${displayStart.month}/${displayStart.day}"
-                  "～"
-                  "${displayEnd.month}/${displayEnd.day}）";
-            } else {
-              // 年
-              title = "$selectedYear年$label";
-            }
-
-            final seconds = (rod.toY * secondsPerUnit).round();
-
-            // 期間の合計のうち、この棒が何%か
-            final percent = totalSecondsInPeriod > 0
-                ? (seconds / totalSecondsInPeriod * 100).round()
-                : 0;
-
-            final periodName = selectedPeriod == 0
-                ? "週"
-                : selectedPeriod == 1
-                ? "月"
-                : "年";
-
-            return BarTooltipItem(
-              "$title\n",
-              TextStyle(
-                color: tooltipSubColor,
-                fontSize: 11,
-                fontWeight: FontWeight.normal,
-                height: 1.5,
-              ),
-              children: [
-                TextSpan(
-                  text: _formatTooltipTime(seconds),
-                  style: TextStyle(
-                    color: tooltipTextColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    height: 1.4,
-                  ),
-                ),
-                if (seconds > 0)
-                  TextSpan(
-                    text: "\nこの$periodNameの $percent%",
-                    style: TextStyle(
-                      color: tooltipSubColor,
-                      fontSize: 11,
-                      height: 1.5,
-                    ),
-                  ),
-              ],
-            );
-          },
+          getTooltipItem: (group, groupIndex, rod, rodIndex) => null,
         ),
       ),
       maxY: maxY,
@@ -495,7 +596,7 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 36,
+            reservedSize: _leftAxisWidth,
             interval: interval,
             getTitlesWidget: (value, meta) {
               // いちばん上の目盛りには単位（分・時間）を出す
@@ -813,15 +914,19 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
     return "$remainingSeconds秒";
   }
 
-  String _formatSeconds(int seconds) {
-    final hours = seconds ~/ 3600;
-    final minutes = (seconds % 3600) ~/ 60;
-
-    if (hours > 0) {
-      return minutes > 0 ? "$hours時間$minutes分" : "$hours時間";
+  // 期間の合計と1日の平均：上のサマリー（my_record_screen.dart の formatPeriodStudyTime）と同じ書き方
+  // 1時間未満は秒まで（「0分44秒」）、100時間未満は「3時間12分」、100時間以上は「120.5時間」
+  String _formatTotal(int totalSeconds) {
+    if (totalSeconds >= 100 * 3600) {
+      final tenthsOfHour = (totalSeconds * 10) ~/ 3600;
+      return "${tenthsOfHour ~/ 10}.${tenthsOfHour % 10}時間";
     }
 
-    return "$minutes分";
+    if (totalSeconds < 3600) {
+      return "${totalSeconds ~/ 60}分${totalSeconds % 60}秒";
+    }
+
+    return "${totalSeconds ~/ 3600}時間${(totalSeconds % 3600) ~/ 60}分";
   }
 
   Widget _buildPeriodSummary(Color textColor, Color secondaryColor) {
@@ -832,6 +937,9 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
 
     final days = _elapsedDays();
     final averageSeconds = days > 0 ? totalSeconds ~/ days : 0;
+
+    // 記録か今日の時間を読みこみ中なら、正しい数字が出るまで「--」にする
+    final loading = widget.isLoading || !todayStudyLoaded.value;
 
     final periodName = selectedPeriod == 0
         ? "この週"
@@ -852,8 +960,9 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
               ),
               const SizedBox(height: 2),
               _timeText(
-                _formatSeconds(totalSeconds),
-                color: textColor,
+                loading ? "--" : _formatTotal(totalSeconds),
+                // 合計の数字・単位は緑（1日の平均は青のまま）
+                color: AppColors.green,
                 numberSize: 25,
                 unitSize: 14,
               ),
@@ -869,7 +978,7 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
             ),
             const SizedBox(height: 2),
             _timeText(
-              _formatSeconds(averageSeconds),
+              loading ? "--" : _formatTotal(averageSeconds),
               color: AppColors.primary,
               numberSize: 18,
               unitSize: 12,
@@ -888,7 +997,22 @@ class _StudyTimeChartSectionState extends State<StudyTimeChartSection> {
     required double numberSize,
     required double unitSize,
   }) {
-    final spans = RegExp(r'(\d+)(時間|分|秒)').allMatches(value).expand((m) {
+    // 読みこみ中の「--」
+    if (value == "--") {
+      return Text(
+        "--",
+        style: GoogleFonts.roboto(
+          color: color,
+          fontSize: numberSize,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+
+    // 「120.5時間」のような小数も、ひとかたまりの数字として出す
+    final spans = RegExp(r'(\d+(?:\.\d+)?)(時間|分|秒)').allMatches(value).expand((
+      m,
+    ) {
       return [
         TextSpan(
           text: m.group(1),

@@ -476,13 +476,14 @@ class _AiScreenState extends State<AiScreen> {
   }
 
   // 質問例（アイコンと文章）
-  static const List<(IconData, String)> _questionExamples = [
-    (Icons.menu_book_outlined, "効率的な勉強方法を教えて"),
-    (Icons.quiz_outlined, "この問題を解説して"),
-    (Icons.calendar_month_outlined, "一週間の学習計画を立てて"),
-    (Icons.psychology_alt_outlined, "暗記のコツを教えて"),
-    (Icons.trending_up_outlined, "集中力を上げる方法は？"),
-    (Icons.local_fire_department_outlined, "やる気を維持する方法は？"),
+  // アイコンの色は、中身に合わせていろいろな色にする（やる気の炎は赤）
+  static const List<(IconData, String, Color)> _questionExamples = [
+    (Icons.menu_book_outlined, "効率的な勉強方法を教えて", AppColors.primary),
+    (Icons.quiz_outlined, "この問題を解説して", AppColors.green),
+    (Icons.calendar_month_outlined, "一週間の学習計画を立てて", AppColors.orange),
+    (Icons.psychology_alt_outlined, "暗記のコツを教えて", AppColors.primary),
+    (Icons.trending_up_outlined, "集中力を上げる方法は？", AppColors.green),
+    (Icons.local_fire_department_outlined, "やる気を維持する方法は？", AppColors.red),
   ];
 
   // ==============================================================
@@ -508,7 +509,11 @@ class _AiScreenState extends State<AiScreen> {
       child: Column(
         children: [
           for (var i = 0; i < _questionExamples.length; i++) ...[
-            _questionChip(_questionExamples[i].$1, _questionExamples[i].$2),
+            _questionChip(
+              _questionExamples[i].$1,
+              _questionExamples[i].$2,
+              _questionExamples[i].$3,
+            ),
             if (i < _questionExamples.length - 1)
               Container(
                 height: 1,
@@ -521,7 +526,7 @@ class _AiScreenState extends State<AiScreen> {
     );
   }
 
-  Widget _questionChip(IconData icon, String text) {
+  Widget _questionChip(IconData icon, String text, Color iconColor) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
@@ -547,10 +552,10 @@ class _AiScreenState extends State<AiScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isDark
-                        ? AppColors.primary.withValues(alpha: 0.18)
-                        : AppColors.primarySoft,
+                        ? iconColor.withValues(alpha: 0.18)
+                        : iconColor.withValues(alpha: 0.12),
                   ),
-                  child: Icon(icon, color: AppColors.primary, size: 18),
+                  child: Icon(icon, color: iconColor, size: 18),
                 ),
 
                 const SizedBox(width: 12),

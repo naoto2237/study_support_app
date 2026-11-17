@@ -13,6 +13,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:study_support_app/screens/settings/settings_screen.dart';
 import 'package:study_support_app/screens/mypage/mypage_profile_section.dart';
+import 'package:study_support_app/screens/mypage/profile_activity.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 class MypageScreen extends StatefulWidget {
@@ -63,6 +64,11 @@ class _MypageScreenState extends State<MypageScreen> {
           .snapshots();
     } else {
       _userStream = const Stream.empty();
+    }
+
+    // 他の人のページを開いたら、「見た人」として記録する
+    if (!_isMyPage) {
+      ProfileActivity.recordView(_targetUserId);
     }
 
     // スクロール位置を取得

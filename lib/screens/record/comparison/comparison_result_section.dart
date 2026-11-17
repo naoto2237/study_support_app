@@ -3,6 +3,8 @@
 //
 // 主なクラス: ComparisonResultSection
 // ・その下に比較グラフ（comparison_chart_section.dart）を表示
+// ・あなたの今日の分は、タイマーの今の値（todayStudySeconds）を使う（下のグラフと同じ）
+// ・時間は、1時間未満は秒まで出す（「0分44秒」）
 // ・旧ファイル名: comparison_screen2.dart
 // ======================================================================
 
@@ -12,6 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/main.dart' show todayStudySeconds;
 
 class ComparisonResultSection extends StatefulWidget {
   final int totalSeconds;
@@ -46,11 +49,12 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
       return "$wholeHours.$decimal時間";
     }
 
-    // 1時間未満
+    // 1時間未満は秒まで出す（学習記録のサマリーと同じ。「0分44秒」）
     if (totalSeconds < 3600) {
       final minutes = totalSeconds ~/ 60;
+      final seconds = totalSeconds % 60;
 
-      return "$minutes分";
+      return "$minutes分$seconds秒";
     }
 
     // 1時間以上100時間未満
@@ -111,6 +115,19 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
 
     _loadMyStudyHours();
     _loadAverageStudyHours();
+
+    // 今日の分はタイマーの今の値を使うので、変わるたびに描き直す
+    todayStudySeconds.addListener(_onTodayChanged);
+  }
+
+  @override
+  void dispose() {
+    todayStudySeconds.removeListener(_onTodayChanged);
+    super.dispose();
+  }
+
+  void _onTodayChanged() {
+    if (mounted) setState(() {});
   }
 
   // =============================================================
@@ -189,6 +206,9 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
         }
 
         final recordDate = DateTime(date.year, date.month, date.day);
+
+        // 今日の分は、保存ずみの記録ではなくタイマーの今の値を使う（下のグラフと同じ）
+        if (recordDate == DateTime(now.year, now.month, now.day)) continue;
 
         // 選択した期間内だけ集計
         if (!recordDate.isBefore(startDate) && recordDate.isBefore(endDate)) {
@@ -373,6 +393,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
         ComparisonChartSection(
           totalSeconds: widget.totalSeconds,
           comparisonTarget: widget.comparisonTarget,
+          isCompared: widget.isCompared,
         ),
       ],
     );
@@ -413,17 +434,20 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
                   ),
                 ),
               ),
-              Text(
-                _selectedDateText(),
-                style: TextStyle(color: secondaryColor, fontSize: 13),
-              ),
+              // 期間は「比較する」を押してから出す
+              if (widget.isCompared)
+                Text(
+                  _selectedDateText(),
+                  style: TextStyle(color: secondaryColor, fontSize: 13),
+                ),
             ],
           ),
 
-          const SizedBox(height: 14),
-
-          // 週・月・年の切りかえ（グラフと同じ形）
-          _buildPeriodSelector(textColor, isDark),
+          // 週・月・年の切りかえ（グラフと同じ形）も、「比較する」を押してから出す
+          if (widget.isCompared) ...[
+            const SizedBox(height: 14),
+            _buildPeriodSelector(textColor, isDark),
+          ],
 
           const SizedBox(height: 16),
 
@@ -533,8 +557,11 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
   ) {
     final isLoading = isLoadingMyStudyTime || isLoadingAverage;
 
-    final mySeconds = myStudySeconds ?? 0;
-    final averageSeconds = ((averageStudyHours ?? 0) * 3600).round();
+    // 保存ずみの記録（今日より前）＋ 今日のタイマーの今の値
+    // （今日は、週・月・年のどれを選んでも、その期間に入る）
+    final mySeconds = (myStudySeconds ?? 0) + todayStudySeconds.value;
+    // 秒の端数は切り捨て（下の比較グラフと同じ。四捨五入だと1秒ずれることがある）
+    final averageSeconds = ((averageStudyHours ?? 0) * 3600).floor();
 
     final difference = mySeconds - averageSeconds;
 
@@ -612,10 +639,11 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
                     ),
                     const SizedBox(width: 6),
                     if (difference != 0) ...[
+                      // 多いときの差の数字と単位は緑（少ないときは赤のまま）
                       _buildStudyTimeRichText(
                         formatStudyTime(difference.abs()),
                         "",
-                        differenceColor,
+                        difference > 0 ? AppColors.green : differenceColor,
                         numberSize: 20,
                       ),
                       const SizedBox(width: 6),
@@ -707,7 +735,9 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
             _buildStudyTimeRichText(
               isLoadingMyStudyTime
                   ? "--"
-                  : formatStudyTime(myStudySeconds ?? 0),
+                  : formatStudyTime(
+                      (myStudySeconds ?? 0) + todayStudySeconds.value,
+                    ),
               "",
               AppColors.primary,
               numberSize: 20,
@@ -745,8 +775,8 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
       );
     }
 
-    // 例: 12時間34分 / 45分 / 123.4時間
-    final regex = RegExp(r'(\d+(?:\.\d+)?)(時間|分)');
+    // 例: 12時間34分 / 45分12秒 / 123.4時間
+    final regex = RegExp(r'(\d+(?:\.\d+)?)(時間|分|秒)');
 
     final spans = <TextSpan>[];
 

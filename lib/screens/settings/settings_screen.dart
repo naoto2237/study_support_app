@@ -34,6 +34,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoadingPrivacy = true;
   bool _isSavingPrivacy = false;
 
+  // 友達以外からのメッセージを受け取るか（users の allowNonFriendMessages。はじめはオフ）
+  bool _allowMessages = false;
+  bool _isSavingMessages = false;
+
   // ログアウトなど、危ない操作の赤
   static const Color _red = Color(0xFFE53935);
 
@@ -41,6 +45,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadPrivacySetting();
+  }
+
+  // 友達以外からのメッセージの設定を、すぐに保存する
+  // （失敗したときは、何も出さずにスイッチを元に戻す）
+  Future<void> _setAllowMessages(bool value) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final previous = _allowMessages;
+
+    setState(() {
+      _allowMessages = value;
+      _isSavingMessages = true;
+    });
+
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'allowNonFriendMessages': value,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('メッセージの設定の保存に失敗しました: $e');
+
+      if (mounted) setState(() => _allowMessages = previous);
+    } finally {
+      if (mounted) setState(() => _isSavingMessages = false);
+    }
   }
 
   // ==============================================================
@@ -59,9 +90,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         final data = doc.data();
 
-        if (data != null && data.containsKey('isPublic') && mounted) {
+        if (data != null && mounted) {
           setState(() {
-            _isPublic = data['isPublic'] == true;
+            if (data.containsKey('isPublic')) {
+              _isPublic = data['isPublic'] == true;
+            }
+            _allowMessages = data['allowNonFriendMessages'] == true;
           });
         }
       }
@@ -485,6 +519,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: (_isLoadingPrivacy || _isSavingPrivacy)
                       ? null
                       : () => _setPublic(!_isPublic),
+                ),
+                _row(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  title: '友達以外からのメッセージ',
+                  subtitle: _isLoadingPrivacy
+                      ? '読み込み中…'
+                      : (_allowMessages
+                            ? '友達でない人も、あなたにメッセージを送れます'
+                            : 'メッセージを送れるのは、友達だけです'),
+                  trailing: _switch(
+                    _allowMessages,
+                    (_isLoadingPrivacy || _isSavingMessages)
+                        ? null
+                        : _setAllowMessages,
+                  ),
+                  onTap: (_isLoadingPrivacy || _isSavingMessages)
+                      ? null
+                      : () => _setAllowMessages(!_allowMessages),
                 ),
               ]),
 

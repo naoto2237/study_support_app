@@ -3,7 +3,8 @@
 //
 // 主なクラス: ComparisonChartSection
 // ・「あなた」と「全体平均」の学習時間を、棒を2本ならべて比べる
-// ・週：今週の月曜～日曜の日ごと／月：今月のカレンダーの週ごと／年：今年の月ごと
+// ・週：月曜～日曜の日ごと／月：カレンダーの週ごと／年：月ごと
+// ・「<」「>」で前・次の週（月・年）へ動かせる（学習記録の推移と同じ。_offset）
 // ・全体平均 ＝ その日（週・月）の全員の学習時間の合計 ÷ 全体のユーザー数
 //   （勉強しなかった人も0時間として平均に入れる。上の「学習時間の比較」と同じ考え方）
 // ・あなたの今日の分は、タイマーの今の値（todayStudySeconds）を使う
@@ -19,15 +20,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/main.dart' show todayStudySeconds;
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/screens/record/chart_tooltip_layout.dart';
 
 class ComparisonChartSection extends StatefulWidget {
   final int totalSeconds;
   final String comparisonTarget;
 
+  // 「比較する」を押したか（押すまでは、グラフの代わりに案内を出す）
+  final bool isCompared;
+
   const ComparisonChartSection({
     super.key,
     required this.totalSeconds,
     required this.comparisonTarget,
+    required this.isCompared,
   });
 
   @override
@@ -48,6 +54,14 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
 
   // タップしている棒の組の番号（タップしていないときは -1）
   int _touchedIndex = -1;
+
+  // 押している位置（グラフの中の座標）。指を離すと null
+  Offset? _touchPosition;
+
+  // 左の目盛り（数字と単位）の幅
+  // グラフの部品が教えてくる「押した位置」は、この幅を除いた場所から数えた値なので、
+  // 吹き出しを置くときはこの幅を足す
+  static const double _leftAxisWidth = 36;
 
   bool isLoading = true;
   bool hasError = false;
@@ -138,6 +152,24 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
   // 期間と棒の分け方
   // ==============================================================
 
+  // 矢印で動かした数（0：今の期間、-1：1つ前、1：1つ後）
+  int _offset = 0;
+
+  // 表示している期間の基準の日（週は今日から _offset 週ずらした日、月・年はその月・年の1日）
+  DateTime get _anchor {
+    final today = _today;
+
+    if (selectedPeriod == 0) {
+      return DateTime(today.year, today.month, today.day + 7 * _offset);
+    }
+
+    if (selectedPeriod == 1) {
+      return DateTime(today.year, today.month + _offset, 1);
+    }
+
+    return DateTime(today.year + _offset, 1, 1);
+  }
+
   DateTime get _today {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
@@ -164,7 +196,8 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
   }
 
   List<_Bucket> _buckets() {
-    final today = _today;
+    // 表示している期間の基準の日（矢印で前後に動かす。今の期間は今日）
+    final today = _anchor;
 
     // 週：今週の月曜～日曜を1日ずつ
     if (selectedPeriod == 0) {
@@ -244,7 +277,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
   }
 
   String _periodDateText() {
-    final today = _today;
+    final today = _anchor;
 
     if (selectedPeriod == 0) {
       final monday = today.subtract(Duration(days: today.weekday - 1));
@@ -317,15 +350,19 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
     return diff > 0 ? "平均より $text 多い" : "平均より $text 少ない";
   }
 
+  // 期間の合計：上の「学習時間の比較」や学習記録のサマリーと同じ書き方
+  // 1時間未満は秒まで（「9分35秒」）、100時間未満は「3時間12分」、100時間以上は「120.5時間」
   String _formatSeconds(int seconds) {
-    final hours = seconds ~/ 3600;
-    final minutes = (seconds % 3600) ~/ 60;
-
-    if (hours > 0) {
-      return minutes > 0 ? "$hours時間$minutes分" : "$hours時間";
+    if (seconds >= 100 * 3600) {
+      final tenthsOfHour = (seconds * 10) ~/ 3600;
+      return "${tenthsOfHour ~/ 10}.${tenthsOfHour % 10}時間";
     }
 
-    return "$minutes分";
+    if (seconds < 3600) {
+      return "${seconds ~/ 60}分${seconds % 60}秒";
+    }
+
+    return "${seconds ~/ 3600}時間${(seconds % 3600) ~/ 60}分";
   }
 
   // ==============================================================
@@ -342,6 +379,29 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
 
     final secondaryColor = isDark ? Colors.white70 : const Color(0xFF666666);
 
+    // 「比較する」を押すまでは、グラフの代わりに案内を出す（上の「学習時間の比較」と同じ）
+    if (!widget.isCompared) {
+      return _card(
+        cardColor,
+        isDark,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "学習時間の比較グラフ",
+              style: TextStyle(
+                color: textColor,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildNotCompared(secondaryColor, isDark),
+          ],
+        ),
+      );
+    }
+
     return Column(
       children: [
         _card(
@@ -350,30 +410,52 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "学習時間の比較グラフ",
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    _periodDateText(),
-                    style: TextStyle(color: secondaryColor, fontSize: 13),
-                  ),
-                ],
+              Text(
+                "学習時間の比較グラフ",
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
 
               const SizedBox(height: 14),
 
               _buildPeriodSelector(textColor, isDark),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
+
+              // ------------------------------------------------------
+              // 前・次の期間へ（「学習記録の推移」と同じ形）
+              // ------------------------------------------------------
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    onPressed: () => setState(() {
+                      _offset--;
+                      _touchedIndex = -1;
+                    }),
+                    icon: Icon(Icons.chevron_left, color: textColor),
+                  ),
+                  Text(
+                    _periodDateText(),
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => setState(() {
+                      _offset++;
+                      _touchedIndex = -1;
+                    }),
+                    icon: Icon(Icons.chevron_right, color: textColor),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
 
               if (isLoading)
                 const SizedBox(
@@ -421,6 +503,40 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
     );
   }
 
+  // 「比較する」を押す前の案内（comparison_result_section.dart と同じ形）
+  Widget _buildNotCompared(Color secondaryColor, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark
+                  ? AppColors.primary.withValues(alpha: 0.18)
+                  : AppColors.primarySoft,
+            ),
+            child: const Icon(
+              Icons.bar_chart_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              "上の「比較する」を押すと、ここにグラフが出ます",
+              style: TextStyle(color: secondaryColor, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildChartArea(
     int todaySeconds,
     Color textColor,
@@ -451,7 +567,8 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
               child: _summaryItem(
                 "あなた",
                 _formatSeconds(myTotal),
-                AppColors.primary,
+                // あなたの合計の数字と単位は緑（棒と凡例は青のまま）
+                AppColors.green,
                 secondaryColor,
                 numberSize: 25,
               ),
@@ -492,8 +609,34 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
 
         SizedBox(
           height: 240,
-          child: BarChart(
-            _createChart(buckets, mySeconds, averageSeconds, isDark),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              BarChart(
+                _createChart(buckets, mySeconds, averageSeconds, isDark),
+              ),
+
+              // 押している間だけ、押した位置の少し上に吹き出しを出す
+              if (_touchedIndex >= 0 &&
+                  _touchedIndex < buckets.length &&
+                  _touchPosition != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomSingleChildLayout(
+                      delegate: ChartTooltipLayoutDelegate(
+                        _touchPosition! + const Offset(_leftAxisWidth, 0),
+                      ),
+                      child: _buildTouchTooltip(
+                        _touchedIndex,
+                        buckets,
+                        mySeconds,
+                        averageSeconds,
+                        isDark,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
 
@@ -537,6 +680,8 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
         onTap: () {
           setState(() {
             selectedPeriod = index;
+            // 週・月・年を切りかえたら、今の期間にもどす
+            _offset = 0;
           });
         },
         child: Container(
@@ -554,6 +699,77 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ==============================================================
+  // 吹き出し（押している組の期間・あなた・全体平均・平均との差）
+  // 見た目は前のグラフの部品の吹き出しと同じ（うすい青。色は app_colors.dart の tooltip〜）
+  // ==============================================================
+  Widget _buildTouchTooltip(
+    int groupIndex,
+    List<_Bucket> buckets,
+    List<int> mySeconds,
+    List<int> averageSeconds,
+    bool isDark,
+  ) {
+    final label = buckets[groupIndex].label.replaceAll("\n", " ");
+
+    final textColor = isDark
+        ? AppColors.tooltipTextDark
+        : AppColors.tooltipText;
+    final subColor = isDark
+        ? AppColors.tooltipSubTextDark
+        : AppColors.tooltipSubText;
+
+    final mine = mySeconds[groupIndex];
+    final average = averageSeconds[groupIndex];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.tooltipBackgroundDark
+            : AppColors.tooltipBackground,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? AppColors.tooltipBorderDark : AppColors.tooltipBorder,
+        ),
+      ),
+      child: Text.rich(
+        TextSpan(
+          text: "$label\n",
+          style: TextStyle(color: subColor, fontSize: 11, height: 1.5),
+          children: [
+            TextSpan(
+              text: "あなた  ${_formatTooltipTime(mine)}",
+              style: TextStyle(
+                color: textColor,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                height: 1.5,
+              ),
+            ),
+            if (_showAverage) ...[
+              TextSpan(
+                text: "\n全体平均  ${_formatTooltipTime(average)}",
+                style: TextStyle(color: subColor, fontSize: 12, height: 1.5),
+              ),
+              TextSpan(
+                text: "\n${_differenceText(mine, average)}",
+                style: TextStyle(
+                  // 平均より多いときは濃い青、少ないときはうすめの青
+                  color: mine >= average ? textColor : subColor,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ],
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -611,92 +827,27 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
       barTouchData: BarTouchData(
         enabled: true,
 
-        // タップした組を覚えて、その組の「あなた」の棒を濃くする
+        // 押している組と位置を覚える
+        // （その組の「あなた」の棒を濃くし、押した位置の少し上に吹き出しを出す。指を離すと消える）
         touchCallback: (event, response) {
           final index = event.isInterestedForInteractions
               ? (response?.spot?.touchedBarGroupIndex ?? -1)
               : -1;
 
-          if (index != _touchedIndex) {
+          final position = index >= 0 ? event.localPosition : null;
+
+          if (index != _touchedIndex || position != _touchPosition) {
             setState(() {
               _touchedIndex = index;
+              _touchPosition = position;
             });
           }
         },
 
+        // 吹き出しは、グラフの部品のものではなく、押した位置の少し上に自分で出す
+        // （_buildTouchTooltip。グラフの部品の吹き出しは棒のてっぺんにしか出せないため）
         touchTooltipData: BarTouchTooltipData(
-          // 吹き出しの色（うすい青。色は app_colors.dart の tooltip〜 で決める）
-          getTooltipColor: (_) => isDark
-              ? AppColors.tooltipBackgroundDark
-              : AppColors.tooltipBackground,
-          tooltipBorder: BorderSide(
-            color: isDark
-                ? AppColors.tooltipBorderDark
-                : AppColors.tooltipBorder,
-          ),
-          tooltipRoundedRadius: 10,
-          tooltipPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
-          tooltipMargin: 8,
-
-          // 端の棒をタップしても、吹き出しがカードの外にはみ出さないようにする
-          fitInsideHorizontally: true,
-          fitInsideVertically: true,
-
-          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-            // 吹き出しは「あなた」の棒の上に1つだけ出す（2つ出ると重なるため）
-            if (rodIndex != 0) return null;
-
-            final label = buckets[groupIndex].label.replaceAll("\n", " ");
-
-            final textColor = isDark
-                ? AppColors.tooltipTextDark
-                : AppColors.tooltipText;
-            final subColor = isDark
-                ? AppColors.tooltipSubTextDark
-                : AppColors.tooltipSubText;
-
-            final mine = mySeconds[groupIndex];
-            final average = averageSeconds[groupIndex];
-
-            return BarTooltipItem(
-              "$label\n",
-              TextStyle(color: subColor, fontSize: 11, height: 1.5),
-              children: [
-                TextSpan(
-                  text: "あなた  ${_formatTooltipTime(mine)}",
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    height: 1.5,
-                  ),
-                ),
-                if (_showAverage) ...[
-                  TextSpan(
-                    text: "\n全体平均  ${_formatTooltipTime(average)}",
-                    style: TextStyle(
-                      color: subColor,
-                      fontSize: 12,
-                      height: 1.5,
-                    ),
-                  ),
-                  TextSpan(
-                    text: "\n${_differenceText(mine, average)}",
-                    style: TextStyle(
-                      // 平均より多いときは濃い青、少ないときはうすめの青
-                      color: mine >= average ? textColor : subColor,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ],
-            );
-          },
+          getTooltipItem: (group, groupIndex, rod, rodIndex) => null,
         ),
       ),
 
@@ -714,7 +865,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 36,
+            reservedSize: _leftAxisWidth,
             interval: interval,
             getTitlesWidget: (value, meta) {
               final number = value == value.roundToDouble()
@@ -837,7 +988,10 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
 
   // 「23分」「1時間5分」を、数字は Roboto で大きく、単位は小さく出す
   Widget _timeText(String value, Color color, double numberSize) {
-    final spans = RegExp(r'(\d+)(時間|分|秒)').allMatches(value).expand((m) {
+    // 「120.5時間」のような小数も、ひとかたまりの数字として出す
+    final spans = RegExp(r'(\d+(?:\.\d+)?)(時間|分|秒)').allMatches(value).expand((
+      m,
+    ) {
       return [
         TextSpan(
           text: m.group(1),

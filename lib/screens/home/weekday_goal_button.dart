@@ -48,9 +48,10 @@ class WeekdayGoalButton extends StatelessWidget {
                     color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
+                  // カレンダーのアイコンだけオレンジ（文字やボタンの面は青のまま）
+                  child: const Icon(
                     Icons.calendar_month_rounded,
-                    color: fg,
+                    color: AppColors.orange,
                     size: 22,
                   ),
                 ),

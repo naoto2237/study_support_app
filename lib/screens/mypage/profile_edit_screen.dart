@@ -45,6 +45,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   bool _isSaving = false;
 
+  // 保存できなかったときの理由（黒いメッセージの代わりに、画面の中に赤い文字で出す）
+  String? _userIdError;
+  String? _saveError;
+
   @override
   void initState() {
     super.initState();
@@ -343,6 +347,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     setState(() {
       widget.data["userId"] = result;
       _userIdController.text = result;
+      _userIdError = null;
     });
   }
 
@@ -456,6 +461,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
     setState(() {
       _isSaving = true;
+      _userIdError = null;
+      _saveError = null;
     });
 
     try {
@@ -487,13 +494,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
       final userId = _userIdController.text.trim();
 
+      // うまくいかない理由は、ユーザーIDの欄の下に赤い文字で出す
       if (userId.isEmpty) {
-        throw Exception("ユーザーIDを入力する");
+        setState(() => _userIdError = "ユーザーIDを入力してください");
+        return;
       }
 
       // @から始まっているか確認
       if (!userId.startsWith("@")) {
-        throw Exception("ユーザーIDは@から始めてください");
+        setState(() => _userIdError = "ユーザーIDは@から始めてください");
+        return;
       }
 
       // 同じユーザーIDを検索
@@ -508,9 +518,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           existingUser.docs.first.id != user.uid) {
         if (!mounted) return;
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("このユーザーIDはすでに使用されています")));
+        setState(() => _userIdError = "このユーザーIDはすでに使用されています");
 
         return;
       }
@@ -542,15 +550,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("プロフィールを保存しました")));
-
-      // 少し表示してから戻る
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      if (!mounted) return;
-
+      // 保存できたら、そのまま前の画面へ戻る
       Navigator.pop(context, true);
     } catch (e, stackTrace) {
       debugPrint("プロフィール保存エラー: $e");
@@ -559,12 +559,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("プロフィールの保存に失敗しました\n$e"),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      // 画面のいちばん上に赤い文字で出す
+      setState(() => _saveError = "プロフィールを保存できませんでした");
     } finally {
       if (mounted) {
         setState(() {
@@ -665,6 +661,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 保存できなかったとき
+            if (_saveError != null) ...[
+              Center(
+                child: Text(
+                  _saveError!,
+                  style: const TextStyle(fontSize: 13, color: Colors.redAccent),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // ==========================================
             // アイコン
             // ==========================================
@@ -819,6 +826,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ),
               ),
             ),
+
+            if (_userIdError != null) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Text(
+                  _userIdError!,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ),
+            ],
 
             const SizedBox(height: 28),
 

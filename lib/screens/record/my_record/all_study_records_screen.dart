@@ -248,7 +248,7 @@ class _AllStudyRecordsScreenState extends State<AllStudyRecordsScreen> {
               Text(
                 StudyRecordRow.formatStudyTime(totalSeconds),
                 style: const TextStyle(
-                  color: AppColors.primary,
+                  color: AppColors.green,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
