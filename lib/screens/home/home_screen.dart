@@ -18,7 +18,7 @@ import 'package:study_support_app/screens/chat/chat_list_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/screens/home/weekday_goal_button.dart';
-import 'package:study_support_app/screens/notification/notification_screen.dart';
+import 'package:study_support_app/screens/notification/notification_bell.dart';
 import 'package:study_support_app/screens/home/stopwatch_widget.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
@@ -172,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
+      app.todayStudyLoaded.value = true;
       return;
     }
 
@@ -179,12 +180,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final day = _day;
     final dateId = _dateIdOf(day);
 
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.uid)
-        .collection("studyRecords")
-        .doc(dateId)
-        .get();
+    final DocumentSnapshot<Map<String, dynamic>> doc;
+
+    try {
+      doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .collection("studyRecords")
+          .doc(dateId)
+          .get();
+    } catch (e) {
+      debugPrint("今日の学習時間の読み込みに失敗しました: $e");
+      // 読めなくても、いつまでも「-」のままにはしない
+      app.todayStudyLoaded.value = true;
+      return;
+    }
 
     if (!mounted) return;
 
@@ -202,6 +212,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       app.todayStudySeconds.value = savedSeconds;
     }
+
+    // 学習記録の画面に、今日の時間が正しい値になったことを知らせる
+    app.todayStudyLoaded.value = true;
   }
 
   @override
@@ -259,109 +272,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
           Padding(
             padding: const EdgeInsets.only(right: 7),
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(FirebaseAuth.instance.currentUser!.uid)
-                  .collection('friend_requests')
-                  .where('status', isEqualTo: 'pending')
-                  .where('isRead', isEqualTo: false)
-                  .snapshots(),
-
-              builder: (context, requestSnapshot) {
-                final hasFriendRequest =
-                    requestSnapshot.hasData &&
-                    requestSnapshot.data!.docs.isNotEmpty;
-
-                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(FirebaseAuth.instance.currentUser!.uid)
-                      .collection('notifications')
-                      .where('isRead', isEqualTo: false)
-                      .snapshots(),
-
-                  builder: (context, notificationSnapshot) {
-                    final hasNotification =
-                        notificationSnapshot.hasData &&
-                        notificationSnapshot.data!.docs.isNotEmpty;
-
-                    final hasUnread = hasFriendRequest || hasNotification;
-
-                    return IconButton(
-                      onPressed: () async {
-                        // =========================================
-                        // 先に通知画面を表示
-                        // =========================================
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const NotificationScreen(),
-                          ),
-                        );
-
-                        // =========================================
-                        // その後、未読を既読にする
-                        // =========================================
-                        final user = FirebaseAuth.instance.currentUser;
-
-                        if (user != null) {
-                          final firestore = FirebaseFirestore.instance;
-
-                          // 未読の友達申請を既読にする
-                          final friendRequests = await firestore
-                              .collection('users')
-                              .doc(user.uid)
-                              .collection('friend_requests')
-                              .where('isRead', isEqualTo: false)
-                              .get();
-
-                          for (final doc in friendRequests.docs) {
-                            await doc.reference.update({'isRead': true});
-                          }
-
-                          // 未読の通知を既読にする
-                          final notifications = await firestore
-                              .collection('users')
-                              .doc(user.uid)
-                              .collection('notifications')
-                              .where('isRead', isEqualTo: false)
-                              .get();
-
-                          for (final doc in notifications.docs) {
-                            await doc.reference.update({'isRead': true});
-                          }
-                        }
-                      },
-
-                      icon: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          const Icon(Icons.notifications_none),
-
-                          // =========================================
-                          // 赤い点
-                          // =========================================
-                          if (hasUnread)
-                            Positioned(
-                              right: -1,
-                              top: -1,
-                              child: Container(
-                                width: 9,
-                                height: 9,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+            child: NotificationBellButton(badgeBorderColor: AppColors.primary),
           ),
         ],
 
@@ -711,7 +622,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
                     tileColor: tileColor,
-                    iconColor: accentColor,
+                    iconColor: AppColors.green,
                     subTextColor: subTextColor,
                   ),
                 ),

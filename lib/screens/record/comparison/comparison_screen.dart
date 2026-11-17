@@ -20,7 +20,13 @@ class ComparisonScreen extends StatefulWidget {
   State<ComparisonScreen> createState() => _ComparisonScreenState();
 }
 
-class _ComparisonScreenState extends State<ComparisonScreen> {
+// AutomaticKeepAliveClientMixin：「自分の記録」のタブに切りかえても、この画面を捨てずに残す
+// （残さないと、比較した結果やグラフの期間が、戻ったときに最初の状態にもどってしまう）
+class _ComparisonScreenState extends State<ComparisonScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   String comparisonTarget = "全体のユーザー";
 
   // ユーザー数
@@ -64,6 +70,9 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 画面を残すために必要（AutomaticKeepAliveClientMixin）
+    super.build(context);
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final backgroundColor = isDark
@@ -195,7 +204,10 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                             Text(
                               isUserCountLoading ? "読み込み中…" : "$userCount人",
                               style: TextStyle(
-                                color: textColor,
+                                // 数字と単位は緑（読み込み中の文字はふつうの色）
+                                color: isUserCountLoading
+                                    ? textColor
+                                    : AppColors.green,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),

@@ -39,6 +39,10 @@ final ValueNotifier<double> dailyTargetHours = ValueNotifier<double>(0.0);
 // 今日の学習時間
 final ValueNotifier<int> todayStudySeconds = ValueNotifier<int>(0);
 
+// 今日の学習時間を、保存ずみの記録から読みこみ終わったか
+// （終わるまでは、学習記録の画面で数字の代わりに「--」を出す）
+final ValueNotifier<bool> todayStudyLoaded = ValueNotifier<bool>(false);
+
 // 今週の学習時間
 final ValueNotifier<int> weeklyStudySeconds = ValueNotifier<int>(0);
 

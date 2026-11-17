@@ -139,11 +139,12 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
       return "$wholeHours.$decimal時間";
     }
 
-    // 1時間未満
+    // 1時間未満は、今日の学習時間と同じく秒まで出す（「0分44秒」「23分12秒」）
     if (totalSeconds < 3600) {
       final minutes = totalSeconds ~/ 60;
+      final seconds = totalSeconds % 60;
 
-      return "$minutes分";
+      return "$minutes分$seconds秒";
     }
 
     // 1時間以上100時間未満
@@ -202,6 +203,10 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
   // 今日の分は表示するときに todayStudySeconds（今の値）を足す
   int summaryPastSeconds = 0;
   int summaryAchievedDays = 0;
+
+  // サマリーの数字を読みこみ中か（読みこみ中は数字の代わりに「--」を出す）
+  bool isLoadingSummary = true;
+  bool isLoadingAchieved = true;
 
   // 今週の学習時間を読み込み中か
   bool isLoadingWeeklyTime = true;
@@ -448,6 +453,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
 
       setState(() {
         summaryPastSeconds = 0;
+        isLoadingSummary = false;
       });
 
       return;
@@ -555,6 +561,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
 
     setState(() {
       summaryPastSeconds = totalSeconds - savedTodaySeconds;
+      isLoadingSummary = false;
     });
   }
 
@@ -566,6 +573,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
 
       setState(() {
         summaryAchievedDays = 0;
+        isLoadingAchieved = false;
       });
 
       return;
@@ -640,6 +648,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
 
     setState(() {
       summaryAchievedDays = count;
+      isLoadingAchieved = false;
     });
   }
 
@@ -831,6 +840,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                   weeklyStudyHours: periodStudyHours,
                   weeklyGoalHours: weeklyGoalHours,
                   achievementRate: achievementRate,
+                  isLoading: isLoadingWeeklyTime,
                   userId: widget.userId,
 
                   onPeriodChanged: (value) {
@@ -841,6 +851,12 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
 
                     loadPeriodStudyTime();
                     calculateAchievedDays();
+                  },
+                  // 日付が変わったとき（読み直しは _onDayChanged で行う）
+                  onDayFollowed: (weekStart, month, year) {
+                    selectedWeekStart = weekStart;
+                    selectedMonth = month;
+                    selectedYear = year;
                   },
                   onWeekChanged: (value) {
                     setState(() {
@@ -882,15 +898,55 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
   // ==============================================================
   // 学習時間のサマリー
   // ==============================================================
-  String get _summaryTitle {
-    switch (summaryPeriod) {
-      case 1:
-        return "学習時間のサマリー (月)";
-      case 2:
-        return "学習時間のサマリー (年)";
-      default:
-        return "学習時間のサマリー (週)";
+  // サマリーの「週・月・年」の切りかえ
+  // （study_time_chart_section.dart の _buildPeriodSelector と同じ見た目）
+  Widget _buildSummaryPeriodSelector(Color textColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Widget button(String title, int index) {
+      final selected = summaryPeriod == index;
+
+      return Expanded(
+        child: GestureDetector(
+          onTap: () {
+            if (summaryPeriod == index) return;
+
+            setState(() {
+              summaryPeriod = index;
+              isLoadingSummary = true;
+              isLoadingAchieved = true;
+            });
+
+            loadSummaryStudyTime();
+            calculateSummaryAchievedDays();
+          },
+          child: Container(
+            margin: const EdgeInsets.all(2),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              title,
+              style: TextStyle(
+                color: selected ? Colors.white : textColor,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      );
     }
+
+    return Container(
+      height: 33,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white10 : AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(children: [button("週", 0), button("月", 1), button("年", 2)]),
+    );
   }
 
   String get _summaryDate {
@@ -935,125 +991,12 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    PopupMenuButton<int>(
-                      offset: const Offset(0, 8),
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      color: cardColor,
-                      onSelected: (value) {
-                        setState(() {
-                          summaryPeriod = value;
-                        });
-
-                        loadSummaryStudyTime();
-                        calculateSummaryAchievedDays();
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem<int>(
-                          value: 0,
-                          height: 44,
-                          child: Row(
-                            children: [
-                              Icon(
-                                summaryPeriod == 0
-                                    ? Icons.check
-                                    : Icons.circle_outlined,
-                                size: 18,
-                                color: summaryPeriod == 0
-                                    ? AppColors.primary
-                                    : secondaryColor,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                "週",
-                                style: TextStyle(
-                                  color: textColor,
-                                  fontSize: 14,
-                                  fontWeight: summaryPeriod == 0
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<int>(
-                          value: 1,
-                          height: 44,
-                          child: Row(
-                            children: [
-                              Icon(
-                                summaryPeriod == 1
-                                    ? Icons.check
-                                    : Icons.circle_outlined,
-                                size: 18,
-                                color: summaryPeriod == 1
-                                    ? AppColors.primary
-                                    : secondaryColor,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                "月",
-                                style: TextStyle(
-                                  color: textColor,
-                                  fontSize: 14,
-                                  fontWeight: summaryPeriod == 1
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<int>(
-                          value: 2,
-                          height: 44,
-                          child: Row(
-                            children: [
-                              Icon(
-                                summaryPeriod == 2
-                                    ? Icons.check
-                                    : Icons.circle_outlined,
-                                size: 18,
-                                color: summaryPeriod == 2
-                                    ? AppColors.primary
-                                    : secondaryColor,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                "年",
-                                style: TextStyle(
-                                  color: textColor,
-                                  fontSize: 14,
-                                  fontWeight: summaryPeriod == 2
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _summaryTitle,
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 3),
-                          Icon(
-                            Icons.keyboard_arrow_down,
-                            color: secondaryColor,
-                            size: 19,
-                          ),
-                        ],
+                    Text(
+                      "学習時間のサマリー",
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
 
@@ -1064,7 +1007,12 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
+
+                // 週・月・年の切りかえ（下の「学習記録の推移」と同じ形）
+                _buildSummaryPeriodSelector(textColor),
+
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -1079,34 +1027,54 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
               children: [
                 Row(
                   children: [
+                    // 読みこみが終わるまでは、数字の代わりに「--」を出す
                     Expanded(
-                      child: _summaryItem(
-                        title: "今日の学習時間",
-                        value: formatStudyTime(todayStudySeconds.value),
-                        unit: "",
-                        color: textColor,
-                        bottomText: '',
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: todayStudyLoaded,
+                        builder: (context, todayLoaded, child) {
+                          return ValueListenableBuilder<int>(
+                            valueListenable: todayStudySeconds,
+                            builder: (context, seconds, child) {
+                              return _summaryItem(
+                                title: "今日の学習時間",
+                                value: todayLoaded
+                                    ? formatStudyTime(seconds)
+                                    : "--",
+                                unit: "",
+                                color: textColor,
+                                bottomText: '',
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
 
                     Expanded(
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: todayStudySeconds,
-                        builder: (context, seconds, child) {
-                          return _summaryItem(
-                            title: summaryPeriod == 0
-                                ? "今週の学習時間"
-                                : summaryPeriod == 1
-                                ? "今月の学習時間"
-                                : "今年の学習時間",
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: todayStudyLoaded,
+                        builder: (context, todayLoaded, child) {
+                          return ValueListenableBuilder<int>(
+                            valueListenable: todayStudySeconds,
+                            builder: (context, seconds, child) {
+                              return _summaryItem(
+                                title: summaryPeriod == 0
+                                    ? "今週の学習時間"
+                                    : summaryPeriod == 1
+                                    ? "今月の学習時間"
+                                    : "今年の学習時間",
 
-                            value: formatPeriodStudyTime(
-                              _getRealtimeSummaryStudySeconds(),
-                            ),
+                                value: todayLoaded && !isLoadingSummary
+                                    ? formatPeriodStudyTime(
+                                        _getRealtimeSummaryStudySeconds(),
+                                      )
+                                    : "--",
 
-                            unit: "",
-                            color: textColor,
-                            bottomText: '',
+                                unit: "",
+                                color: textColor,
+                                bottomText: '',
+                              );
+                            },
                           );
                         },
                       ),
@@ -1115,8 +1083,10 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
                     Expanded(
                       child: _summaryItem(
                         title: "目標達成日数",
-                        value: summaryAchievedDays.toString(),
-                        unit: "日",
+                        value: isLoadingAchieved
+                            ? "--"
+                            : summaryAchievedDays.toString(),
+                        unit: isLoadingAchieved ? "" : "日",
                         color: textColor,
                         bottomText: '',
                       ),
