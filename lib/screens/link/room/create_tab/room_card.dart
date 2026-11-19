@@ -13,6 +13,8 @@ import 'package:study_support_app/screens/link/room/space/room_space_screen.dart
 import 'package:study_support_app/screens/link/room/room_card_body.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 import 'package:study_support_app/theme/app_palette.dart';
+import 'package:study_support_app/theme/error_dialog.dart';
+import 'package:study_support_app/services/firestore_cleanup.dart';
 
 // =============================================================
 // ルームカード
@@ -24,6 +26,7 @@ class RoomCard extends StatelessWidget {
   final String ownerId;
   final String docId;
   final String description;
+  final String goal;
 
   const RoomCard({
     super.key,
@@ -32,6 +35,7 @@ class RoomCard extends StatelessWidget {
     required this.isPublic,
     this.ownerId = "",
     this.description = "",
+    this.goal = "",
   });
 
   // ===========================================================
@@ -74,11 +78,11 @@ class RoomCard extends StatelessWidget {
         ),
       );
     } catch (e) {
+      debugPrint("ルームを開けませんでした: $e");
+
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("ルームを開けませんでした\n$e")));
+      showErrorDialog(context, "ルームを開けませんでした。\n通信の状態を確かめて、もう一度お試しください。");
     }
   }
 
@@ -112,19 +116,15 @@ class RoomCard extends StatelessWidget {
         throw Exception("自分が作成したルームではありません");
       }
 
-      await roomRef.delete();
-
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("ルームを削除しました")));
+      // 中のデータ（チャット・共有ノート・メンバー）ごと消す（firestore_cleanup.dart）
+      // 消せたら、カードが一覧から消えるので、お知らせは出さない
+      await deleteRoomCompletely(roomRef);
     } catch (e) {
+      debugPrint("ルームの削除に失敗しました: $e");
+
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("削除に失敗しました\n$e")));
+      showErrorDialog(context, "ルームを削除できませんでした。\n通信の状態を確かめて、もう一度お試しください。");
     }
   }
 
@@ -140,6 +140,7 @@ class RoomCard extends StatelessWidget {
       roomId: docId,
       title: title,
       description: description,
+      goal: goal,
       isPublic: isPublic,
       ownerId: ownerId,
 

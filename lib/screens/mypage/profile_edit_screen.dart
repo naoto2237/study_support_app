@@ -19,6 +19,8 @@ import 'package:http/http.dart' as http;
 import 'package:study_support_app/screens/mypage/profile_icon_adjust_screen.dart';
 import 'package:study_support_app/screens/mypage/profile_edit_fields.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/data/profile_options.dart';
+import 'package:study_support_app/screens/mypage/custom_profile_fields.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -36,10 +38,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   final TextEditingController _userIdController = TextEditingController();
 
-  final TextEditingController gradeController = TextEditingController();
-  final TextEditingController goalController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
-  final TextEditingController studyStyleController = TextEditingController();
+  // 学年・職種と学習目標（一覧からえらぶ。profile_options.dart）
+  String? _grade;
+  String? _goal;
+
+  // 自由項目（見出しと中身を自分で書く。custom_profile_fields.dart）
+  final List<CustomProfileField> _customFields = [];
 
   File? _selectedImage;
 
@@ -56,15 +60,21 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _commentController.text = widget.data["comment"] ?? "";
     _nameController.text = widget.data["name"] ?? "";
     _userIdController.text = widget.data["userId"] ?? "";
-    gradeController.text = widget.data["grade"] ?? "";
-    goalController.text = widget.data["goal"] ?? "";
-    locationController.text = widget.data["location"] ?? "";
-    studyStyleController.text = widget.data["studyStyle"] ?? "";
+    _grade = widget.data["grade"];
+    _goal = widget.data["goal"];
+    for (final item in CustomProfileField.read(widget.data["customFields"])) {
+      _customFields.add(
+        CustomProfileField(label: item.label, value: item.value),
+      );
+    }
     _loadLatestProfile();
   }
 
   @override
   void dispose() {
+    for (final field in _customFields) {
+      field.dispose();
+    }
     _commentController.dispose();
     _nameController.dispose();
     _userIdController.dispose();
@@ -111,6 +121,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     if (image == null) return;
 
     final selectedFile = File(image.path);
+
+    if (!mounted) return;
 
     // アイコン調整画面へ
     final adjustedImage = await Navigator.push<File>(
@@ -534,6 +546,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         "userId": userId,
         "icon": iconUrl ?? "",
         "comment": _commentController.text.trim(),
+        // 自由項目（見出しか中身が空の行は、入れない）
+        "customFields": CustomProfileField.toSave(_customFields),
+        // 一覧からえらんだものだけ保存する（前の自由入力のままなら、変えない）
+        if (ProfileOptions.isGrade(_grade)) "grade": _grade,
+        if (ProfileOptions.isGoal(_goal)) "goal": _goal,
       }, SetOptions(merge: true));
 
       debugPrint("④ Firestore保存成功");
@@ -547,6 +564,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       }
 
       widget.data["comment"] = _commentController.text.trim();
+      widget.data["customFields"] = CustomProfileField.toSave(_customFields);
+      if (ProfileOptions.isGrade(_grade)) widget.data["grade"] = _grade;
+      if (ProfileOptions.isGoal(_goal)) widget.data["goal"] = _goal;
 
       if (!mounted) return;
 
@@ -887,10 +907,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             const SizedBox(height: 20),
 
             ProfileEditFields(
-              gradeController: gradeController,
-              goalController: goalController,
-              //locationController: locationController,
-              //studyStyleController: studyStyleController,
+              grade: _grade,
+              goal: _goal,
+              onGradeChanged: (v) => setState(() => _grade = v),
+              onGoalChanged: (v) => setState(() => _goal = v),
+            ),
+
+            // 自由項目（見出しも中身も自分で書く）
+            CustomFieldsEditor(
+              fields: _customFields,
+              onAdd: () =>
+                  setState(() => _customFields.add(CustomProfileField())),
+              onRemove: (index) => setState(() {
+                _customFields.removeAt(index).dispose();
+              }),
             ),
 
             const SizedBox(height: 20),

@@ -182,15 +182,13 @@ class _QnaListScreenState extends State<QnaListScreen> {
   // 質問投稿画面へ遷移
   Future<void> goPost() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("ログインしていません")));
-      return;
-    }
+    // アプリはログインしてから使うので、ふつうはここに来ない
+    if (user == null) return;
 
     // マイページの名前を自動取得
     final currentUserName = await _getCurrentUserName();
+
+    if (!mounted) return;
 
     final result = await Navigator.push<({String title, String content})>(
       context,
@@ -894,9 +892,11 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
 
     final currentUserName = await _getCurrentUserName();
 
+    if (!mounted) return;
+
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text("返信"),
         content: TextField(
           controller: textController,
@@ -918,9 +918,10 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                   ),
                 );
                 await _updateFirestoreAnswers();
-                setState(() {});
+                if (mounted) setState(() {});
               }
-              Navigator.pop(context);
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
             },
             child: const Text("送信"),
           ),
@@ -936,7 +937,7 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text("質問編集"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -969,7 +970,8 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
                   .collection("questions")
                   .doc(widget.question.id)
                   .update({"title": t.text, "content": c.text});
-              Navigator.pop(context);
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
             },
             child: const Text("保存"),
           ),
@@ -984,6 +986,7 @@ class _QnaDetailScreenState extends State<QnaDetailScreen> {
         .collection("questions")
         .doc(widget.question.id)
         .delete();
+    if (!mounted) return;
     Navigator.pop(context);
   }
 

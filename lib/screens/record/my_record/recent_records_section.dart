@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/theme/app_palette.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/main.dart' show todayStudySeconds;
 import 'package:study_support_app/screens/record/my_record/all_study_records_screen.dart';
 import 'package:study_support_app/screens/record/my_record/study_record_row.dart';
@@ -77,6 +78,7 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
               return <String, dynamic>{
                 "date": doc.id,
                 "studyTime": (data["studyTime"] as num?)?.toInt() ?? 0,
+                "subjects": StudyRecordRow.subjectsOf(data),
               };
             }).toList();
 
@@ -105,6 +107,9 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
         );
   }
 
+  // 自分の記録を見ているか（ほかの人のページでは false）
+  bool get _isMe => widget.userId == FirebaseAuth.instance.currentUser?.uid;
+
   String _todayId() {
     final now = DateTime.now();
 
@@ -116,7 +121,10 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
   // 表示する3件
   // ・今日の行は、タイマーの今の値（todayStudySeconds）を使う
   // ・今日の記録がまだ保存されていなくても、勉強中なら先頭に出す
+  // ・ほかの人のページでは、タイマーの値（自分の学習時間）は使わず、保存ずみの記録だけを出す
   List<Map<String, dynamic>> _recentRecords(int todaySeconds) {
+    if (!_isMe) return savedRecords.take(3).toList();
+
     final todayId = _todayId();
 
     // 今日の行は下で入れなおすので、ここでは除く（多くても4件あれば足りる）
@@ -130,6 +138,11 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
       records.insert(0, <String, dynamic>{
         "date": todayId,
         "studyTime": todaySeconds,
+        // 今日の教科ごとの時間は、保存ずみの分（タイマーを止めると増える）
+        "subjects": savedRecords.firstWhere(
+          (record) => record["date"] == todayId,
+          orElse: () => const <String, dynamic>{},
+        )["subjects"],
       });
     }
 
@@ -233,6 +246,7 @@ class _RecentRecordsSectionState extends State<RecentRecordsSection> {
                 textColor: widget.textColor,
                 secondaryColor: widget.secondaryColor,
                 showDivider: index != recentRecords.length - 1,
+                subjects: (record["subjects"] as Map<String, int>?) ?? const {},
               );
             }),
         ],

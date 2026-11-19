@@ -9,9 +9,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:study_support_app/theme/app_palette.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/services/ai_tutor.dart';
 import 'package:study_support_app/screens/ai_support/ai_history_screen.dart';
 import 'package:study_support_app/screens/ai_support/ai_chat_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -55,12 +54,18 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
 
     if (user == null) {
       setState(() {
-        _messages.add(AiChatMessage(isUser: false, text: "ログインしてください。"));
+        _messages.add(
+          AiChatMessage(isUser: false, text: "ログインしてください。", isError: true),
+        );
       });
       return;
     }
 
     final question = _textController.text.trim();
+
+    // えらんだ画像は、この質問で一度だけ送る
+    final image = _selectedImage;
+    _selectedImage = null;
 
     FocusScope.of(context).unfocus();
 
@@ -85,95 +90,50 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-      final apiKey = dotenv.get('GEMINI_API_KEY');
-
-      final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/'
-        'v1beta/models/gemini-3.1-flash-lite:generateContent'
-        '?key=$apiKey',
+      // AIに質問する（キーは Firebase の中にあり、アプリには入っていない）
+      // それまでのやりとりも送る（「さっきの続き」が通じるように）
+      // いま足した自分の質問は、いちばん後ろにあるので外す
+      final reply = await AiTutor.ask(
+        question,
+        image: image,
+        history: _messages.sublist(0, _messages.length - 1),
       );
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "system_instruction": {
-            "parts": [
-              {
-                "text":
-                    'あなたは学生向けのAI学習サポートアシスタントです。'
-                    '漢数字は使わないで、1,2,3などのちゃんとした数字を使ってください。'
-                    '学生が勉強を前向きに続けられるようにサポートしてください。'
-                    '勉強方法、問題解説、学習計画、モチベーション維持など、学習に関する相談に答えてください。'
-                    '学習に関係ない質問には、「私は学習支援AIです。勉強に関する質問や相談をしてください。」と答えてください。'
-                    '回答は2〜4文を基本とし、長くても5文以内にしてください。'
-                    '最初の1文で結論を伝え、その後に理由や具体例を1〜2文で説明してください。'
-                    '最後は「まずは○○してみよう」「○○がおすすめだよ」のように、すぐ実践できる一言で締めてください。'
-                    '日本人の先生や先輩が話しかけるような、自然で親しみやすい日本語を使ってください。'
-                    '教科書のような説明や、機械的な文章、不自然な翻訳調の文章は避けてください。'
-                    '専門用語はできるだけ使わず、中学生や高校生でも理解できる言葉で説明してください。'
-                    '「*」「-」「①」などの箇条書きは使わないでください。'
-                    'ユーザーを否定したり説教したりせず、前向きで優しい表現を使ってください。'
-                    '根拠のないことは断定せず、「〜がおすすめだよ！」「〜してみよう！」のように提案する表現を使ってください。'
-                    '回答を送信する前に、日本語として自然で読みやすい文章になっているか確認してください。',
-              },
-            ],
-          },
-          "contents": [
-            {
-              "parts": [
-                {"text": question},
-              ],
-            },
-          ],
-        }),
-      );
+      if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes));
+      setState(() {
+        _messages.add(AiChatMessage(isUser: false, text: reply));
+        _isLoading = false;
+      });
 
-        final reply = data["candidates"][0]["content"]["parts"][0]["text"];
+      // =================================================
+      // AIの回答を保存
+      // =================================================
 
-        if (!mounted) return;
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('ai_history')
+          .doc(_chatId)
+          .collection('messages')
+          .add({
+            'role': 'assistant',
+            'text': reply,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
 
-        setState(() {
-          _messages.add(AiChatMessage(isUser: false, text: reply));
-          _isLoading = false;
-        });
+      // =================================================
+      // 最終更新日時を更新
+      // =================================================
 
-        // AIの回答を保存
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('ai_history')
-            .doc(_chatId)
-            .collection('messages')
-            .add({
-              'role': 'assistant',
-              'text': reply,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
-
-        // 履歴の更新日時を更新
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('ai_history')
-            .doc(_chatId)
-            .set({
-              'updatedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
-      } else {
-        if (!mounted) return;
-
-        setState(() {
-          _isLoading = false;
-
-          _messages.add(
-            AiChatMessage(isUser: false, text: "エラー(${response.statusCode})"),
-          );
-        });
-      }
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('ai_history')
+          .doc(_chatId)
+          .set({
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
     } catch (e, stackTrace) {
       debugPrint(e.toString());
       debugPrint(stackTrace.toString());
@@ -182,7 +142,17 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
 
       setState(() {
         _isLoading = false;
-        _messages.add(AiChatMessage(isUser: false, text: "通信エラー：$e"));
+
+        // AIの失敗は、日本語の文がそのまま入っている。それ以外は通信の失敗
+        _messages.add(
+          AiChatMessage(
+            isUser: false,
+            isError: true,
+            text: e is AiTutorException
+                ? e.message
+                : "うまく送れませんでした。\n通信の状態を確かめて、もう一度お試しください。",
+          ),
+        );
       });
     }
   }
@@ -328,6 +298,16 @@ class _AiHistoryChatScreenState extends State<AiHistoryChatScreen> {
   }
 
   Widget _buildAnswerCard() {
+    // 前の会話を読みこんでいる間は、くるくるを出す
+    if (_isLoadingHistory) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 40),
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
     if (_messages.isEmpty) {
       return const SizedBox.shrink();
     }

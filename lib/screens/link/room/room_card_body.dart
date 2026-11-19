@@ -21,6 +21,9 @@ class RoomCardBody extends StatefulWidget {
   final String roomId;
   final String title;
   final String description;
+
+  // ルームの学習目標（ないときは空）
+  final String goal;
   final bool isPublic;
   final String ownerId;
   final Widget? trailing;
@@ -31,6 +34,7 @@ class RoomCardBody extends StatefulWidget {
     required this.roomId,
     required this.title,
     required this.description,
+    this.goal = "",
     required this.isPublic,
     this.ownerId = "",
     this.trailing,
@@ -161,6 +165,19 @@ class _RoomCardBodyState extends State<RoomCardBody> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
+                    // 学習目標（えらばれているときだけ）
+                    if (widget.goal.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        "目標：${widget.goal}",
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
 
                     if (description.isNotEmpty) ...[
                       const SizedBox(height: 2),

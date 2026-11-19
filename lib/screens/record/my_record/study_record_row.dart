@@ -7,9 +7,12 @@
 // ・左：日にちと曜日（土は青、日は赤。グラフの日付と同じ色）
 // ・まん中：「11月12日」と、学習時間の長さを表すバー（今日は「今日」の印つき）
 // ・右：学習時間
+// ・教科をえらんで計った日は、バーの下に教科ごとの時間（例：数学 1時間10分）
+//   教科をえらばずに計った分は「指定なし」としていちばん後ろに出す
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/data/profile_options.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 class StudyRecordRow extends StatelessWidget {
@@ -28,6 +31,9 @@ class StudyRecordRow extends StatelessWidget {
   // 下に区切り線を出すか
   final bool showDivider;
 
+  // 教科ごとの時間（秒）。教科をえらんで計った日だけ入っている
+  final Map<String, int> subjects;
+
   const StudyRecordRow({
     super.key,
     required this.dateId,
@@ -36,7 +42,40 @@ class StudyRecordRow extends StatelessWidget {
     required this.textColor,
     required this.secondaryColor,
     this.showDivider = true,
+    this.subjects = const {},
   });
+
+  // 記録（studyRecords の1日分）から、教科ごとの時間を取り出す
+  // 教科をえらばずに計った時間の名前
+  static const String unassigned = "指定なし";
+
+  // ・教科をえらばずに計った時間（合計 − 教科の時間の合計）は「指定なし」として入れる
+  //   （教科の時間が1つもない日は、合計だけで十分なので、何も入れない）
+  static Map<String, int> subjectsOf(Map<String, dynamic>? data) {
+    final raw = data?["subjects"];
+    if (raw is! Map) return const {};
+
+    final result = <String, int>{};
+    raw.forEach((name, value) {
+      final seconds = (value as num?)?.toInt() ?? 0;
+      if (seconds > 0) result[name.toString()] = seconds;
+    });
+    if (result.isEmpty) return const {};
+
+    final total = (data?["studyTime"] as num?)?.toInt() ?? 0;
+    final assigned = result.values.fold<int>(0, (sum, s) => sum + s);
+    if (total > assigned) result[unassigned] = total - assigned;
+
+    return result;
+  }
+
+  // 多い順（「指定なし」は、いつもいちばん後ろ）
+  List<MapEntry<String, int>> get _sortedSubjects =>
+      subjects.entries.toList()..sort((a, b) {
+        if (a.key == unassigned) return 1;
+        if (b.key == unassigned) return -1;
+        return b.value.compareTo(a.value);
+      });
 
   static const _weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
@@ -199,6 +238,38 @@ class StudyRecordRow extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                // 教科ごとの時間（タイマーの上で教科をえらんで計った分。多い順）
+                if (subjects.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 4,
+                    children: [
+                      for (final entry in _sortedSubjects)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              ProfileOptions.subjectIcon(entry.key),
+                              size: 13,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              // 右の合計と同じ書き方（1時間未満は秒まで）
+                              "${entry.key} ${formatStudyTime(entry.value)}",
+                              style: TextStyle(
+                                color: secondaryColor,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

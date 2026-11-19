@@ -438,7 +438,14 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     // Serviceを停止する前に、
     // 最後の時間を確定（減るタイマーは設定時間を越えないようにする）
     _clampCountdown();
-    final sessionTime = _totalDisplayTime - _sessionStartTotal;
+
+    // 学習記録には秒単位（1秒未満は切り捨て）で保存するので、
+    // タイマーの表示も同じだけ切り捨てて、今日の学習時間とずれないようにする
+    // （切り捨てないと、止めるたびに1秒未満の分だけタイマーが先に進んでしまう）
+    final sessionTime = Duration(
+      seconds: (_totalDisplayTime - _sessionStartTotal).inSeconds,
+    );
+    _totalDisplayTime = _sessionStartTotal + sessionTime;
 
     await FlutterForegroundTask.stopService();
 

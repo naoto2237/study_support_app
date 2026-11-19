@@ -26,6 +26,8 @@ import 'package:study_support_app/screens/chat/chat_room_screen.dart';
 import 'package:study_support_app/screens/notification/friend_request_notification.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/services/achievement_counter.dart';
+import 'package:study_support_app/screens/mypage/custom_profile_fields.dart';
 import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/theme/empty_message.dart';
 
@@ -101,8 +103,8 @@ class MypageProfileSection extends StatelessWidget {
 
     final String grade = data["grade"] ?? "未設定";
     final String goal = data["goal"] ?? "未設定";
-    final String location = "未設定";
-    final String studyStyle = "未設定";
+    // 自由項目（見出しと中身。プロフィール編集で書く）
+    final customFields = CustomProfileField.read(data["customFields"]);
 
     final String comment = (data["comment"] ?? "").toString().trim();
 
@@ -169,7 +171,13 @@ class MypageProfileSection extends StatelessWidget {
           // ------------------------------------------
           // プロフィール統計（友達・応援・目標達成。前のデザインのまま）
           // ------------------------------------------
-          ProfileStatsSection(userId: userId),
+          ProfileStatsSection(
+            userId: userId,
+            // 非公開のほかの人は、記録を読めないので、保存された数を出す
+            savedAchievedDays: isPrivateOther
+                ? ((data[AchievementCounter.field] as num?)?.toInt() ?? 0)
+                : null,
+          ),
 
           const SizedBox(height: 15),
 
@@ -215,24 +223,35 @@ class MypageProfileSection extends StatelessWidget {
                   value: goal,
                   colors: colors,
                   onTap: onEdit,
+                  // 自由項目がなく、ほかの人のページなら、ここが最後の行
+                  showDivider: customFields.isNotEmpty || isMyPage,
                 ),
-                _ProfileRow(
-                  icon: Icons.notes_rounded,
-                  iconColor: AppColors.green,
-                  title: "自由項目①",
-                  value: location,
-                  colors: colors,
-                  onTap: onEdit,
-                ),
-                _ProfileRow(
-                  icon: Icons.notes_rounded,
-                  iconColor: AppColors.orange,
-                  title: "自由項目②",
-                  value: studyStyle,
-                  colors: colors,
-                  onTap: onEdit,
-                  showDivider: false,
-                ),
+
+                // 自由項目（見出しも中身も、その人が書いたもの）
+                for (int i = 0; i < customFields.length; i++)
+                  _ProfileRow(
+                    icon: Icons.notes_rounded,
+                    iconColor: AppColors.green,
+                    title: customFields[i].label,
+                    value: customFields[i].value,
+                    colors: colors,
+                    onTap: onEdit,
+                    showDivider: i < customFields.length - 1 || isMyPage,
+                  ),
+
+                // 自分のページでは、自由項目を足す入口を出す
+                if (isMyPage &&
+                    customFields.length < CustomProfileField.maxCount)
+                  _ProfileRow(
+                    icon: Icons.add_rounded,
+                    iconColor: AppColors.primary,
+                    title: "自由項目を足す",
+                    value: "",
+                    showValue: false,
+                    colors: colors,
+                    onTap: onEdit,
+                    showDivider: false,
+                  ),
               ],
             ),
           ),
@@ -779,7 +798,15 @@ class _CheerButtonState extends State<_CheerButton> {
 class ProfileStatsSection extends StatelessWidget {
   final String userId;
 
-  const ProfileStatsSection({super.key, required this.userId});
+  // 目標達成の数を、記録を読まずに出すときの数（非公開のほかの人）。
+  // null のときは、記録を読んで数える
+  final int? savedAchievedDays;
+
+  const ProfileStatsSection({
+    super.key,
+    required this.userId,
+    this.savedAchievedDays,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -798,16 +825,19 @@ class ProfileStatsSection extends StatelessWidget {
         final friendCount = friendSnapshot.data?.docs.length ?? 0;
 
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .collection('studyRecords')
-              .snapshots(),
+          // 非公開のほかの人の記録は読めないので、読みにいかない
+          stream: savedAchievedDays != null
+              ? const Stream.empty()
+              : FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(userId)
+                    .collection('studyRecords')
+                    .snapshots(),
 
           builder: (context, recordSnapshot) {
-            int achievementDays = 0;
+            int achievementDays = savedAchievedDays ?? 0;
 
-            if (recordSnapshot.hasData) {
+            if (savedAchievedDays == null && recordSnapshot.hasData) {
               achievementDays = recordSnapshot.data!.docs.where((doc) {
                 final data = doc.data();
 
@@ -930,6 +960,9 @@ class _ProfileRow extends StatelessWidget {
   // 左のアイコンの色（ふだんは青）
   final Color iconColor;
 
+  // 右の値を出すか（「自由項目を足す」の行では出さない）
+  final bool showValue;
+
   const _ProfileRow({
     required this.icon,
     required this.title,
@@ -938,6 +971,7 @@ class _ProfileRow extends StatelessWidget {
     this.onTap,
     this.showDivider = true,
     this.iconColor = AppColors.primary,
+    this.showValue = true,
   });
 
   @override
@@ -968,7 +1002,7 @@ class _ProfileRow extends StatelessWidget {
 
             Expanded(
               child: Text(
-                isUnset ? "未設定" : value,
+                !showValue ? "" : (isUnset ? "未設定" : value),
                 textAlign: TextAlign.right,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

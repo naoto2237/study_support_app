@@ -5,15 +5,20 @@
 // 開き方: Link 画面の「ユーザー検索」
 // ・名前かユーザーIDの最初の文字でユーザーを検索し、タップで相手のプロフィール（user_profile_screen.dart）へ
 //   （「@」だけでは全員が出ないように、IDでは探さない）
+// ・自分は結果に出さない
+// ・学年・職種と学習目標で絞り込める（文字を入れずに、絞り込みだけでも探せる）
 // ======================================================================
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/screens/link/user_profile_screen.dart';
 import 'dart:async';
 import 'package:study_support_app/screens/notification/notification_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 import 'package:study_support_app/theme/empty_message.dart';
+import 'package:study_support_app/data/profile_options.dart';
+import 'package:study_support_app/theme/filter_button.dart';
 
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
@@ -26,6 +31,10 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
   final TextEditingController searchController = TextEditingController();
 
   String searchText = "";
+
+  // 絞り込み（指定しないときは null）
+  String? _grade;
+  String? _goal;
 
   Timer? _searchTimer;
 
@@ -168,12 +177,45 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
               },
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
+
+            // ==========================================
+            // 絞り込み（学年・職種／学習目標）
+            // ==========================================
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilterButton(
+                    title: "学年・職種",
+                    options: ProfileOptions.grades,
+                    value: _grade,
+                    onChanged: (v) => setState(() => _grade = v),
+                  ),
+                  FilterButton(
+                    title: "学習目標",
+                    options: ProfileOptions.goals,
+                    value: _goal,
+                    onChanged: (v) => setState(() => _goal = v),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
 
             // ==========================================
             // 検索結果
             // ==========================================
-            Expanded(child: UserList(searchText: searchText)),
+            Expanded(
+              child: UserList(
+                searchText: searchText,
+                grade: _grade,
+                goal: _goal,
+              ),
+            ),
           ],
         ),
       ),
@@ -184,9 +226,22 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
 class UserList extends StatelessWidget {
   final String searchText;
 
-  const UserList({super.key, required this.searchText});
+  // 絞り込み（指定しないときは null）
+  final String? grade;
+  final String? goal;
+
+  const UserList({super.key, required this.searchText, this.grade, this.goal});
 
   static const Color _blue = AppColors.primary;
+
+  bool get _hasFilter => grade != null || goal != null;
+
+  // 絞り込みに合う人か
+  bool _matches(Map<String, dynamic> data) {
+    if (grade != null && data["grade"] != grade) return false;
+    if (goal != null && data["goal"] != goal) return false;
+    return true;
+  }
 
   // ==========================================
   // ユーザー検索
@@ -194,6 +249,17 @@ class UserList extends StatelessWidget {
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
   searchUsers() async {
     final users = FirebaseFirestore.instance.collection("users");
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+
+    // 文字を入れずに、絞り込みだけのとき：学年・目標が同じ人を出す
+    if (searchText.isEmpty) {
+      Query<Map<String, dynamic>> query = users;
+      if (grade != null) query = query.where("grade", isEqualTo: grade);
+      if (goal != null) query = query.where("goal", isEqualTo: goal);
+
+      final snapshot = await query.limit(50).get();
+      return snapshot.docs.where((doc) => doc.id != myUid).toList();
+    }
 
     // 名前・ユーザーIDが、入れた文字で始まる人
     Future<QuerySnapshot<Map<String, dynamic>>> startsWith(
@@ -225,8 +291,11 @@ class UserList extends StatelessWidget {
     final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>> resultMap =
         {};
 
+    // 自分は結果に出さない。絞り込みに合わない人も出さない
     for (final snapshot in snapshots) {
       for (final doc in snapshot.docs) {
+        if (doc.id == myUid) continue;
+        if (!_matches(doc.data())) continue;
         resultMap[doc.id] = doc;
       }
     }
@@ -261,10 +330,10 @@ class UserList extends StatelessWidget {
     // ==========================================
     // まだ検索していない場合
     // ==========================================
-    if (searchText.isEmpty) {
+    if (searchText.isEmpty && !_hasFilter) {
       return _buildMessage(
         icon: Icons.person_search_outlined,
-        text: "ユーザー名またはユーザーIDを入力して\n学習仲間を探しましょう",
+        text: "ユーザー名・ユーザーIDを入力するか、\n学年や目標で絞り込んで、学習仲間を探しましょう",
         isDark: isDark,
       );
     }
@@ -306,7 +375,9 @@ class UserList extends StatelessWidget {
         if (users.isEmpty) {
           return _buildMessage(
             icon: Icons.search_off_rounded,
-            text: "「$searchText」に一致するユーザーは\n見つかりませんでした",
+            text: searchText.isEmpty
+                ? "絞り込みに合うユーザーは\n見つかりませんでした"
+                : "「$searchText」に一致するユーザーは\n見つかりませんでした",
             isDark: isDark,
           );
         }
@@ -380,6 +451,12 @@ class UserList extends StatelessWidget {
     final String email = data["email"] ?? "";
     final String icon = data["icon"] ?? "";
 
+    // 学年・目標（一覧からえらんだものだけ出す）
+    final tags = [
+      if (ProfileOptions.isGrade(data["grade"])) data["grade"] as String,
+      if (ProfileOptions.isGoal(data["goal"])) data["goal"] as String,
+    ].join("・");
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -408,9 +485,8 @@ class UserList extends StatelessWidget {
                     )
                   : CircleAvatar(
                       radius: 22,
-                      backgroundColor: isDark
-                          ? _blue.withValues(alpha: 0.2)
-                          : AppColors.primarySoft,
+                      // ダークモードでも同じうすい青（ユーザーアイコンの色は変えない）
+                      backgroundColor: AppColors.primarySoft,
                       child: const Icon(Icons.person, color: _blue),
                     ),
 
@@ -443,6 +519,17 @@ class UserList extends StatelessWidget {
                         style: TextStyle(fontSize: 13, color: subtitleColor),
                       ),
                     ],
+                    if (tags.isNotEmpty)
+                      Text(
+                        tags,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     if (email.isNotEmpty)
                       Text(
                         email,

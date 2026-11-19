@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/record/comparison/comparison_result_section.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/data/profile_options.dart';
+import 'package:study_support_app/theme/filter_button.dart';
 import 'package:study_support_app/screens/record/comparison/compare_user_picker.dart';
 
 class ComparisonScreen extends StatefulWidget {
@@ -47,6 +49,13 @@ class _ComparisonScreenState extends State<ComparisonScreen>
   String comparedTarget = "全体のユーザー";
   ComparePartner? comparedPartner;
 
+  // 全体のユーザーの絞り込み（学年・職種／学習目標。指定しないときは null）
+  // 上でえらんでいるものと、「比較する」を押したときのもの
+  String? _grade;
+  String? _goal;
+  String? _comparedGrade;
+  String? _comparedGoal;
+
   @override
   void initState() {
     super.initState();
@@ -54,12 +63,16 @@ class _ComparisonScreenState extends State<ComparisonScreen>
     _loadUserCount();
   }
 
+  // 全体のユーザー数（絞り込んでいるときは、合う人の数）
   Future<void> _loadUserCount() async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .count()
-          .get();
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection(
+        "users",
+      );
+      if (_grade != null) query = query.where("grade", isEqualTo: _grade);
+      if (_goal != null) query = query.where("goal", isEqualTo: _goal);
+
+      final snapshot = await query.count().get();
 
       if (!mounted) return;
 
@@ -121,6 +134,8 @@ class _ComparisonScreenState extends State<ComparisonScreen>
               comparisonTarget: comparedTarget,
               partner: comparedPartner,
               isCompared: isCompared,
+              grade: comparedTarget == "全体のユーザー" ? _comparedGrade : null,
+              goal: comparedTarget == "全体のユーザー" ? _comparedGoal : null,
               onComparisonTargetChanged: (value) {
                 setState(() {
                   comparisonTarget = value;
@@ -178,6 +193,41 @@ class _ComparisonScreenState extends State<ComparisonScreen>
             },
           ),
 
+          // 全体のユーザーを、学年・目標で絞り込む（例：高校2年の人だけの平均）
+          if (comparisonTarget == "全体のユーザー") ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilterButton(
+                  title: "学年・職種",
+                  options: ProfileOptions.grades,
+                  value: _grade,
+                  onChanged: (v) {
+                    setState(() {
+                      _grade = v;
+                      isUserCountLoading = true;
+                    });
+                    _loadUserCount();
+                  },
+                ),
+                FilterButton(
+                  title: "学習目標",
+                  options: ProfileOptions.goals,
+                  value: _goal,
+                  onChanged: (v) {
+                    setState(() {
+                      _goal = v;
+                      isUserCountLoading = true;
+                    });
+                    _loadUserCount();
+                  },
+                ),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 14),
 
           // 相手についての説明（うすい青の面）
@@ -224,7 +274,9 @@ class _ComparisonScreenState extends State<ComparisonScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "全体のユーザー数",
+                              (_grade == null && _goal == null)
+                                  ? "全体のユーザー数"
+                                  : "${[?_grade, ?_goal].join("・")}のユーザー数",
                               style: TextStyle(
                                 color: secondaryColor,
                                 fontSize: 12,
@@ -232,11 +284,12 @@ class _ComparisonScreenState extends State<ComparisonScreen>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              isUserCountLoading ? "読み込み中…" : "$userCount人",
+                              // 読み込み中は「--人」（数が出たときと同じ形・大きさにして、ずれないように）
+                              isUserCountLoading ? "--人" : "$userCount人",
                               style: TextStyle(
-                                // 数字と単位は緑（読み込み中の文字はふつうの色）
+                                // 数字と単位は緑（読み込み中はうすい色）
                                 color: isUserCountLoading
-                                    ? textColor
+                                    ? secondaryColor
                                     : AppColors.green,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -278,6 +331,8 @@ class _ComparisonScreenState extends State<ComparisonScreen>
                   comparedPartner = comparisonTarget == "特定のユーザー"
                       ? partner
                       : null;
+                  _comparedGrade = _grade;
+                  _comparedGoal = _goal;
                   isCompared = true;
                 });
               },

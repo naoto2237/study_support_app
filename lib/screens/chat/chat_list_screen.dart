@@ -6,7 +6,9 @@
 // ・「友達」タブ: 友達を、最近話した順に白いカードで並べる
 //     アイコン・今の名前・最後のメッセージ・時刻を出す。押すと1対1のチャット（chat_room_screen.dart）へ
 //     その下に、友達以外の人との会話（users/{自分}/chats）を別のカードで出す
-// ・「探す」タブ: 友達でないユーザーを、名前かユーザーIDの最初の文字で探す。押すとその人のページへ
+// ・「探す」タブ: 友達でないユーザーを、名前かユーザーIDの最初の文字で探す。押すとその人とのチャットへ
+//   学年・職種と学習目標でも絞り込める（文字を入れずに、絞り込みだけでも探せる）
+//   メッセージを送れない相手には「メッセージを受けつけていません」と出す
 //     （友達申請やメッセージは、相手のページから行う）
 // ・最後のメッセージと時刻は users/{自分}/chats/{相手} の lastMessage・updatedAt
 //   （chat_room_screen.dart で送ったときに書く）
@@ -15,9 +17,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:study_support_app/screens/chat/chat_permission.dart';
 import 'package:study_support_app/screens/chat/chat_room_screen.dart';
-import 'package:study_support_app/screens/link/user_profile_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/data/profile_options.dart';
+import 'package:study_support_app/theme/filter_button.dart';
 import 'package:study_support_app/theme/app_palette.dart';
 import 'package:study_support_app/theme/empty_message.dart';
 
@@ -68,13 +72,19 @@ class _ChatListScreenState extends State<ChatListScreen>
     }
   }
 
-  // 入力が変わったら、探しなおす
+  // 絞り込み（学年・職種／学習目標。指定しないときは null）
+  String? _grade;
+  String? _goal;
+
+  bool get _hasFilter => _grade != null || _goal != null;
+
+  // 入力や絞り込みが変わったら、探しなおす
   void _setSearchText(String value) {
     final text = value.trim();
 
     setState(() {
       _searchText = text;
-      _searchFuture = text.isEmpty ? null : _searchUsers(text);
+      _searchFuture = (text.isEmpty && !_hasFilter) ? null : _searchUsers(text);
     });
   }
 
@@ -85,6 +95,22 @@ class _ChatListScreenState extends State<ChatListScreen>
     String text,
   ) async {
     final users = FirebaseFirestore.instance.collection('users');
+
+    // 絞り込みに合う人か
+    bool matches(Map<String, dynamic> data) {
+      if (_grade != null && data['grade'] != _grade) return false;
+      if (_goal != null && data['goal'] != _goal) return false;
+      return true;
+    }
+
+    // 文字を入れずに、絞り込みだけのとき：学年・目標が同じ人
+    if (text.isEmpty) {
+      Query<Map<String, dynamic>> query = users;
+      if (_grade != null) query = query.where('grade', isEqualTo: _grade);
+      if (_goal != null) query = query.where('goal', isEqualTo: _goal);
+      final snapshot = await query.limit(50).get();
+      return snapshot.docs;
+    }
 
     Future<QuerySnapshot<Map<String, dynamic>>> startsWith(
       String field,
@@ -109,6 +135,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final found = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
     for (final snapshot in snapshots) {
       for (final doc in snapshot.docs) {
+        if (!matches(doc.data())) continue;
         found[doc.id] = doc;
       }
     }
@@ -201,11 +228,45 @@ class _ChatListScreenState extends State<ChatListScreen>
                 Column(
                   children: [
                     _buildSearchBar(),
+
+                    // 絞り込み（学年・職種／学習目標）
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(17, 2, 17, 6),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            FilterButton(
+                              title: "学年・職種",
+                              options: ProfileOptions.grades,
+                              value: _grade,
+                              onChanged: (v) {
+                                _grade = v;
+                                _setSearchText(_searchController.text);
+                              },
+                            ),
+                            FilterButton(
+                              title: "学習目標",
+                              options: ProfileOptions.goals,
+                              value: _goal,
+                              onChanged: (v) {
+                                _goal = v;
+                                _setSearchText(_searchController.text);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                     Expanded(
-                      child: _searchText.isEmpty
+                      child: (_searchText.isEmpty && !_hasFilter)
                           ? const EmptyMessage(
                               icon: Icons.person_search_outlined,
-                              text: '名前かユーザーIDを入力して\nチャットする相手を探しましょう',
+                              text:
+                                  '名前・ユーザーIDを入力するか、\n学年や目標で絞り込んで、チャットする相手を探しましょう',
                             )
                           : _buildSearchResults(uid, _searchText),
                     ),
@@ -422,7 +483,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                           chat: null,
                         ),
                         showDivider: i < users.length - 1,
-                        openProfile: true,
+                        isSearchResult: true,
                       ),
                   ],
                 ),
@@ -495,6 +556,10 @@ class _Section extends StatelessWidget {
           decoration: BoxDecoration(
             color: p.card,
             borderRadius: BorderRadius.circular(16),
+          ),
+          // 枠線は中身の上に描く（中の行の色で、角の枠線が隠れないように）
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: p.border),
           ),
           clipBehavior: Clip.antiAlias,
@@ -514,12 +579,12 @@ class _Section extends StatelessWidget {
 class _ChatRow extends StatelessWidget {
   final _Talk talk;
   final bool showDivider;
-  final bool openProfile;
+  final bool isSearchResult;
 
   const _ChatRow({
     required this.talk,
     required this.showDivider,
-    this.openProfile = false,
+    this.isSearchResult = false,
   });
 
   // 今日なら「14:05」、昨日なら「昨日」、それより前は「11/3」
@@ -556,18 +621,19 @@ class _ChatRow extends StatelessWidget {
 
         final String sub = talk.lastMessage.isNotEmpty
             ? talk.lastMessage
-            : (openProfile ? id : 'まだメッセージはありません');
+            : (isSearchResult ? id : 'まだメッセージはありません');
 
         final time = talk.updatedAt;
 
+        // 押すと、その人とのチャットを開く（探すタブでも同じ）
+        // （送れない相手のときは、チャットの画面に入力欄の代わりに案内が出る）
         return InkWell(
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => openProfile
-                    ? UserProfileScreen(userId: talk.userId)
-                    : ChatRoomScreen(userName: name, userId: talk.userId),
+                builder: (_) =>
+                    ChatRoomScreen(userName: name, userId: talk.userId),
               ),
             );
           },
@@ -582,7 +648,7 @@ class _ChatRow extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: p.primarySoft,
+                  backgroundColor: AppColors.primarySoft,
                   backgroundImage: icon.isNotEmpty ? NetworkImage(icon) : null,
                   child: icon.isEmpty
                       ? const Icon(
@@ -623,13 +689,50 @@ class _ChatRow extends StatelessWidget {
                           ),
                         ),
                       ],
+
+                      // 探すタブ：メッセージを送れない相手には、その案内を出す
+                      // （送れるかは chat_permission.dart で調べる。ページは今までどおり開ける）
+                      if (isSearchResult)
+                        CanMessageBuilder(
+                          userId: talk.userId,
+                          builder: (context, canMessage, loading) {
+                            if (canMessage || loading) {
+                              return const SizedBox.shrink();
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 3),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.speaker_notes_off_outlined,
+                                    size: 13,
+                                    color: p.muted,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      'メッセージを受けつけていません',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: p.muted,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                     ],
                   ),
                 ),
 
                 const SizedBox(width: 8),
 
-                if (time != null && !openProfile)
+                if (time != null && !isSearchResult)
                   Text(
                     _timeText(time),
                     style: TextStyle(fontSize: 12, color: p.muted),

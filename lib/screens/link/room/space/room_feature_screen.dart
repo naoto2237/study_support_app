@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:study_support_app/theme/app_palette.dart';
+import 'package:study_support_app/theme/error_dialog.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -81,16 +82,8 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
         _backgroundOffset = result.offset;
       });
 
+      // 壁紙はすぐ画面に出るので、保存のお知らせは出さない
       await _saveWallpaper(selectedImage, result.scale, result.offset);
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('壁紙を保存しました'),
-          duration: Duration(seconds: 2),
-        ),
-      );
     }
   }
 
@@ -135,13 +128,8 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
 
       debugPrint('壁紙を読み込みました');
     } catch (e) {
+      // 読めないときは、いつもの背景のままにする（お知らせは出さない）
       debugPrint('壁紙読み込みエラー: $e');
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('壁紙の読み込みに失敗しました\n$e')));
     }
   }
 
@@ -186,9 +174,7 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('壁紙の保存に失敗しました\n$e')));
+      showErrorDialog(context, '壁紙を保存できませんでした。\nルームを開きなおすと、元の背景に戻ります。');
     }
   }
 

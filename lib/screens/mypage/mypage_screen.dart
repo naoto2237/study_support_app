@@ -15,6 +15,7 @@ import 'package:study_support_app/screens/settings/settings_screen.dart';
 import 'package:study_support_app/screens/mypage/mypage_profile_section.dart';
 import 'package:study_support_app/screens/mypage/profile_activity.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/services/achievement_counter.dart';
 
 class MypageScreen extends StatefulWidget {
   final String? targetUserId; // 他人のプロフィールを表示する場合のUID（省略時は自分）
@@ -69,6 +70,9 @@ class _MypageScreenState extends State<MypageScreen> {
     // 他の人のページを開いたら、「見た人」として記録する
     if (!_isMyPage) {
       ProfileActivity.recordView(_targetUserId);
+    } else {
+      // 目標達成の数を、ほかの人にも見えるように保存しなおす（achievement_counter.dart）
+      AchievementCounter.sync();
     }
 
     // スクロール位置を取得
@@ -376,9 +380,8 @@ class ProfileHeader extends StatelessWidget {
                                       fit: BoxFit.cover,
                                     )
                                   : Container(
-                                      color: AppColors.primary.withValues(
-                                        alpha: 0.12,
-                                      ),
+                                      // ダークモードでも同じうすい青（ユーザーアイコンの色は変えない）
+                                      color: AppColors.primarySoft,
                                       child: Icon(
                                         Icons.person,
                                         size: iconSize * 0.65,

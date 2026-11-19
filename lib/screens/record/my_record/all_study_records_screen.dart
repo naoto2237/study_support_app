@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/main.dart' show todayStudySeconds;
 import 'package:study_support_app/screens/record/my_record/study_record_row.dart';
 import 'package:study_support_app/theme/app_colors.dart';
@@ -72,6 +73,7 @@ class _AllStudyRecordsScreenState extends State<AllStudyRecordsScreen> {
               return <String, dynamic>{
                 "date": doc.id,
                 "studyTime": (data["studyTime"] as num?)?.toInt() ?? 0,
+                "subjects": StudyRecordRow.subjectsOf(data),
               };
             }).toList();
 
@@ -100,6 +102,9 @@ class _AllStudyRecordsScreenState extends State<AllStudyRecordsScreen> {
         );
   }
 
+  // 自分の記録を見ているか（ほかの人の記録では false）
+  bool get _isMe => widget.userId == FirebaseAuth.instance.currentUser?.uid;
+
   String _todayId() {
     final now = DateTime.now();
 
@@ -111,7 +116,10 @@ class _AllStudyRecordsScreenState extends State<AllStudyRecordsScreen> {
   // 表示する一覧
   // ・今日の行は、タイマーの今の値（todayStudySeconds）を使う
   // ・今日の記録がまだ保存されていなくても、勉強中なら先頭に出す
+  // ・ほかの人の記録では、タイマーの値（自分の学習時間）は使わず、保存ずみの記録だけを出す
   List<Map<String, dynamic>> _records(int todaySeconds) {
+    if (!_isMe) return savedRecords;
+
     final todayId = _todayId();
 
     final records = <Map<String, dynamic>>[
@@ -124,6 +132,11 @@ class _AllStudyRecordsScreenState extends State<AllStudyRecordsScreen> {
       records.insert(0, <String, dynamic>{
         "date": todayId,
         "studyTime": todaySeconds,
+        // 今日の教科ごとの時間は、保存ずみの分（タイマーを止めると増える）
+        "subjects": savedRecords.firstWhere(
+          (record) => record["date"] == todayId,
+          orElse: () => const <String, dynamic>{},
+        )["subjects"],
       });
     }
 
@@ -268,6 +281,7 @@ class _AllStudyRecordsScreenState extends State<AllStudyRecordsScreen> {
               textColor: widget.textColor,
               secondaryColor: widget.secondaryColor,
               showDivider: entry.key != records.length - 1,
+              subjects: (record["subjects"] as Map<String, int>?) ?? const {},
             );
           }),
         ],

@@ -227,6 +227,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   decoration: BoxDecoration(
                     color: p.card,
                     borderRadius: BorderRadius.circular(16),
+                  ),
+                  // 枠線は中身より上に描く
+                  // （中の白い面が枠線に重なって、角の枠線が消えて見えないように）
+                  foregroundDecoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: p.border),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -384,7 +389,7 @@ class _NotificationRow extends StatelessWidget {
                           ),
                           child: CircleAvatar(
                             radius: 22,
-                            backgroundColor: p.primarySoft,
+                            backgroundColor: AppColors.primarySoft,
                             backgroundImage: icon.isNotEmpty
                                 ? NetworkImage(icon)
                                 : null,

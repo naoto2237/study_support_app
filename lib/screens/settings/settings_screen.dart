@@ -15,10 +15,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/main.dart'; // main.dart の isDarkModeNotifier を使う
-import 'package:study_support_app/screens/start/onboarding_screen.dart';
+import 'package:study_support_app/screens/start/welcome_screen.dart';
 import 'package:study_support_app/screens/start/tutorial_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 import 'package:study_support_app/theme/app_palette.dart';
+import 'package:study_support_app/theme/error_dialog.dart';
+import 'package:study_support_app/services/account_deleter.dart';
+import 'package:study_support_app/services/google_account.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -112,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // スイッチを切りかえたら、すぐに保存する
-  // （失敗したときだけ、元に戻して知らせる）
+  // （失敗したときは、スイッチを元に戻す）
   Future<void> _setPublic(bool value) async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -134,13 +137,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (!mounted) return;
 
+      // スイッチが元に戻るので、それで保存できなかったことがわかる
       setState(() {
         _isPublic = previous;
       });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('設定を保存できませんでした')));
     } finally {
       if (mounted) {
         setState(() {
@@ -156,6 +156,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _confirmLogout() async {
     final p = context.pal;
+
+    // Google と連携していない（名前のないアカウントの）ときは、ログアウトすると
+    // 二度と戻れない。そのため、ログアウトさせずに、先に連携をすすめる
+    if (!GoogleAccount.isLinked) {
+      final link = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            backgroundColor: p.card,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              '先に Google と連携してください',
+              style: TextStyle(
+                color: p.text,
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Google と連携していないため、今ログアウトすると、'
+              'このアカウントには二度と戻れません。\n'
+              '連携すると、「Google で続ける」から、いつでも戻れます。',
+              style: TextStyle(color: p.secondary, fontSize: 14, height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text('キャンセル', style: TextStyle(color: p.secondary)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text(
+                  'Google と連携する',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (link == true) await _linkGoogle();
+      return;
+    }
 
     final ok = await showDialog<bool>(
       context: context,
@@ -175,7 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           content: Text(
-            'もう一度使うときは、ログインし直す必要があります。',
+            'もう一度使うときは、はじめの画面の「Google で続ける」から戻れます。',
             style: TextStyle(color: p.secondary, fontSize: 14, height: 1.5),
           ),
           actions: [
@@ -198,17 +248,243 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (ok != true) return;
 
     try {
-      await FirebaseAuth.instance.signOut();
+      await GoogleAccount.signOut();
 
       if (!mounted) return;
 
-      // ログイン画面（OnboardingScreen）へ置きかえて移る
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      // はじめの画面（ゲストか Google かをえらぶ）へ。それまでの画面は、すべて閉じる
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+        (_) => false,
       );
     } catch (e, stackTrace) {
       debugPrint('ログアウトに失敗しました: $e');
       debugPrint(stackTrace.toString());
+    }
+  }
+
+  // ==============================================================
+  // Google と連携（今のアカウントとデータを、そのまま Google にひもづける）
+  // ==============================================================
+
+  bool _isLinking = false;
+
+  Future<void> _linkGoogle() async {
+    if (_isLinking) return;
+
+    setState(() => _isLinking = true);
+
+    try {
+      await GoogleAccount.link();
+    } on GoogleAccountException catch (e) {
+      if (mounted) showErrorDialog(context, e.message);
+    } catch (e) {
+      debugPrint('Google と連携できませんでした: $e');
+      if (mounted) {
+        showErrorDialog(context, 'Google と連携できませんでした。\nもう一度お試しください。');
+      }
+    } finally {
+      // 連携できたかどうかで、行の見た目が変わるので、描き直す
+      if (mounted) setState(() => _isLinking = false);
+    }
+  }
+
+  // ==============================================================
+  // アカウントを削除（確かめてから。元に戻せない）
+  // 消すものは account_deleter.dart
+  // ==============================================================
+
+  Future<void> _confirmDeleteAccount() async {
+    final p = context.pal;
+
+    // 自分のユーザーID（これを入れてもらってから消す。まちがって消さないように）
+    String myUserId = '';
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
+        myUserId = (doc.data()?['userId'] ?? '').toString();
+      }
+    } catch (e) {
+      debugPrint('ユーザーIDを読めませんでした: $e');
+    }
+
+    if (!mounted) return;
+
+    if (myUserId.isEmpty) {
+      showErrorDialog(context, 'アカウントの情報を読みこめませんでした。\n通信の状態を確かめて、もう一度お試しください。');
+      return;
+    }
+
+    // 入力欄の「@」は自動でつく。自分で「@」を打っても、同じにあつかう
+    String normalize(String text) {
+      final t = text.trim();
+      return t.replaceFirst(RegExp(r'^@+'), '');
+    }
+
+    final controller = TextEditingController();
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final matched = normalize(controller.text) == normalize(myUserId);
+
+            return AlertDialog(
+              backgroundColor: p.card,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'アカウントを削除',
+                style: TextStyle(
+                  color: p.text,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '学習記録・友達・チャット・AIの履歴・作ったルームなど、'
+                    'すべてのデータが消えます。消したデータは、元に戻せません。',
+                    style: TextStyle(
+                      color: p.secondary,
+                      fontSize: 13.5,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    // ユーザーIDそのものは出さない（自分で思い出して入れてもらう）
+                    '確かめのため、あなたのユーザーIDを入れてください',
+                    style: TextStyle(
+                      color: p.text,
+                      fontSize: 13.5,
+                      height: 1.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    onChanged: (_) => setDialogState(() {}),
+                    style: TextStyle(color: p.text, fontSize: 15),
+                    decoration: InputDecoration(
+                      // はじめから「@」を出しておく（自分で打たなくてよい）
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 2),
+                        child: Text(
+                          '@',
+                          style: TextStyle(
+                            color: p.secondary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 0,
+                        minHeight: 0,
+                      ),
+                      isDense: true,
+                      filled: true,
+                      fillColor: p.field,
+                      // 「@」のすぐ右から文字が始まるよう、左の余白は小さく
+                      contentPadding: const EdgeInsets.fromLTRB(2, 12, 12, 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: _red, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text('キャンセル', style: TextStyle(color: p.secondary)),
+                ),
+                // ユーザーIDが合ったときだけ押せる
+                TextButton(
+                  onPressed: matched
+                      ? () => Navigator.pop(dialogContext, true)
+                      : null,
+                  child: Text(
+                    '削除する',
+                    style: TextStyle(
+                      color: matched ? _red : p.muted,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    // 閉じるうごきが終わってから片付ける（すぐ片付けると、閉じる途中の入力欄がこわれる）
+    Future.delayed(const Duration(milliseconds: 400), controller.dispose);
+
+    if (ok != true || !mounted) return;
+
+    // 消している間は、くるくるを出して、ほかの操作をできなくする
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      ),
+    );
+
+    try {
+      final deleted = await AccountDeleter.deleteMyAccount();
+
+      if (!mounted) return;
+
+      // Google の本人確認を閉じたときは、何も消さずに戻る
+      if (!deleted) {
+        Navigator.of(context).pop();
+        return;
+      }
+
+      // はじめの画面（ゲストか Google かをえらぶ）へ。それまでの画面は、すべて閉じる
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+        (_) => false,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('アカウントの削除に失敗しました: $e');
+      debugPrint(stackTrace.toString());
+
+      if (!mounted) return;
+
+      // くるくるを閉じてから知らせる
+      Navigator.of(context).pop();
+
+      showErrorDialog(
+        context,
+        e is GoogleAccountException
+            ? e.message
+            : 'アカウントを削除できませんでした。\n通信の状態を確かめて、もう一度お試しください。',
+      );
     }
   }
 
@@ -453,11 +729,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // ------------------------------------------
               _sectionTitle('アカウント'),
               _card([
+                // Google と連携（連携ずみなら、メールアドレスを出すだけ）
+                if (GoogleAccount.isLinked)
+                  _row(
+                    icon: Icons.verified_user_outlined,
+                    title: 'Google と連携ずみ',
+                    subtitle: GoogleAccount.email.isNotEmpty
+                        ? GoogleAccount.email
+                        : '機種を変えても、「Google で続ける」で戻れます',
+                  )
+                else
+                  _row(
+                    icon: Icons.link_rounded,
+                    title: 'Google と連携',
+                    subtitle: '機種を変えても、データを引きつげるようにします',
+                    onTap: _isLinking ? null : _linkGoogle,
+                    trailing: _isLinking
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        : null,
+                  ),
                 _row(
                   icon: Icons.logout_rounded,
                   title: 'ログアウト',
                   color: _red,
                   onTap: _confirmLogout,
+                ),
+                _row(
+                  icon: Icons.person_remove_outlined,
+                  title: 'アカウントを削除',
+                  subtitle: 'すべてのデータを消して、アプリをやめます',
+                  color: _red,
+                  onTap: _confirmDeleteAccount,
                 ),
               ]),
             ],

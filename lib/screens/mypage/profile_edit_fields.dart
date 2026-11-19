@@ -1,22 +1,29 @@
 // ======================================================================
-// 【部品】プロフィール編集の入力欄（学年・職種／学習目標 など）
+// 【部品】プロフィール編集の、えらぶ欄（学年・職種／学習目標）
 //
 // 主なクラス: ProfileEditFields
+// ・自由入力ではなく、一覧（profile_options.dart）からえらぶ（絞り込みに使うため）
+// ・前に自由入力で入れた文字（一覧にないもの）は、「えらびなおしてください」と出す
 // ・旧ファイル名: profile_edit_screen2.dart
 // ======================================================================
 
 import 'package:flutter/material.dart';
+import 'package:study_support_app/data/profile_options.dart';
 import 'package:study_support_app/theme/app_palette.dart';
-import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/option_picker.dart';
 
 class ProfileEditFields extends StatelessWidget {
-  final TextEditingController gradeController;
-  final TextEditingController goalController;
+  final String? grade;
+  final String? goal;
+  final ValueChanged<String> onGradeChanged;
+  final ValueChanged<String> onGoalChanged;
 
   const ProfileEditFields({
     super.key,
-    required this.gradeController,
-    required this.goalController,
+    required this.grade,
+    required this.goal,
+    required this.onGradeChanged,
+    required this.onGoalChanged,
   });
 
   @override
@@ -39,70 +46,68 @@ class ProfileEditFields extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        _EditField(title: "学年・職種（任意）", controller: gradeController),
+        _SelectField(
+          title: "学年・職種",
+          options: ProfileOptions.grades,
+          value: grade,
+          onChanged: onGradeChanged,
+        ),
 
-        _EditField(title: "学習目標", controller: goalController),
+        _SelectField(
+          title: "学習目標",
+          options: ProfileOptions.goals,
+          value: goal,
+          onChanged: onGoalChanged,
+        ),
       ],
     );
   }
 }
 
-class _EditField extends StatelessWidget {
+class _SelectField extends StatelessWidget {
   final String title;
-  final TextEditingController controller;
+  final List<String> options;
+  final String? value;
+  final ValueChanged<String> onChanged;
 
-  const _EditField({required this.title, required this.controller});
+  const _SelectField({
+    required this.title,
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
+
+    // 前の自由入力（一覧にない文字）のときは、空として出し、えらびなおしてもらう
+    final old = (value ?? '').trim();
+    final isOld = old.isNotEmpty && !options.contains(old);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // タイトル
-          Text(title, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-
+          Text(title, style: TextStyle(fontSize: 13, color: p.secondary)),
           const SizedBox(height: 8),
-
-          // テキストフィールド
-          TextField(
-            controller: controller,
-            style: TextStyle(fontSize: 15, color: context.pal.text),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: context.pal.field,
-
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 14,
-              ),
-
-              suffixIcon: const Icon(
-                Icons.edit_outlined,
-                color: Colors.grey,
-                size: 19,
-              ),
-
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 1.5,
-                ),
+          OptionField(
+            // えらびなおしたら、新しい値で描き直す
+            key: ValueKey('$title/$value'),
+            title: title,
+            options: options,
+            value: isOld ? null : value,
+            onChanged: onChanged,
+          ),
+          if (isOld)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 6),
+              child: Text(
+                "前に入れた「$old」は一覧にないので、えらびなおしてください",
+                style: TextStyle(fontSize: 12, color: p.secondary),
               ),
             ),
-          ),
         ],
       ),
     );

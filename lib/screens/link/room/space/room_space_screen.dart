@@ -7,6 +7,7 @@
 // ・学習タイマー：ホームのタイマーと同じもの（services/study_timer_remote.dart）
 //   ルームで始めても止めても、ホームと同じように学習記録に保存される
 // ・今日の目標・今日の学習時間・目標まで残り（ホームと同じ値。アイコンの色もホームとそろえる）
+// ・タイマーの下で、今から勉強する教科をえらべる（ホームと同じ subject_picker.dart）
 // ・メンバー／チャット／共有ノートを開く（共通の画面は room_feature_screen.dart）
 // ・メンバーの一覧、アクティビティ（参加・メッセージ。画面の下の残りに収め、カードの中でスクロール）
 // ・右上のメニュー：ルームの情報、ルームから退出
@@ -30,6 +31,7 @@ import 'package:study_support_app/screens/record/comparison/compare_user_picker.
     show PartnerAvatar;
 import 'package:study_support_app/services/study_timer_remote.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/screens/home/subject_picker.dart';
 import 'package:study_support_app/theme/app_palette.dart';
 
 class RoomSpaceScreen extends StatefulWidget {
@@ -49,6 +51,12 @@ class RoomSpaceScreen extends StatefulWidget {
 }
 
 class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
+  // 中身の幅のいちばん大きい値（パソコンなど広い画面でも、これより広げない）
+  static const double _maxWidth = 600;
+
+  // タイマーの丸のいちばん大きい大きさ
+  static const double _maxTimerSize = 220;
+
   // 描き直すたびに作り直さないよう、最初に1回だけ作る
   late final DocumentReference<Map<String, dynamic>> _roomRef;
   late final Stream<DocumentSnapshot<Map<String, dynamic>>> _roomStream;
@@ -146,9 +154,29 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
                     const padding = EdgeInsets.fromLTRB(17, 14, 17, 16);
 
-                    // ふつうの高さの画面：残りの高さいっぱいに広げる
-                    if (constraints.maxHeight >= 640) {
-                      return Padding(
+                    // 広い画面（パソコンなど）でも、スマホと同じくらいの幅でまん中に出す
+                    // （広がりすぎると、タイマーの丸が大きくなって縦に入りきらない）
+                    final width = constraints.maxWidth.clamp(0.0, _maxWidth);
+
+                    // 上の部分（タイマー〜メンバー）のおおよその高さ。
+                    // タイマーの丸は、カードの幅で大きさが決まる（いちばん大きくて _maxTimerSize）
+                    final timerSize = ((width - 34 - 36) * 11 / 20).clamp(
+                      0.0,
+                      _maxTimerSize,
+                    );
+                    // （教科をえらぶボタンの分も入れる）
+                    final topHeight = timerSize + 384;
+
+                    // アクティビティが少なくとも 160 の高さで入るか
+                    final fits =
+                        constraints.maxHeight >=
+                        topHeight + padding.vertical + 160;
+
+                    Widget content;
+
+                    if (fits) {
+                      // ふつうの高さの画面：残りの高さいっぱいに広げる
+                      content = Padding(
                         padding: padding,
                         child: Column(
                           children: [
@@ -157,20 +185,26 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
                           ],
                         ),
                       );
+                    } else {
+                      // 低い画面（横向き・パソコンの低いウインドウなど）：
+                      // 画面ごとスクロールし、カードは決まった高さ
+                      content = SingleChildScrollView(
+                        padding: padding,
+                        child: Column(
+                          children: [
+                            ...topParts,
+                            SizedBox(
+                              height: 260,
+                              child: _buildActivityCard(memberDocs),
+                            ),
+                          ],
+                        ),
+                      );
                     }
 
-                    // 低い画面（横向きなど）：画面ごとスクロールし、カードは決まった高さ
-                    return SingleChildScrollView(
-                      padding: padding,
-                      child: Column(
-                        children: [
-                          ...topParts,
-                          SizedBox(
-                            height: 260,
-                            child: _buildActivityCard(memberDocs),
-                          ),
-                        ],
-                      ),
+                    return Align(
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(width: width, child: content),
                     );
                   },
                 ),
@@ -325,10 +359,24 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
 
                   const SizedBox(height: 12),
 
-                  Text(
-                    "ホームのタイマーと同じです。止めると学習記録に残ります",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: p.muted, fontSize: 11),
+                  // 左：今から勉強する教科（ホームと同じ。えらぶとホームも変わる）
+                  // 右：ひとこと
+                  Row(
+                    children: [
+                      const SubjectPicker(),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "ホームのタイマーと同じです。\n止めると学習記録に残ります",
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: p.muted,
+                            fontSize: 11,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               );
@@ -340,6 +388,16 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 
   Widget _buildTimer(double progress) {
+    // 丸は _maxTimerSize より大きくしない（広い画面で大きくなりすぎないように）
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _maxTimerSize),
+        child: _buildTimerCircle(progress),
+      ),
+    );
+  }
+
+  Widget _buildTimerCircle(double progress) {
     final p = context.pal;
 
     return AspectRatio(
@@ -781,6 +839,10 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
           width: double.infinity,
           decoration: BoxDecoration(
             color: p.card,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          // 枠線は中身の上に描く（中の行の色で、角の枠線が隠れないように）
+          foregroundDecoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: p.border),
           ),

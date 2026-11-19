@@ -147,7 +147,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
 
               if (messages.isEmpty) {
                 return const EmptyMessage(
-                  icon: Icons.chat_bubble_outline_rounded,
+                  icon: Icons.forum_rounded,
                   text: 'まだメッセージはありません',
                   subText: '最初のメッセージを送ってみましょう',
                 );
@@ -357,7 +357,14 @@ class RoomChatBubble extends StatelessWidget {
           decoration: BoxDecoration(
             color: isMine ? AppColors.primary : p.card,
             border: isMine ? null : Border.all(color: p.border),
-            borderRadius: BorderRadius.circular(18),
+            // AIサポートと同じく、角を1つだけ小さく丸めて「とがり」をつける
+            // （自分は右上、相手は左上）
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(isMine ? 18 : 6),
+              topRight: Radius.circular(isMine ? 6 : 18),
+              bottomLeft: const Radius.circular(18),
+              bottomRight: const Radius.circular(18),
+            ),
           ),
           child: Text(
             message,

@@ -1,0 +1,9 @@
+# 公開用の署名の情報（見本）
+# 1. このファイルをコピーして、名前を key.properties にする（key.properties は git に入らない）
+# 2. 下の値を、自分で作った署名の鍵（.jks）に合わせて書きかえる
+# 鍵の作り方（PowerShell）:
+#   keytool -genkey -v -keystore $env:USERPROFILE\upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+storePassword=ここに鍵のパスワード
+keyPassword=ここに鍵のパスワード
+keyAlias=upload
+storeFile=C:/Users/あなたの名前/upload-keystore.jks

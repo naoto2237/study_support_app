@@ -198,7 +198,7 @@ class _FriendActionDialogState extends State<FriendActionDialog> {
             // 相手のアイコン
             CircleAvatar(
               radius: 34,
-              backgroundColor: p.primarySoft,
+              backgroundColor: AppColors.primarySoft,
               backgroundImage: icon.isNotEmpty ? NetworkImage(icon) : null,
               child: icon.isEmpty
                   ? const Icon(Icons.person, size: 38, color: AppColors.primary)
