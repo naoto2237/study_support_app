@@ -5,6 +5,7 @@
 // ・開始／停止／リセット、経過時間の表示
 // ・アプリを閉じても動くよう、通知のタイマー（services/timer_service.dart）とやり取りする
 // ・停止したときに学習時間を保存する（onSaveStudyTime）
+// ・ルームの中からも、StudyTimerRemote（services/study_timer_remote.dart）を通して動かせる
 // ・カードを左右にスライドすると「増えるタイマー」と「減るタイマー」が切り替わる
 //   （減るタイマーは、数字か右上の札を押して時間を決める。0になったら止めて記録する）
 // ======================================================================
@@ -17,6 +18,7 @@ import 'package:google_fonts/google_fonts.dart';
 // ← 'app' という名前のあだ名を付ける
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:study_support_app/services/timer_service.dart';
+import 'package:study_support_app/services/study_timer_remote.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
@@ -47,6 +49,14 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     super.initState();
 
     FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
+
+    // ルームの中などから、このタイマーを動かせるようにする
+    StudyTimerRemote.attach(
+      owner: this,
+      start: _start,
+      stop: _stop,
+      reset: _reset,
+    );
     _restoreTimerState();
 
     // 1枚目（増えるタイマー）から表示する
@@ -154,6 +164,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
         _timer = null;
 
         _stopwatch.stop();
+        StudyTimerRemote.markStudying(false);
 
         final prefs = await SharedPreferences.getInstance();
 
@@ -337,6 +348,9 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     // （通知と同じタイミングで秒が変わるようにする）
     _scheduleNextTick(startTime);
 
+    // 勉強中の印をつける（ルームのメンバーの画面に出す。待たずに進む）
+    StudyTimerRemote.markStudying(true);
+
     if (mounted) {
       setState(() {});
     }
@@ -414,6 +428,9 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     _stopwatch.stop();
 
+    // 勉強中の印を消す（ルームのメンバーの画面に出す）
+    StudyTimerRemote.markStudying(false);
+
     // 1秒タイマーを停止
     _timer?.cancel();
     _timer = null;
@@ -474,6 +491,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
 
     // タイマー停止
     _stopwatch.stop();
+    StudyTimerRemote.markStudying(false);
 
     _timer?.cancel();
     _timer = null;
@@ -722,6 +740,7 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
     _pageController.dispose();
 
     FlutterForegroundTask.removeTaskDataCallback(_onReceiveTaskData);
+    StudyTimerRemote.detach(this);
 
     super.dispose();
   }
@@ -736,6 +755,17 @@ class _StopwatchWidgetState extends State<StopwatchWidget> {
   @override
   Widget build(BuildContext context) {
     final isRunning = _stopwatch.isRunning;
+
+    // 今の表示を、ルームの中など、ほかの画面にも知らせる
+    // （描いている最中に知らせると、ほかの画面の描き直しとぶつかるので、描き終わってから）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      StudyTimerRemote.publish(
+        running: _stopwatch.isRunning,
+        time: _formatTime(),
+        countdown: _isCountdown,
+      );
+    });
 
     return LayoutBuilder(
       builder: (context, constraints) {

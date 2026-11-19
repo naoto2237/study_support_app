@@ -316,6 +316,10 @@ class _MyRoomList extends StatelessWidget {
                 title: data["title"] ?? "",
 
                 isPublic: data["isPublic"] ?? false,
+
+                ownerId: (data["ownerId"] ?? "").toString(),
+
+                description: (data["description"] ?? "").toString(),
               ),
             );
           }).toList(),

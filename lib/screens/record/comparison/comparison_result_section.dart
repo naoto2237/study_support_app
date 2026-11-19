@@ -5,6 +5,8 @@
 // ・その下に比較グラフ（comparison_chart_section.dart）を表示
 // ・あなたの今日の分は、タイマーの今の値（todayStudySeconds）を使う（下のグラフと同じ）
 // ・時間は、1時間未満は秒まで出す（「0分44秒」）
+// ・特定のユーザーは、選んだ相手（partner）の保存ずみの記録と比べる
+//   （相手の今日の分は、相手のアプリが保存した値。タイマーを動かしている途中の分は入らない）
 // ・旧ファイル名: comparison_screen2.dart
 // ======================================================================
 
@@ -15,11 +17,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 import 'package:study_support_app/main.dart' show todayStudySeconds;
+import 'package:study_support_app/screens/record/comparison/compare_user_picker.dart';
 
 class ComparisonResultSection extends StatefulWidget {
   final int totalSeconds;
   final String comparisonTarget;
   final ValueChanged<String> onComparisonTargetChanged;
+
+  // 特定のユーザーで比べる相手（まだ選んでいないときは null）
+  final ComparePartner? partner;
 
   // 比較条件
   final bool isCompared;
@@ -30,6 +36,7 @@ class ComparisonResultSection extends StatefulWidget {
     required this.comparisonTarget,
     required this.onComparisonTargetChanged,
     required this.isCompared,
+    this.partner,
   });
 
   @override
@@ -79,6 +86,10 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
 
   bool isLoadingAverage = false;
 
+  // 選んだ相手の学習時間（読めなかったときは null）
+  int? partnerStudySeconds;
+  bool isLoadingPartner = false;
+
   // ==============================================================
   // 日付表示
   // ==============================================================
@@ -115,6 +126,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
 
     _loadMyStudyHours();
     _loadAverageStudyHours();
+    _loadPartnerStudySeconds();
 
     // 今日の分はタイマーの今の値を使うので、変わるたびに描き直す
     todayStudySeconds.addListener(_onTodayChanged);
@@ -128,6 +140,102 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
 
   void _onTodayChanged() {
     if (mounted) setState(() {});
+  }
+
+  @override
+  void didUpdateWidget(covariant ComparisonResultSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // 相手を選びなおしたら、その人の記録を読み直す
+    if (oldWidget.partner?.uid != widget.partner?.uid) {
+      _loadPartnerStudySeconds();
+    }
+  }
+
+  // =============================================================
+  // 選んだ相手の学習時間を取得（今日の分も、保存ずみの記録を使う）
+  // =============================================================
+
+  Future<void> _loadPartnerStudySeconds() async {
+    final partner = widget.partner;
+
+    if (partner == null) {
+      if (mounted) {
+        setState(() {
+          partnerStudySeconds = null;
+          isLoadingPartner = false;
+        });
+      }
+      return;
+    }
+
+    setState(() {
+      isLoadingPartner = true;
+    });
+
+    // 読みこみ中に、週・月・年や相手が変わったときは、古い結果を使わない
+    final period = selectedPeriod;
+
+    try {
+      final now = DateTime.now();
+
+      late DateTime startDate;
+      late DateTime endDate;
+
+      if (period == 0) {
+        startDate = DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(Duration(days: now.weekday - 1));
+        endDate = startDate.add(const Duration(days: 7));
+      } else if (period == 1) {
+        startDate = DateTime(now.year, now.month, 1);
+        endDate = DateTime(now.year, now.month + 1, 1);
+      } else {
+        startDate = DateTime(now.year, 1, 1);
+        endDate = DateTime(now.year + 1, 1, 1);
+      }
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(partner.uid)
+          .collection("studyRecords")
+          .get();
+
+      int totalSeconds = 0;
+
+      for (final recordDoc in snapshot.docs) {
+        final date = DateTime.tryParse(recordDoc.id);
+        if (date == null) continue;
+
+        final recordDate = DateTime(date.year, date.month, date.day);
+
+        if (!recordDate.isBefore(startDate) && recordDate.isBefore(endDate)) {
+          totalSeconds += (recordDoc.data()["studyTime"] as num?)?.toInt() ?? 0;
+        }
+      }
+
+      if (!mounted ||
+          period != selectedPeriod ||
+          partner.uid != widget.partner?.uid) {
+        return;
+      }
+
+      setState(() {
+        partnerStudySeconds = totalSeconds;
+        isLoadingPartner = false;
+      });
+    } catch (e) {
+      debugPrint("相手の学習時間の取得に失敗: $e");
+
+      if (!mounted) return;
+
+      setState(() {
+        partnerStudySeconds = null;
+        isLoadingPartner = false;
+      });
+    }
   }
 
   // =============================================================
@@ -393,6 +501,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
         ComparisonChartSection(
           totalSeconds: widget.totalSeconds,
           comparisonTarget: widget.comparisonTarget,
+          partner: widget.partner,
           isCompared: widget.isCompared,
         ),
       ],
@@ -456,7 +565,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
           else if (widget.comparisonTarget == "全体のユーザー")
             _buildAllUsersComparison(textColor, secondaryColor, isDark)
           else
-            _buildSpecificUserComparison(textColor, secondaryColor),
+            _buildSpecificUserComparison(textColor, secondaryColor, isDark),
         ],
       ),
     );
@@ -486,6 +595,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
 
                 _loadMyStudyHours();
                 _loadAverageStudyHours();
+                _loadPartnerStudySeconds();
               },
               child: Container(
                 margin: const EdgeInsets.all(2),
@@ -555,20 +665,78 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
     Color secondaryColor,
     bool isDark,
   ) {
-    final isLoading = isLoadingMyStudyTime || isLoadingAverage;
+    return _buildVersus(
+      otherTitle: "全体平均",
+      // 秒の端数は切り捨て（下の比較グラフと同じ。四捨五入だと1秒ずれることがある）
+      otherSeconds: ((averageStudyHours ?? 0) * 3600).floor(),
+      differencePrefix: "平均より",
+      isLoading: isLoadingMyStudyTime || isLoadingAverage,
+      textColor: textColor,
+      secondaryColor: secondaryColor,
+      isDark: isDark,
+    );
+  }
 
+  // ==============================================================
+  // 選んだ相手との比較
+  // ==============================================================
+
+  Widget _buildSpecificUserComparison(
+    Color textColor,
+    Color secondaryColor,
+    bool isDark,
+  ) {
+    final partner = widget.partner;
+
+    if (partner == null) {
+      return Text(
+        "上の「相手を選ぶ」から、比べる相手を選んでください",
+        style: TextStyle(color: secondaryColor, fontSize: 13),
+      );
+    }
+
+    if (!isLoadingPartner && partnerStudySeconds == null) {
+      return Text(
+        "${partner.name}さんの記録を読み込めませんでした",
+        style: const TextStyle(color: Color(0xFFE5534B), fontSize: 13),
+      );
+    }
+
+    return _buildVersus(
+      otherTitle: partner.name,
+      otherSeconds: partnerStudySeconds ?? 0,
+      differencePrefix: "相手より",
+      isLoading: isLoadingMyStudyTime || isLoadingPartner,
+      textColor: textColor,
+      secondaryColor: secondaryColor,
+      isDark: isDark,
+    );
+  }
+
+  // ==============================================================
+  // あなたと相手（全体平均・選んだ人）の横の棒と差
+  // ==============================================================
+
+  Widget _buildVersus({
+    required String otherTitle,
+    required int otherSeconds,
+    required String differencePrefix,
+    required bool isLoading,
+    required Color textColor,
+    required Color secondaryColor,
+    required bool isDark,
+  }) {
     // 保存ずみの記録（今日より前）＋ 今日のタイマーの今の値
     // （今日は、週・月・年のどれを選んでも、その期間に入る）
     final mySeconds = (myStudySeconds ?? 0) + todayStudySeconds.value;
-    // 秒の端数は切り捨て（下の比較グラフと同じ。四捨五入だと1秒ずれることがある）
-    final averageSeconds = ((averageStudyHours ?? 0) * 3600).floor();
+    final averageSeconds = otherSeconds;
 
     final difference = mySeconds - averageSeconds;
 
     // 横の棒の長さの基準（長いほうをいっぱいにする）
     final maxSeconds = mySeconds > averageSeconds ? mySeconds : averageSeconds;
 
-    // 平均より多いときは青、少ないときは赤
+    // 相手より多いときは青、少ないときは赤
     final differenceColor = difference >= 0
         ? AppColors.primary
         : const Color(0xFFE5534B);
@@ -592,7 +760,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
         const SizedBox(height: 12),
 
         _barRow(
-          title: "全体平均",
+          title: otherTitle,
           value: isLoading ? "--" : formatStudyTime(averageSeconds),
           ratio: maxSeconds > 0 ? averageSeconds / maxSeconds : 0,
           barColor: isDark ? Colors.white38 : const Color(0xFFBDBDBD),
@@ -634,7 +802,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      "平均より",
+                      differencePrefix,
                       style: TextStyle(color: secondaryColor, fontSize: 13),
                     ),
                     const SizedBox(width: 6),
@@ -689,6 +857,8 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
             Expanded(
               child: Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: secondaryColor, fontSize: 12.5),
               ),
             ),
@@ -710,44 +880,6 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  // ==============================================================
-  // 特定ユーザーとの比較（相手を選ぶ機能は準備中）
-  // ==============================================================
-
-  Widget _buildSpecificUserComparison(Color textColor, Color secondaryColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Text(
-                "あなた",
-                style: TextStyle(color: secondaryColor, fontSize: 12.5),
-              ),
-            ),
-            _buildStudyTimeRichText(
-              isLoadingMyStudyTime
-                  ? "--"
-                  : formatStudyTime(
-                      (myStudySeconds ?? 0) + todayStudySeconds.value,
-                    ),
-              "",
-              AppColors.primary,
-              numberSize: 20,
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text(
-          "比較する相手を選ぶ機能は準備中です",
-          style: TextStyle(color: secondaryColor, fontSize: 12),
         ),
       ],
     );

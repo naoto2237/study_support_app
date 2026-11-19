@@ -3,13 +3,21 @@
 //
 // 主なクラス: RoomChatScreen / RoomChatBubble（吹き出し）
 // ・使うデータ: rooms/{id}/messages, users
+// ・見た目は友達とのチャット（chat/chat_room_screen.dart）とそろえる
+//   自分：右に青い吹き出し／相手：左にアイコンと名前、白い吹き出し
+//   時刻は吹き出しの横の下。メッセージは上から詰めて並べる
+// ・下の入力欄は、RoomFeatureScreen がキーボードで背景を動かさないため、
+//   キーボードの高さぶんを自分で上げる（_ChatInputArea）
 // ======================================================================
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:study_support_app/theme/app_palette.dart';
+import 'package:study_support_app/screens/record/comparison/compare_user_picker.dart'
+    show PartnerAvatar;
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/app_palette.dart';
+import 'package:study_support_app/theme/empty_message.dart';
 
 class RoomChatScreen extends StatefulWidget {
   final String roomId;
@@ -22,33 +30,43 @@ class RoomChatScreen extends StatefulWidget {
 
 class _RoomChatScreenState extends State<RoomChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  final ScrollController _textFieldScrollController = ScrollController();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  late final Stream<QuerySnapshot<Map<String, dynamic>>> _messageStreamData;
+  // 新しい順（いちばん新しいものを下に出すため、リストを下から並べる）
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _messageStream;
+
+  // 送った人のアイコン（同じ人を何度も読まないよう、uid ごとに取っておく）
+  final Map<String, Future<String>> _iconCache = {};
+
+  bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
 
-    _messageStreamData = _firestore
+    _messageStream = _firestore
         .collection('rooms')
         .doc(widget.roomId)
         .collection('messages')
-        .orderBy('createdAt', descending: false)
+        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _focusNode.dispose();
     _scrollController.dispose();
-    _textFieldScrollController.dispose();
     super.dispose();
+  }
+
+  Future<String> _iconOf(String uid) {
+    return _iconCache.putIfAbsent(uid, () async {
+      if (uid.isEmpty) return '';
+      final doc = await _firestore.collection('users').doc(uid).get();
+      return (doc.data()?['icon'] ?? '').toString();
+    });
   }
 
   // =========================
@@ -56,18 +74,19 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
   // =========================
   Future<void> _sendMessage() async {
     final message = _controller.text.trim();
-
-    if (message.isEmpty) return;
+    if (message.isEmpty || _isSending) return;
 
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) return;
 
-    try {
-      // Firestoreから現在のユーザー名を取得
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    _isSending = true;
 
+    try {
+      // 今のユーザー名（メッセージといっしょに保存する）
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
       final userName = userDoc.data()?['name'] as String? ?? 'ユーザー';
+
+      _controller.clear();
 
       await _firestore
           .collection('rooms')
@@ -80,25 +99,21 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-      _controller.clear();
-
-      // キーボードはそのまま表示
-      if (_focusNode.canRequestFocus) {
-        _focusNode.requestFocus();
-      }
-
-      // 少し待ってから一番下へ
-      await Future.delayed(const Duration(milliseconds: 50));
-
+      // いちばん新しいメッセージ（下のはし）へ
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0,
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
         );
       }
     } catch (e) {
       debugPrint('メッセージ送信エラー: $e');
+
+      // 送れなかったときは、書いた文を入力欄に戻す
+      if (_controller.text.isEmpty) _controller.text = message;
+    } finally {
+      _isSending = false;
     }
   }
 
@@ -109,71 +124,69 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
     return Column(
       children: [
         // ==========================================
-        // チャット一覧
+        // メッセージの一覧
         // ==========================================
         Expanded(
           child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: _messageStreamData,
+            stream: _messageStream,
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return const Center(child: Text('メッセージを取得できませんでした'));
+                return const EmptyMessage(
+                  icon: Icons.cloud_off_rounded,
+                  text: 'メッセージを読み込めませんでした',
+                );
               }
 
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                );
               }
 
               final messages = snapshot.data?.docs ?? [];
 
               if (messages.isEmpty) {
-                return Center(
-                  child: Text(
-                    'まだメッセージはありません',
-                    style: TextStyle(color: context.pal.muted, fontSize: 14),
-                  ),
+                return const EmptyMessage(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  text: 'まだメッセージはありません',
+                  subText: '最初のメッセージを送ってみましょう',
                 );
               }
 
-              return ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(8, 16, 8, 12),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final data = messages[index].data();
+              // 少ないときも上から詰めて並べる（下から並べ、上にそろえる）
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ListView.builder(
+                  controller: _scrollController,
+                  reverse: true,
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final data = messages[index].data();
+                    final uid = (data['uid'] ?? '').toString();
+                    final createdAt = data['createdAt'];
 
-                  final uid = data['uid'] as String? ?? '';
+                    // 1つ前（上）のメッセージと同じ人なら、アイコンと名前を省く
+                    final olderUid = index + 1 < messages.length
+                        ? (messages[index + 1].data()['uid'] ?? '').toString()
+                        : null;
 
-                  final name = data['name'] as String? ?? 'ユーザー';
-
-                  final message = data['message'] as String? ?? '';
-
-                  final timestamp = data['createdAt'] as Timestamp?;
-
-                  String time = '';
-
-                  if (timestamp != null) {
-                    final date = timestamp.toDate();
-
-                    time =
-                        '${date.hour.toString().padLeft(2, '0')}:'
-                        '${date.minute.toString().padLeft(2, '0')}';
-                  } else {
-                    // serverTimestampがまだ確定していない場合
-                    time = '送信中';
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 9),
-                    child: RoomChatBubble(
-                      name: name,
-                      message: message,
+                    return RoomChatBubble(
+                      key: ValueKey(messages[index].id),
+                      name: (data['name'] ?? 'ユーザー').toString(),
+                      message: (data['message'] ?? '').toString(),
                       isMine: uid == currentUid,
-                      time: time,
-                    ),
-                  );
-                },
+                      time: createdAt is Timestamp
+                          ? createdAt.toDate()
+                          : DateTime.now(),
+                      showSender: olderUid != uid,
+                      icon: _iconOf(uid),
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -182,107 +195,108 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
         // ==========================================
         // 入力欄
         // ==========================================
-        _ChatInputArea(
-          controller: _controller,
-          focusNode: _focusNode,
-          textFieldScrollController: _textFieldScrollController,
-          onSend: _sendMessage,
-        ),
+        _ChatInputArea(controller: _controller, onSend: _sendMessage),
       ],
     );
   }
 }
 
 // =====================================================
-// 入力欄
+// 入力欄（友達とのチャットと同じ形）
+// 入力欄：丸い形（入力中は青い枠。長い文は4行まで広がる）
+// 送るボタン：青い丸に白い紙飛行機（何も入れていないときは灰色で押せない）
 //
-// MediaQueryはここだけで使用する。
-// そのためキーボードが開いたときに
-// チャット一覧までMediaQueryの変更を受けにくくする。
+// MediaQuery（キーボードの高さ）はここだけで使う。
+// そうすると、キーボードが開いたときにメッセージの一覧まで描き直さずにすむ
 // =====================================================
 
 class _ChatInputArea extends StatelessWidget {
   final TextEditingController controller;
-  final FocusNode focusNode;
-  final ScrollController textFieldScrollController;
   final VoidCallback onSend;
 
-  const _ChatInputArea({
-    required this.controller,
-    required this.focusNode,
-    required this.textFieldScrollController,
-    required this.onSend,
-  });
+  const _ChatInputArea({required this.controller, required this.onSend});
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+    OutlineInputBorder pill(Color color, double width) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(22),
+        borderSide: width == 0
+            ? BorderSide.none
+            : BorderSide(color: color, width: width),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(13, 8, 13, 12),
-          child: Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: context.pal.field,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: context.pal.border, width: 1),
-            ),
-            child: Stack(
-              alignment: Alignment.bottomRight,
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.card,
+          border: Border(top: BorderSide(color: p.divider)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 13, 60, 13),
+                Expanded(
                   child: TextField(
                     controller: controller,
-                    focusNode: focusNode,
-                    scrollController: textFieldScrollController,
-                    keyboardType: TextInputType.multiline,
-                    textInputAction: TextInputAction.newline,
                     minLines: 1,
-                    maxLines: 10,
-                    style: const TextStyle(fontSize: 16, height: 1.4),
+                    maxLines: 4,
+                    keyboardType: TextInputType.multiline,
                     cursorColor: AppColors.primary,
-                    decoration: const InputDecoration(
-                      hintText: 'メッセージを送る...',
-                      border: InputBorder.none,
-                      isCollapsed: true,
+                    style: TextStyle(color: p.text, fontSize: 15),
+                    decoration: InputDecoration(
+                      hintText: 'メッセージを入力',
+                      hintStyle: TextStyle(color: p.muted, fontSize: 15),
+                      filled: true,
+                      fillColor: p.field,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 11,
+                      ),
+                      border: pill(Colors.transparent, 0),
+                      enabledBorder: pill(Colors.transparent, 0),
+                      focusedBorder: pill(AppColors.primary, 1.5),
                     ),
-                    onSubmitted: (_) {
-                      onSend();
-                    },
                   ),
                 ),
 
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: Material(
-                    color: Colors.transparent,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: onSend,
-                      child: Ink(
-                        width: 36,
-                        height: 36,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
+                const SizedBox(width: 8),
+
+                // 入力があるかどうかで、ボタンの色を変える
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: controller,
+                  builder: (context, value, child) {
+                    final canSend = value.text.trim().isNotEmpty;
+
+                    return Material(
+                      color: canSend
+                          ? AppColors.primary
+                          : (p.isDark ? Colors.white12 : AppColors.border),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: canSend ? onSend : null,
+                        child: SizedBox(
+                          width: 42,
+                          height: 42,
                           child: Icon(
                             Icons.send_rounded,
-                            color: Colors.white,
                             size: 20,
+                            color: canSend ? Colors.white : p.muted,
                           ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -294,14 +308,20 @@ class _ChatInputArea extends StatelessWidget {
 }
 
 // =====================================================
-// チャット吹き出し
+// 吹き出し1つ分
+// 自分：右に青い吹き出し（白い文字）
+// 相手：左にアイコン、上に名前、白い吹き出し（枠つき）
+//       同じ人が続けて送ったときは、2つ目からアイコンと名前を省く
+// 時刻は吹き出しの横の下にそろえて小さく出す（自分は左、相手は右）
 // =====================================================
 
 class RoomChatBubble extends StatelessWidget {
   final String name;
   final String message;
   final bool isMine;
-  final String time;
+  final DateTime time;
+  final bool showSender;
+  final Future<String> icon;
 
   const RoomChatBubble({
     super.key,
@@ -309,156 +329,106 @@ class RoomChatBubble extends StatelessWidget {
     required this.message,
     required this.isMine,
     required this.time,
+    required this.showSender,
+    required this.icon,
   });
+
+  // 相手のアイコンの大きさ（省いたときも、同じ幅だけあける）
+  static const double _avatarRadius = 16;
 
   @override
   Widget build(BuildContext context) {
-    // =========================
-    // 吹き出し
-    // =========================
-    final bubble = Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          constraints: const BoxConstraints(maxWidth: 282),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+    final p = context.pal;
+
+    final timeText = '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+
+    final timeLabel = Padding(
+      padding: const EdgeInsets.fromLTRB(6, 0, 6, 3.5),
+      child: Text(timeText, style: TextStyle(color: p.muted, fontSize: 11)),
+    );
+
+    final bubble = Flexible(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * (isMine ? 0.7 : 0.62),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: isMine ? AppColors.primaryTrack : context.pal.card,
-            borderRadius: BorderRadius.circular(16),
+            color: isMine ? AppColors.primary : p.card,
+            border: isMine ? null : Border.all(color: p.border),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Text(
             message,
             style: TextStyle(
+              color: isMine ? Colors.white : p.text,
               fontSize: 15,
-              color: context.pal.text,
               height: 1.4,
             ),
           ),
         ),
-
-        // =========================
-        // 吹き出しの「ちょん」
-        // =========================
-        Positioned(
-          top: 1.76,
-          left: isMine ? null : -2.17,
-          right: isMine ? -2.17 : null,
-          child: Transform.flip(
-            flipX: !isMine,
-            child: Transform.rotate(
-              angle: 18.635,
-              child: ClipPath(
-                clipper: _BubbleTailClipper(),
-                child: Container(
-                  width: 10,
-                  height: 18,
-                  color: isMine ? AppColors.primaryTrack : context.pal.card,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
 
-    // =========================
-    // 相手
-    // =========================
-    if (!isMine) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // アイコン
-          Transform.translate(
-            offset: const Offset(0, -27),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: context.pal.card,
-              child: Icon(Icons.person, color: AppColors.primary, size: 20),
-            ),
-          ),
-
-          const SizedBox(width: 8),
-
-          // 名前 + メッセージ
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: context.pal.muted,
-                ),
-              ),
-
-              const SizedBox(height: 7),
-
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  bubble,
-
-                  const SizedBox(width: 5),
-
-                  Transform.translate(
-                    offset: const Offset(0, -6),
-                    child: Text(
-                      time,
-                      style: TextStyle(fontSize: 10, color: context.pal.muted),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+    // ---------------- 自分 ----------------
+    if (isMine) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [timeLabel, bubble],
+        ),
       );
     }
 
-    // =========================
-    // 自分
-    // =========================
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Transform.translate(
-          offset: const Offset(0, -6),
-          child: Text(
-            time,
-            style: TextStyle(fontSize: 10, color: context.pal.muted),
+    // ---------------- 相手 ----------------
+    return Padding(
+      padding: EdgeInsets.only(top: showSender ? 8 : 4, bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: _avatarRadius * 2,
+            child: showSender
+                ? FutureBuilder<String>(
+                    future: icon,
+                    builder: (context, snapshot) => PartnerAvatar(
+                      icon: snapshot.data ?? '',
+                      radius: _avatarRadius,
+                    ),
+                  )
+                : null,
           ),
-        ),
-
-        const SizedBox(width: 5),
-
-        bubble,
-      ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (showSender)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 2, bottom: 4),
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: p.secondary,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [bubble, timeLabel],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
-  }
-}
-
-// =====================================================
-// 吹き出しの尻尾
-// =====================================================
-
-class _BubbleTailClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-
-    path.moveTo(0, 0);
-    path.lineTo(size.width, 0);
-    path.lineTo(0, size.height);
-    path.close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
-    return false;
   }
 }

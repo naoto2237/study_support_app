@@ -436,9 +436,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ? "${goalTime.inMinutes}分"
         : "${goalTime.inHours}時間${goalTime.inMinutes % 60}分";
 
-    final studyText = studyTime.inHours == 0
-        ? "${studyTime.inMinutes}分"
-        : "${studyTime.inHours}時間${studyTime.inMinutes % 60}分";
+    // 1時間未満は秒まで（「30分45秒」）、1時間以上は秒を出さない（「2時間30分」）
+    final studyText = formatStudyTime(studyTime.inSeconds);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -595,9 +594,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   child: _buildStatTile(
                     icon: Icons.hourglass_empty_rounded,
                     label: "目標まで残り",
+                    // 目標を決めていないときは「--」
                     value: !hasGoal
                         ? Text(
-                            "未設定",
+                            "--",
                             style: TextStyle(
                               fontSize: 16,
                               color: textColor,

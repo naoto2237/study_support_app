@@ -5,7 +5,7 @@
 // 開き方: マイページの設定アイコン
 // ・ダークモード（行のスイッチで、その場で切りかえる）
 // ・学習記録の公開／非公開（行のスイッチで、その場で切りかえて保存する）
-// ・使い方ガイド
+// ・使い方ガイド（tutorial_screen.dart を開く）
 // ・ログアウト（確かめてから、サインアウトして初回登録画面へ）
 // ・見た目はほかの画面とそろえて、白いカード（枠つき・角丸16）を並べる
 // ・旧ファイル名: setting_screen.dart
@@ -16,6 +16,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/main.dart'; // main.dart の isDarkModeNotifier を使う
 import 'package:study_support_app/screens/start/onboarding_screen.dart';
+import 'package:study_support_app/screens/start/tutorial_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 import 'package:study_support_app/theme/app_palette.dart';
 
@@ -209,125 +210,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       debugPrint('ログアウトに失敗しました: $e');
       debugPrint(stackTrace.toString());
     }
-  }
-
-  // ==============================================================
-  // 使い方ガイド
-  // ==============================================================
-
-  void _showGuideDialog() {
-    final p = context.pal;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: p.card,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            '使い方ガイド',
-            style: TextStyle(
-              color: p.text,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                _guideItem(
-                  icon: Icons.home_rounded,
-                  title: 'ホーム',
-                  description: '学習タイマーで、毎日の学習時間を測ります。曜日ごとの目標も決められます。',
-                ),
-                _guideItem(
-                  icon: Icons.auto_awesome,
-                  title: 'AIサポート',
-                  description: '勉強の疑問や分からないことをAIに質問できます。',
-                ),
-                _guideItem(
-                  icon: Icons.diversity_3,
-                  title: 'Link',
-                  description: '学習仲間を探したり、Q&Aやルームで交流したりできます。',
-                ),
-                _guideItem(
-                  icon: Icons.bar_chart_rounded,
-                  title: '学習記録',
-                  description: 'これまでの学習時間をグラフで振り返り、他の人と比べられます。',
-                ),
-                _guideItem(
-                  icon: Icons.person_rounded,
-                  title: 'マイページ・設定',
-                  description: 'プロフィールの確認・編集や、アプリの設定ができます。',
-                  isLast: true,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
-                '閉じる',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _guideItem({
-    required IconData icon,
-    required String title,
-    required String description,
-    bool isLast = false,
-  }) {
-    final p = context.pal;
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _iconBox(icon, size: 36),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: p.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(
-                    color: p.secondary,
-                    fontSize: 12.5,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   // ==============================================================
@@ -556,7 +438,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: p.muted,
                     size: 24,
                   ),
-                  onTap: _showGuideDialog,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const TutorialScreen(fromSettings: true),
+                    ),
+                  ),
                 ),
               ]),
 

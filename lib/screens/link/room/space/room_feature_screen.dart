@@ -63,6 +63,8 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
 
     final File selectedImage = File(image.path);
 
+    if (!mounted) return;
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -200,22 +202,26 @@ class _RoomFeatureScreenState extends State<RoomFeatureScreen> {
         backgroundColor: context.pal.card,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
 
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: context.pal.text, size: 24),
-          onPressed: () => Navigator.pop(context),
+        // 文字の位置は、ほかの画面（Q&A・ユーザー検索・ルームの中など）と同じ
+        // （戻るボタンのすぐ右に、左寄せで出す）
+        titleSpacing: 0,
+        iconTheme: IconThemeData(color: context.pal.text),
+
+        // 下の区切り線（ルームの中の上の帯と同じ）
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: context.pal.divider),
         ),
 
-        title: Transform.translate(
-          offset: const Offset(-8, 0),
-          child: Text(
-            widget.title,
-            style: TextStyle(
-              color: context.pal.text,
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-            ),
+        title: Text(
+          widget.title,
+          style: TextStyle(
+            color: context.pal.text,
+            fontSize: 19,
+            fontWeight: FontWeight.bold,
           ),
         ),
 

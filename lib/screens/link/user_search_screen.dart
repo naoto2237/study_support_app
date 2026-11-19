@@ -3,7 +3,8 @@
 //
 // 主なクラス: UserSearchScreen / UserList
 // 開き方: Link 画面の「ユーザー検索」
-// ・ユーザーを検索し、タップで相手のプロフィール（user_profile_screen.dart）へ
+// ・名前かユーザーIDの最初の文字でユーザーを検索し、タップで相手のプロフィール（user_profile_screen.dart）へ
+//   （「@」だけでは全員が出ないように、IDでは探さない）
 // ======================================================================
 
 import 'package:flutter/material.dart';
@@ -192,40 +193,42 @@ class UserList extends StatelessWidget {
   // ==========================================
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
   searchUsers() async {
-    final firestore = FirebaseFirestore.instance;
+    final users = FirebaseFirestore.instance.collection("users");
+
+    // 名前・ユーザーIDが、入れた文字で始まる人
+    Future<QuerySnapshot<Map<String, dynamic>>> startsWith(
+      String field,
+      String value,
+    ) {
+      return users
+          .where(field, isGreaterThanOrEqualTo: value)
+          .where(field, isLessThan: "$value\uf8ff")
+          .limit(20)
+          .get();
+    }
+
+    // ユーザーIDは「@」つきで保存されている人と、つかずに保存されている人がいるので両方で探す
+    // 「@」だけのときは、IDでは探さない（「@」で始まる全員が出てしまうため）
+    final withoutAt = searchText.startsWith("@")
+        ? searchText.substring(1)
+        : searchText;
+
+    final snapshots = await Future.wait([
+      startsWith("name", searchText),
+      if (withoutAt.isNotEmpty) startsWith("userId", "@$withoutAt"),
+      if (withoutAt.isNotEmpty) startsWith("userId", withoutAt),
+    ]);
 
     // ------------------------------------------
-    // 名前で検索
-    // ------------------------------------------
-    final nameSnapshot = await firestore
-        .collection("users")
-        .where("name", isGreaterThanOrEqualTo: searchText)
-        .where("name", isLessThan: "$searchText\uf8ff")
-        .get();
-
-    // ------------------------------------------
-    // ユーザーIDで検索
-    // ------------------------------------------
-    final userIdSnapshot = await firestore
-        .collection("users")
-        .where("userId", isGreaterThanOrEqualTo: searchText)
-        .where("userId", isLessThan: "$searchText\uf8ff")
-        .get();
-
-    // ------------------------------------------
-    // 検索結果を結合
+    // 検索結果を結合（同じ人は1回だけ）
     // ------------------------------------------
     final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>> resultMap =
         {};
 
-    // 名前検索の結果
-    for (final doc in nameSnapshot.docs) {
-      resultMap[doc.id] = doc;
-    }
-
-    // ユーザーID検索の結果
-    for (final doc in userIdSnapshot.docs) {
-      resultMap[doc.id] = doc;
+    for (final snapshot in snapshots) {
+      for (final doc in snapshot.docs) {
+        resultMap[doc.id] = doc;
+      }
     }
 
     return resultMap.values.toList();
