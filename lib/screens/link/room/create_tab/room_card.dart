@@ -3,13 +3,16 @@
 //
 // 主なクラス: RoomCard
 // ・「入る」でルームの中（room_space_screen.dart）へ、ルームの削除
+// ・見た目は room_card_body.dart（「検索」タブのカードと同じ形）
 // ======================================================================
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/link/room/space/room_space_screen.dart';
+import 'package:study_support_app/screens/link/room/room_card_body.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 
 // =============================================================
 // ルームカード
@@ -18,13 +21,17 @@ import 'package:study_support_app/theme/app_colors.dart';
 class RoomCard extends StatelessWidget {
   final String title;
   final bool isPublic;
+  final String ownerId;
   final String docId;
+  final String description;
 
   const RoomCard({
     super.key,
     required this.docId,
     required this.title,
     required this.isPublic,
+    this.ownerId = "",
+    this.description = "",
   });
 
   // ===========================================================
@@ -47,9 +54,15 @@ class RoomCard extends StatelessWidget {
         throw Exception("このルームは存在しません");
       }
 
-      await roomRef.collection("members").doc(user.uid).set({
-        "joinedAt": FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      // まだメンバーでないときだけ、参加した時刻を入れる
+      // （入るたびに入れると、参加した時刻が今に変わり、
+      //   ルームの「最近のできごと」に「参加しました」が何度も出てしまう）
+      final memberRef = roomRef.collection("members").doc(user.uid);
+      final memberSnapshot = await memberRef.get();
+
+      if (!memberSnapshot.exists) {
+        await memberRef.set({"joinedAt": FieldValue.serverTimestamp()});
+      }
 
       if (!context.mounted) return;
 
@@ -116,268 +129,112 @@ class RoomCard extends StatelessWidget {
   }
 
   // ===========================================================
-  // Build
+  // Build（見た目は room_card_body.dart。「検索」タブのカードと同じ形）
   // ===========================================================
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-
-    final textColor = isDark ? Colors.white70 : Colors.black87;
-
-    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
-
-    final borderColor = isDark ? Colors.grey.shade800 : AppColors.border;
-
-    return Card(
-      elevation: 0,
-
-      color: cardColor,
-
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-
-        side: BorderSide(color: borderColor),
-      ),
-
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-
-        // =====================================================
-        // アイコン
-        // =====================================================
-        leading: CircleAvatar(
-          radius: 28,
-
-          backgroundColor: isDark
-              ? AppColors.primary.withValues(alpha: 0.2)
-              : AppColors.primaryTrack,
-
-          child: Icon(
-            isPublic ? Icons.public : Icons.lock,
-
-            color: AppColors.primary,
-          ),
-        ),
-
-        // =====================================================
-        // タイトル
-        // =====================================================
-        title: Text(
-          title,
-
-          maxLines: 2,
-
-          overflow: TextOverflow.ellipsis,
-
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-
-            fontSize: 17,
-
-            color: textColor,
-          ),
-        ),
-
-        // =====================================================
-        // 公開設定 + 人数
-        // =====================================================
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8),
-
-          child: Row(
-            children: [
-              Icon(
-                isPublic ? Icons.public : Icons.lock,
-
-                size: 16,
-
-                color: subtitleColor,
-              ),
-
-              const SizedBox(width: 5),
-
-              Text(
-                isPublic ? "公開" : "非公開",
-
-                style: TextStyle(color: subtitleColor),
-              ),
-
-              const SizedBox(width: 15),
-
-              Icon(Icons.people, size: 16, color: subtitleColor),
-
-              const SizedBox(width: 5),
-
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection("rooms")
-                    .doc(docId)
-                    .collection("members")
-                    .snapshots(),
-
-                builder: (context, snapshot) {
-                  final count = snapshot.data?.docs.length ?? 0;
-
-                  return Text(
-                    "$count人",
-
-                    style: TextStyle(color: subtitleColor),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-
-        // =====================================================
-        // メニュー
-        // =====================================================
-        trailing: PopupMenuButton<String>(
-          icon: Icon(Icons.more_vert, color: subtitleColor),
-
-          onSelected: (value) async {
-            if (value == "delete") {
-              final result = await showDialog<bool>(
-                context: context,
-
-                builder: (dialogContext) {
-                  return AlertDialog(
-                    backgroundColor: cardColor,
-
-                    title: Text(
-                      "ルームを削除",
-
-                      style: TextStyle(
-                        color: textColor,
-
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    content: Text(
-                      "「$title」を削除しますか？",
-
-                      style: TextStyle(color: subtitleColor),
-                    ),
-
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(dialogContext, false);
-                        },
-
-                        child: Text(
-                          "キャンセル",
-
-                          style: TextStyle(color: subtitleColor),
-                        ),
-                      ),
-
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(dialogContext, true);
-                        },
-
-                        child: const Text(
-                          "削除",
-
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-
-              if (result == true) {
-                await _deleteRoom(context);
-              }
-            }
-          },
-
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: "delete",
-
-              child: Row(
-                children: [
-                  const Icon(Icons.delete, color: Colors.red),
-
-                  const SizedBox(width: 10),
-
-                  const Text("削除", style: TextStyle(color: Colors.red)),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        // =====================================================
-        // ルームを開く
-        // =====================================================
-        onTap: () async {
-          final result = await showDialog<bool>(
-            context: context,
-
-            builder: (dialogContext) {
-              return AlertDialog(
-                backgroundColor: cardColor,
-
-                title: Text(
-                  "ルームに入る",
-
-                  style: TextStyle(
-                    color: textColor,
-
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                content: Text(
-                  "「$title」に入りますか？",
-
-                  style: TextStyle(color: subtitleColor),
-                ),
-
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext, false);
-                    },
-
-                    child: Text(
-                      "キャンセル",
-
-                      style: TextStyle(color: subtitleColor),
-                    ),
-                  ),
-
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext, true);
-                    },
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-
-                      foregroundColor: Colors.white,
-                    ),
-
-                    child: const Text("入る"),
-                  ),
-                ],
-              );
-            },
+    final p = context.pal;
+
+    return RoomCardBody(
+      roomId: docId,
+      title: title,
+      description: description,
+      isPublic: isPublic,
+      ownerId: ownerId,
+
+      // ルームを開く（確かめてから入る）
+      onTap: () async {
+        final result = await _confirm(
+          context,
+          title: "ルームに入る",
+          message: "「$title」に入りますか？",
+          okText: "入る",
+        );
+
+        if (result == true && context.mounted) {
+          await _openRoom(context);
+        }
+      },
+
+      // 右のメニュー（削除）
+      trailing: PopupMenuButton<String>(
+        icon: Icon(Icons.more_vert, color: p.muted),
+        color: p.card,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onSelected: (value) async {
+          if (value != "delete") return;
+
+          final result = await _confirm(
+            context,
+            title: "ルームを削除",
+            message: "「$title」を削除しますか？",
+            okText: "削除",
+            okColor: AppColors.red,
           );
 
-          if (result == true) {
-            await _openRoom(context);
+          if (result == true && context.mounted) {
+            await _deleteRoom(context);
           }
         },
+        itemBuilder: (context) => const [
+          PopupMenuItem(
+            value: "delete",
+            child: Row(
+              children: [
+                Icon(Icons.delete_outline_rounded, color: AppColors.red),
+                SizedBox(width: 10),
+                Text("削除", style: TextStyle(color: AppColors.red)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+// 確かめる小さな画面（ほかの画面のダイアログと同じ形）
+Future<bool?> _confirm(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String okText,
+  Color okColor = AppColors.primary,
+}) {
+  final p = context.pal;
+
+  return showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        backgroundColor: p.card,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: p.text,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(message, style: TextStyle(color: p.text, fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text("キャンセル", style: TextStyle(color: p.secondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              okText,
+              style: TextStyle(color: okColor, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }

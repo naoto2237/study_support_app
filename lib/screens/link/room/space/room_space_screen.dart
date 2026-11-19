@@ -2,24 +2,35 @@
 // 【画面】ルームの中
 //
 // 主なクラス: RoomSpaceScreen / _MemberSummaryUser（メンバー1人分の表示）
+//            _ActivityRow（アクティビティ1行分）
 // 開き方: 「作成」タブ・「検索」タブ・ルーム作成後
-// ・今日の目標、今日の学習時間、メンバーの様子
+// ・学習タイマー：ホームのタイマーと同じもの（services/study_timer_remote.dart）
+//   ルームで始めても止めても、ホームと同じように学習記録に保存される
+// ・今日の目標・今日の学習時間・目標まで残り（ホームと同じ値。アイコンの色もホームとそろえる）
 // ・メンバー／チャット／共有ノートを開く（共通の画面は room_feature_screen.dart）
-// ・ルームの退出、情報の編集
+// ・メンバーの一覧、アクティビティ（参加・メッセージ。画面の下の残りに収め、カードの中でスクロール）
+// ・右上のメニュー：ルームの情報、ルームから退出
+// ・左上の矢印（スマホの戻る操作も）を押すと、ルームから退出するか確かめる
 // ・旧ファイル名: room_space.dart
 // ======================================================================
 
-import 'package:flutter/material.dart';
-import 'package:study_support_app/theme/app_palette.dart';
 import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:study_support_app/main.dart'
+    show dailyTargetHours, todayStudySeconds;
 import 'package:study_support_app/screens/link/room/space/room_chat_screen.dart';
+import 'package:study_support_app/screens/link/room/space/room_feature_screen.dart';
 import 'package:study_support_app/screens/link/room/space/room_member_screen.dart';
 import 'package:study_support_app/screens/link/room/space/room_share_note_screen.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:study_support_app/screens/link/room/space/room_feature_screen.dart';
+import 'package:study_support_app/screens/record/comparison/compare_user_picker.dart'
+    show PartnerAvatar;
+import 'package:study_support_app/services/study_timer_remote.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 
 class RoomSpaceScreen extends StatefulWidget {
   final String roomTitle;
@@ -38,181 +49,132 @@ class RoomSpaceScreen extends StatefulWidget {
 }
 
 class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
-  final Stopwatch _stopwatch = Stopwatch();
-  Timer? _timer;
+  // 描き直すたびに作り直さないよう、最初に1回だけ作る
+  late final DocumentReference<Map<String, dynamic>> _roomRef;
+  late final Stream<DocumentSnapshot<Map<String, dynamic>>> _roomStream;
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _memberStream;
+  // 最近のメッセージ（アクティビティに出す）
+  // 画面を開いたときに1回だけ受け取りはじめ、届いた中身をここに取っておく。
+  // （描き直しで受け取り口を作り直すと、最初の分を受け取りそこねて
+  //   メッセージが出ないことがあったため）
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSubscription;
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _recentMessages = [];
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _messageSubscription?.cancel();
     super.dispose();
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    _roomRef = FirebaseFirestore.instance
+        .collection('rooms')
+        .doc(widget.roomId);
+
+    _roomStream = _roomRef.snapshots();
+
+    _memberStream = _roomRef
+        .collection('members')
+        .orderBy('joinedAt')
+        .snapshots();
+
+    _messageSubscription = _roomRef
+        .collection('messages')
+        .orderBy('createdAt', descending: true)
+        .limit(20)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            if (!mounted) return;
+            setState(() => _recentMessages = snapshot.docs);
+          },
+          onError: (Object e) {
+            debugPrint('最近のメッセージを読み込めませんでした: $e');
+          },
+        );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.pal.card,
-      appBar: _buildAppBar(),
-      body: SizedBox(
-        width: double.infinity,
-        height: double.infinity,
-        child: Column(
-          children: [
-            const SizedBox(height: 3),
+    final p = context.pal;
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 17),
-              child: _buildTopStudyCard(),
-            ),
-
-            const SizedBox(height: 0.0),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 17),
-              child: _buildRoomFeatureButtons(),
-            ),
-
-            const SizedBox(height: 15.0),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 17),
-              child: _buildMembersAndActivity(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: context.pal.card,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      centerTitle: true,
-      automaticallyImplyLeading: false,
-
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: context.pal.border),
-      ),
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          /* image: DecorationImage(
-            image: AssetImage(widget.backgroundImage),
-            fit: BoxFit.fitWidth,
-            alignment: Alignment.topCenter,
-          ),*/
-        ),
-      ),
-
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, size: 24, color: context.pal.text),
-        onPressed: _showExitDialog,
-      ),
-
-      title: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            widget.roomTitle,
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-              color: context.pal.text,
-            ),
-          ),
-          const SizedBox(height: 4),
-          _buildMemberCount(),
-        ],
-      ),
-
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 7),
-          child: IconButton(
-            icon: Icon(Icons.more_vert, size: 24, color: context.pal.text),
-            onPressed: _showMenu,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMemberCount() {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(widget.roomId)
-          .snapshots(),
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _roomStream,
       builder: (context, roomSnapshot) {
-        // =====================================================
-        // ルーム情報取得中
-        // =====================================================
+        final roomData = roomSnapshot.data?.data();
 
-        if (roomSnapshot.connectionState == ConnectionState.waiting) {
-          return SizedBox(
-            height: 18,
-            child: Center(
-              child: SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: context.pal.secondary,
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _memberStream,
+          builder: (context, memberSnapshot) {
+            final memberDocs = memberSnapshot.data?.docs ?? [];
+
+            // 左上の矢印（とスマホの戻る操作）を押したら、退出するか確かめる
+            return PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, _) {
+                if (!didPop) _showExitDialog();
+              },
+              child: Scaffold(
+                backgroundColor: p.page,
+                appBar: _buildAppBar(roomData, memberDocs.length),
+                // 「アクティビティ」は、画面の下の残りの高さに収める
+                // （できごとが増えても画面が下に伸びず、カードの中でスクロールする）
+                body: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final topParts = [
+                      _buildStudyCard(),
+
+                      const SizedBox(height: 12),
+
+                      _buildRoomFeatureButtons(),
+
+                      const SizedBox(height: 12),
+
+                      _buildMembersCard(
+                        memberDocs,
+                        ownerId: (roomData?['ownerId'] ?? '').toString(),
+                        isLoading:
+                            memberSnapshot.connectionState ==
+                            ConnectionState.waiting,
+                      ),
+
+                      const SizedBox(height: 12),
+                    ];
+
+                    const padding = EdgeInsets.fromLTRB(17, 14, 17, 16);
+
+                    // ふつうの高さの画面：残りの高さいっぱいに広げる
+                    if (constraints.maxHeight >= 640) {
+                      return Padding(
+                        padding: padding,
+                        child: Column(
+                          children: [
+                            ...topParts,
+                            Expanded(child: _buildActivityCard(memberDocs)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // 低い画面（横向きなど）：画面ごとスクロールし、カードは決まった高さ
+                    return SingleChildScrollView(
+                      padding: padding,
+                      child: Column(
+                        children: [
+                          ...topParts,
+                          SizedBox(
+                            height: 260,
+                            child: _buildActivityCard(memberDocs),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-          );
-        }
-
-        // =====================================================
-        // ルームが存在しない
-        // =====================================================
-
-        if (!roomSnapshot.hasData || !roomSnapshot.data!.exists) {
-          return Text(
-            "ルーム情報を取得できません",
-            style: TextStyle(fontSize: 13, color: context.pal.secondary),
-          );
-        }
-
-        final roomData = roomSnapshot.data!.data() as Map<String, dynamic>;
-
-        // =====================================================
-        // 公開設定
-        // =====================================================
-
-        final isPublic = roomData['isPublic'] ?? true;
-
-        // =====================================================
-        // メンバー人数を取得
-        // =====================================================
-
-        return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('rooms')
-              .doc(widget.roomId)
-              .collection('members')
-              .snapshots(),
-          builder: (context, memberSnapshot) {
-            final count = memberSnapshot.data?.docs.length ?? 0;
-
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isPublic ? Icons.public : Icons.lock,
-                  size: 15,
-                  color: context.pal.secondary,
-                ),
-
-                const SizedBox(width: 4),
-
-                Text(
-                  "${isPublic ? "公開ルーム" : "非公開ルーム"}・$count人参加中",
-                  style: TextStyle(fontSize: 13, color: context.pal.secondary),
-                ),
-              ],
             );
           },
         );
@@ -220,399 +182,444 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     );
   }
 
-  Widget _buildTopStudyCard() {
-    return Container(
-      width: double.infinity,
-      height: 245,
-      //padding: const EdgeInsets.only(left: 18, right: 15),
-      decoration: BoxDecoration(
-        color: context.pal.card,
-        borderRadius: BorderRadius.circular(16),
-        //border: Border.all(color: context.pal.border),
-        /*boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 5,
-            spreadRadius: 0,
-            offset: const Offset(0, 0),
-          ),
-        ],:*/
+  // ============================================================
+  // 上の帯：ルーム名と「公開・〇人参加中」、右上のメニュー
+  // ============================================================
+
+  PreferredSizeWidget _buildAppBar(
+    Map<String, dynamic>? roomData,
+    int memberCount,
+  ) {
+    final p = context.pal;
+
+    final title = (roomData?['title'] ?? widget.roomTitle).toString();
+    final isPublic = roomData?['isPublic'] ?? true;
+
+    return AppBar(
+      backgroundColor: p.card,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleSpacing: 0,
+      iconTheme: IconThemeData(color: p.text),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(height: 1, color: p.divider),
       ),
-      child: SizedBox(
-        height: 230,
-        child: Row(
-          children: [
-            // 左：タイマー
-            Expanded(flex: 3, child: _buildTimer()),
-
-            const SizedBox(width: 0),
-
-            SizedBox(
-              height: 205,
-              child: VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: context.pal.border,
-              ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: p.text,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
             ),
-
-            const SizedBox(width: 0),
-
-            // 右：学習情報
-            Expanded(flex: 2, child: _buildStudyInfoCard()),
-          ],
-        ),
+          ),
+          const SizedBox(height: 1),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isPublic ? Icons.public : Icons.lock_outline_rounded,
+                size: 13,
+                color: p.secondary,
+              ),
+              const SizedBox(width: 3),
+              Text(
+                "${isPublic ? "公開" : "非公開"}・$memberCount人参加中",
+                style: TextStyle(color: p.secondary, fontSize: 12),
+              ),
+            ],
+          ),
+        ],
       ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.more_vert, color: p.text),
+          onPressed: () => _showMenu(roomData, memberCount),
+        ),
+        const SizedBox(width: 4),
+      ],
     );
   }
 
-  Widget _buildTimer() {
-    return SizedBox(
-      width: 220,
-      height: 220,
-      child: Transform.translate(
-        offset: const Offset(-8, 0),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // 進捗バー
-            SizedBox(
-              width: 198,
-              height: 198,
-              child: CircularProgressIndicator(
-                value: 0.45,
-                strokeWidth: 7.1,
-                strokeCap: StrokeCap.round,
-                backgroundColor: AppColors.primaryTrack,
-                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
-              ),
-            ),
+  // ============================================================
+  // 学習タイマーと今日の様子
+  // ============================================================
 
-            // 中央
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Transform.translate(
-                  offset: const Offset(0, 13),
-                  child: Text(
-                    "学習タイマー",
-                    style: TextStyle(
-                      fontSize: 13.3,
-                      fontWeight: FontWeight.bold,
-                      color: context.pal.text,
-                    ),
-                  ),
-                ),
+  Widget _buildStudyCard() {
+    final p = context.pal;
 
-                const SizedBox(height: 0.4),
+    return _card(
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+      child: ValueListenableBuilder<double>(
+        valueListenable: dailyTargetHours,
+        builder: (context, targetHours, _) {
+          return ValueListenableBuilder<int>(
+            valueListenable: todayStudySeconds,
+            builder: (context, studySeconds, _) {
+              final goalSeconds = (targetHours * 3600).round();
+              final remaining = goalSeconds - studySeconds;
+              final progress = goalSeconds > 0
+                  ? (studySeconds / goalSeconds).clamp(0.0, 1.0)
+                  : 0.0;
 
-                Transform.translate(
-                  offset: const Offset(0, 11.6),
-                  child: Text(
-                    _formatTime(),
-                    style: GoogleFonts.roboto(
-                      color: AppColors.primary,
-                      fontSize: 35.2,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.9,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                Transform.translate(
-                  offset: const Offset(0, 11.4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+              return Column(
+                children: [
+                  Row(
                     children: [
-                      _buildStartButton(),
-                      const SizedBox(width: 24),
-                      _buildResetButton(),
+                      // 左：まるいバー（今日の目標までの進み具合）とタイマー
+                      Expanded(flex: 11, child: _buildTimer(progress)),
+
+                      const SizedBox(width: 8),
+
+                      // 右：今日の目標・残り・学習時間
+                      Expanded(
+                        flex: 9,
+                        child: Column(
+                          children: [
+                            // アイコンと色はホーム画面とそろえる
+                            // （旗は赤、時計は青、砂時計は緑）
+                            _infoRow(
+                              icon: Icons.flag_rounded,
+                              iconColor: AppColors.red,
+                              title: "今日の目標",
+                              value: goalSeconds > 0
+                                  ? _durationLabel(goalSeconds)
+                                  : "未設定",
+                            ),
+                            Divider(height: 22, color: p.divider),
+                            _infoRow(
+                              icon: Icons.timer_outlined,
+                              iconColor: AppColors.primary,
+                              title: "今日の学習時間",
+                              value: _studyTimeLabel(studySeconds),
+                            ),
+                            Divider(height: 22, color: p.divider),
+                            _infoRow(
+                              icon: Icons.hourglass_empty_rounded,
+                              iconColor: AppColors.green,
+                              title: "目標まで残り",
+                              // 目標を決めていないときは「--」（ホームと同じ）
+                              value: goalSeconds <= 0
+                                  ? "--"
+                                  : (remaining <= 0
+                                        ? "達成済み！"
+                                        : _durationLabel(remaining)),
+                              // 達成したときは、ホームと同じ青い文字
+                              valueColor: goalSeconds > 0 && remaining <= 0
+                                  ? AppColors.primary
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    "ホームのタイマーと同じです。止めると学習記録に残ります",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: p.muted, fontSize: 11),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
 
-  Widget _buildStartButton() {
-    return GestureDetector(
-      onTap: () {
-        if (_stopwatch.isRunning) {
-          _stop();
-        } else {
-          _start();
-        }
-      },
-      child: Column(
+  Widget _buildTimer(double progress) {
+    final p = context.pal;
+
+    return AspectRatio(
+      aspectRatio: 1,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _stopwatch.isRunning
-                  ? Icons.pause_rounded
-                  : Icons.play_arrow_rounded,
-              color: Colors.white,
-              size: 28,
+          Positioned.fill(
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 7,
+              strokeCap: StrokeCap.round,
+              backgroundColor: p.isDark
+                  ? Colors.white12
+                  : AppColors.primaryTrack,
+              valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             ),
           ),
-          const SizedBox(height: 2),
+
+          ValueListenableBuilder<bool>(
+            valueListenable: StudyTimerRemote.isRunning,
+            builder: (context, isRunning, _) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ValueListenableBuilder<bool>(
+                    valueListenable: StudyTimerRemote.isCountdown,
+                    builder: (context, isCountdown, _) => Text(
+                      isCountdown ? "残りの時間" : "学習タイマー",
+                      style: TextStyle(
+                        color: p.secondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 2),
+
+                  // 時間（ホームのタイマーと同じ表示）
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: ValueListenableBuilder<String>(
+                      valueListenable: StudyTimerRemote.timeText,
+                      builder: (context, time, _) => Text(
+                        time,
+                        style: GoogleFonts.roboto(
+                          color: AppColors.primary,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _roundButton(
+                        icon: isRunning
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        filled: true,
+                        onTap: isRunning
+                            ? StudyTimerRemote.stop
+                            : StudyTimerRemote.start,
+                      ),
+                      const SizedBox(width: 16),
+                      _roundButton(
+                        icon: Icons.refresh_rounded,
+                        filled: false,
+                        onTap: StudyTimerRemote.reset,
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildResetButton() {
-    return GestureDetector(
-      onTap: _reset,
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: context.pal.border, width: 1.5),
-            ),
-            child: const Icon(
-              Icons.refresh_rounded,
-              color: AppColors.primary,
-              size: 28,
-            ),
-          ),
-          const SizedBox(height: 2),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow({
+  // 開始・停止（青い丸）とリセット（白い丸）
+  Widget _roundButton({
     required IconData icon,
+    required bool filled,
+    required VoidCallback onTap,
+  }) {
+    final p = context.pal;
+
+    return ValueListenableBuilder<bool>(
+      // ホームのタイマーがまだ準備できていないときは押せない
+      valueListenable: StudyTimerRemote.isAttached,
+      builder: (context, isAttached, _) {
+        return Material(
+          color: filled ? AppColors.primary : p.card,
+          shape: CircleBorder(
+            side: filled ? BorderSide.none : BorderSide(color: p.border),
+          ),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: isAttached ? onTap : null,
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(
+                icon,
+                size: 26,
+                color: filled ? Colors.white : AppColors.primary,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _infoRow({
+    required IconData icon,
+    required Color iconColor,
     required String title,
     required String value,
-    required Color iconColor,
+    Color? valueColor,
   }) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.only(left: 11, right: 0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final p = context.pal;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Transform.translate(
-                  offset: const Offset(0, 1),
-                  child: Icon(icon, color: iconColor, size: 17),
-                ),
-
-                const SizedBox(width: 6),
-
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 12, color: context.pal.text),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            Padding(
-              padding: const EdgeInsets.only(left: 24),
+            Icon(icon, color: iconColor, size: 16),
+            const SizedBox(width: 5),
+            Expanded(
               child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: context.pal.text,
-                  letterSpacing: 1,
-                ),
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.secondary, fontSize: 12),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildStudyInfoCard() {
-    return SizedBox(
-      height: 220,
-      child: Column(
-        children: [
-          _buildInfoRow(
-            icon: Icons.flag_rounded,
-            title: "今日の目標",
-            value: "3時間",
-            iconColor: const Color(0xFFFF2D55),
-          ),
-
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 0),
-              child: SizedBox(
-                width: 120,
-                child: Divider(height: 1, color: context.pal.border),
+        const SizedBox(height: 3),
+        Padding(
+          padding: const EdgeInsets.only(left: 21),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: valueColor ?? p.text,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-
-          _buildInfoRow(
-            icon: Icons.hourglass_empty,
-            title: "目標まで残り",
-            value: "45分",
-            iconColor: AppColors.primary,
-          ),
-
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 0),
-              child: SizedBox(
-                width: 120,
-                child: Divider(height: 1, color: context.pal.border),
-              ),
-            ),
-          ),
-
-          _buildInfoRow(
-            icon: Icons.timer_outlined,
-            title: "今日の学習時間",
-            value: "2時間15分",
-            iconColor: AppColors.primary,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // =========================================================
-  // メンバー・チャット・共有ノートの3つのボタン
-  // =========================================================
-  Widget _buildRoomFeatureButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildFeatureButton(
-            icon: Icons.groups_rounded,
-            title: "メンバー",
-            iconColor: AppColors.primary,
-            iconSize: 36,
-            onTap: () {
-              _openFeatureScreen(
-                title: "メンバー",
-                icon: Icons.groups_rounded,
-                child: RoomMemberScreen(roomId: widget.roomId),
-              );
-            },
-          ),
-        ),
-
-        const SizedBox(width: 10),
-
-        Expanded(
-          child: _buildFeatureButton(
-            icon: Icons.chat_rounded,
-            title: "チャット",
-
-            iconColor: AppColors.primary,
-            badge: "3",
-            iconSize: 29,
-            onTap: () {
-              _openFeatureScreen(
-                title: "チャット",
-                icon: Icons.chat_rounded,
-                child: RoomChatScreen(roomId: widget.roomId),
-              );
-            },
-          ),
-        ),
-
-        const SizedBox(width: 10),
-
-        Expanded(
-          child: _buildFeatureButton(
-            icon: Icons.description_rounded,
-            title: "共有ノート",
-
-            iconColor: AppColors.primary,
-            badge: "2",
-            iconSize: 30,
-            onTap: () {
-              _openFeatureScreen(
-                title: "共有ノート",
-                icon: Icons.description_rounded,
-                child: const RoomShareNoteScreen(),
-              );
-            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildFeatureButton({
+  // 「2時間15分」「45分」のような書き方（1分未満は「0分」）
+  String _durationLabel(int seconds) {
+    final h = seconds ~/ 3600;
+    final m = seconds ~/ 60 % 60;
+
+    if (h == 0) return "$m分";
+    if (m == 0) return "$h時間";
+    return "$h時間$m分";
+  }
+
+  // 今日の学習時間の書き方（ホームとそろえる）
+  // 1時間未満は秒まで「30分45秒」、1時間以上は秒を出さない「2時間30分」
+  String _studyTimeLabel(int seconds) {
+    final h = seconds ~/ 3600;
+    final m = seconds ~/ 60 % 60;
+    final s = seconds % 60;
+
+    if (h == 0) return "$m分$s秒";
+    return "$h時間$m分";
+  }
+
+  // ============================================================
+  // メンバー・チャット・共有ノートの3つのボタン
+  // ============================================================
+
+  Widget _buildRoomFeatureButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: _featureButton(
+            icon: Icons.groups_rounded,
+            title: "メンバー",
+            // メンバーは青、チャットはオレンジ、共有ノートは緑（アイコンだけに使う色）
+            color: AppColors.primary,
+            onTap: _openMembers,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _featureButton(
+            // ルームのチャットは大勢で話すので、吹き出しが2つのアイコン
+            icon: Icons.forum_rounded,
+            title: "チャット",
+            color: AppColors.orange,
+            onTap: _openChat,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _featureButton(
+            icon: Icons.description_rounded,
+            title: "共有ノート",
+            color: AppColors.green,
+            onTap: () => _openFeatureScreen(
+              title: "共有ノート",
+              icon: Icons.description_rounded,
+              child: RoomShareNoteScreen(roomId: widget.roomId),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _featureButton({
     required IconData icon,
     required String title,
-    required Color iconColor,
+    required Color color,
     required VoidCallback onTap,
-    String? badge,
-    required double iconSize, // ← 追加
   }) {
+    final p = context.pal;
+
     return Material(
-      color: Colors.transparent,
+      color: p.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: p.border),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: Ink(
-          height: 79,
-          decoration: BoxDecoration(
-            color: context.pal.card,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.pal.border),
-            /* boxShadow: [
-             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.035),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],*/
-          ),
+        // アイコンを大きめの丸にのせ、その下に名前（文字は少し細め・字間を詰める）
+        child: SizedBox(
+          height: 88,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 2),
-              SizedBox(
-                width: 40,
-                height: 35,
-                child: Center(
-                  child: Icon(icon, color: iconColor, size: iconSize),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  // アイコンの色をうすくした丸（暗い画面では少し濃いめ）
+                  color: color.withValues(alpha: p.isDark ? 0.22 : 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: p.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 2),
-
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.bold,
-                  color: context.pal.text,
-                ),
-              ),
-              const SizedBox(height: 2),
             ],
           ),
         ),
@@ -620,271 +627,266 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     );
   }
 
-  Widget _buildMembersAndActivity() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: context.pal.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.pal.border, width: 1),
-      ),
+  void _openMembers() {
+    _openFeatureScreen(
+      title: "メンバー",
+      icon: Icons.groups_rounded,
+      child: RoomMemberScreen(roomId: widget.roomId),
+    );
+  }
+
+  void _openChat() {
+    _openFeatureScreen(
+      title: "チャット",
+      icon: Icons.forum_rounded,
+      child: RoomChatScreen(roomId: widget.roomId),
+    );
+  }
+
+  // ============================================================
+  // メンバー
+  // ============================================================
+
+  Widget _buildMembersCard(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> memberDocs, {
+    required String ownerId,
+    required bool isLoading,
+  }) {
+    final p = context.pal;
+
+    // オーナーを先頭にする
+    final sorted = [...memberDocs]
+      ..sort((a, b) {
+        if (a.id == ownerId) return -1;
+        if (b.id == ownerId) return 1;
+        return 0;
+      });
+
+    return _card(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildMembersSummary(),
+          _cardHeader(
+            title: "メンバー",
+            count: "${memberDocs.length}人",
+            actionText: "すべて見る",
+            onAction: _openMembers,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          Container(
-            height: 1,
-            width: double.infinity,
-            color: context.pal.border,
-          ),
+          if (isLoading)
+            const SizedBox(
+              height: 96,
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              ),
+            )
+          else if (sorted.isEmpty)
+            SizedBox(
+              height: 40,
+              child: Center(
+                child: Text(
+                  "まだメンバーがいません",
+                  style: TextStyle(color: p.muted, fontSize: 13),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              // アイコン48＋名前＋オーナーの札が入る高さ
+              height: 96,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: sorted.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 6),
+                itemBuilder: (context, index) {
+                  final uid = sorted[index].id;
 
-          const SizedBox(height: 16),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildActivity(),
-          ),
+                  return _MemberSummaryUser(
+                    key: ValueKey(uid),
+                    uid: uid,
+                    isOwner: uid == ownerId,
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildMembersSummary() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(widget.roomId)
-          .collection('members')
-          .orderBy('joinedAt')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-            height: 120,
-            child: Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.primary,
-              ),
+  // ============================================================
+  // アクティビティ（ルームへの参加・メッセージ）
+  // ============================================================
+
+  Widget _buildActivityCard(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> memberDocs,
+  ) {
+    final p = context.pal;
+
+    return Builder(
+      builder: (context) {
+        final activities = <_Activity>[];
+
+        // 参加
+        for (final doc in memberDocs) {
+          final joinedAt = doc.data()['joinedAt'];
+          if (joinedAt is! Timestamp) continue;
+
+          activities.add(
+            _Activity(
+              uid: doc.id,
+              time: joinedAt.toDate(),
+              icon: Icons.login_rounded,
+              iconColor: AppColors.primary,
+              text: "ルームに参加しました",
             ),
           );
         }
 
-        final memberDocs = snapshot.data?.docs ?? [];
+        // メッセージ（1つずつ、すべて出す）
+        for (final doc in _recentMessages) {
+          final data = doc.data();
+          final createdAt = data['createdAt'];
+          if (createdAt is! Timestamp) continue;
 
-        return Column(
-          children: [
-            // ==============================
-            // タイトル
-            // ==============================
-            Row(
-              children: [
-                Text(
-                  "メンバー",
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: context.pal.text,
-                  ),
-                ),
+          final uid = (data['uid'] ?? '').toString();
 
-                const SizedBox(width: 8),
-
-                Text(
-                  "(${memberDocs.length}人)",
-                  style: TextStyle(fontSize: 13, color: context.pal.secondary),
-                ),
-
-                const Spacer(),
-
-                GestureDetector(
-                  onTap: () {
-                    _openFeatureScreen(
-                      title: "メンバー",
-                      icon: Icons.groups_rounded,
-                      child: RoomMemberScreen(roomId: widget.roomId),
-                    );
-                  },
-                  child: const Text(
-                    "すべて見る",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+          activities.add(
+            _Activity(
+              uid: uid,
+              name: (data['name'] ?? '').toString(),
+              time: createdAt.toDate(),
+              icon: Icons.forum_rounded,
+              // チャットのボタンと同じオレンジ（アイコンだけに使う色）
+              iconColor: AppColors.orange,
+              // メッセージの中身は出さず、送ったことだけを出す
+              text: "メッセージを送りました",
+              onTap: _openChat,
             ),
+          );
+        }
 
-            const SizedBox(height: 13),
+        // 新しい順に20件まで（カードの中でスクロールして見る）
+        activities.sort((a, b) => b.time.compareTo(a.time));
+        final shown = activities.take(20).toList();
 
-            // ==============================
-            // メンバー一覧
-            // ==============================
-            SizedBox(
-              height: 105,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: memberDocs.length + 1,
-                separatorBuilder: (_, _) {
-                  return const SizedBox(width: 8);
-                },
-                itemBuilder: (context, index) {
-                  // 最後は招待ボタン
-                  if (index == memberDocs.length) {
-                    return _buildInviteSummaryItem();
-                  }
-
-                  final uid = memberDocs[index].id;
-
-                  return _MemberSummaryUser(uid: uid, isOwner: index == 0);
-                },
+        // カードの高さは外から決まる（残りの高さ）。中身はその中でスクロールする
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: p.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: p.border),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                child: _cardHeader(title: "アクティビティ"),
               ),
-            ),
-          ],
+
+              Expanded(
+                child: shown.isEmpty
+                    ? Center(
+                        child: Text(
+                          "まだアクティビティはありません",
+                          style: TextStyle(color: p.muted, fontSize: 13),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        itemCount: shown.length,
+                        itemBuilder: (context, index) {
+                          final activity = shown[index];
+
+                          return _ActivityRow(
+                            key: ValueKey(
+                              '${activity.uid}_${activity.time.millisecondsSinceEpoch}',
+                            ),
+                            activity: activity,
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildInviteSummaryItem() {
-    return SizedBox(
-      width: 70,
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF90CAF9), width: 1.5),
-            ),
-            child: const Icon(
-              Icons.add_rounded,
-              color: AppColors.primary,
-              size: 30,
-            ),
-          ),
+  // ============================================================
+  // 共通の部品
+  // ============================================================
 
-          const SizedBox(height: 5),
+  // 白いカード（枠つき・角丸16。ほかの画面と同じ形）
+  Widget _card({required Widget child, required EdgeInsets padding}) {
+    final p = context.pal;
 
-          const Text(
-            "招待する",
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.border),
       ),
+      child: child,
     );
   }
 
-  Widget _buildActivity() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "アクティビティ",
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: context.pal.text,
-          ),
-        ),
-
-        const SizedBox(height: 13),
-
-        _buildActivityItem(
-          icon: Icons.play_arrow_rounded,
-          iconColor: AppColors.primary,
-          name: "Aさん",
-          text: "学習を開始しました",
-          time: "10:32",
-        ),
-
-        const SizedBox(height: 11),
-
-        _buildActivityItem(
-          icon: Icons.description_rounded,
-          iconColor: AppColors.primary,
-          name: "Bさん",
-          text: "共有ノートを更新しました",
-          time: "10:18",
-        ),
-
-        const SizedBox(height: 11),
-
-        _buildActivityItem(
-          icon: Icons.login_rounded,
-          iconColor: AppColors.primary,
-          name: "Cさん",
-          text: "ルームに参加しました",
-          time: "09:54",
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActivityItem({
-    required IconData icon,
-    required Color iconColor,
-    required String name,
-    required String text,
-    required String time,
+  // カードの見出し（右に「すべて見る」などを出せる）
+  Widget _cardHeader({
+    required String title,
+    String? count,
+    String? actionText,
+    VoidCallback? onAction,
   }) {
+    final p = context.pal;
+
     return Row(
       children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: context.pal.primarySoft,
-            shape: BoxShape.circle,
+        Text(
+          title,
+          style: TextStyle(
+            color: p.text,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
           ),
-          child: Icon(icon, color: iconColor, size: 19),
         ),
-
-        const SizedBox(width: 10),
-
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: name,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: context.pal.text,
-                  ),
-                ),
-                TextSpan(
-                  text: "  $text",
-                  style: TextStyle(fontSize: 13, color: context.pal.text),
-                ),
-              ],
+        if (count != null) ...[
+          const SizedBox(width: 6),
+          Text(count, style: TextStyle(color: p.secondary, fontSize: 13)),
+        ],
+        const Spacer(),
+        if (actionText != null)
+          GestureDetector(
+            onTap: onAction,
+            child: Text(
+              actionText,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-
-        Text(time, style: TextStyle(fontSize: 10, color: context.pal.muted)),
       ],
     );
   }
 
-  // =========================================================
+  // ============================================================
   // 各機能を専用画面として開く
-  // =========================================================
+  // ============================================================
+
   void _openFeatureScreen({
     required String title,
     required IconData icon,
@@ -904,61 +906,122 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     );
   }
 
-  void _showExitDialog() {
+  // ============================================================
+  // 右上のメニュー
+  // ============================================================
+
+  void _showMenu(Map<String, dynamic>? roomData, int memberCount) {
+    final p = context.pal;
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: p.card,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.info_outline_rounded,
+                  color: AppColors.primary,
+                ),
+                title: Text("ルームの情報", style: TextStyle(color: p.text)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showRoomInfo(roomData, memberCount);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout_rounded, color: AppColors.red),
+                title: const Text(
+                  "ルームから退出",
+                  style: TextStyle(color: AppColors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showExitDialog();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRoomInfo(Map<String, dynamic>? roomData, int memberCount) {
+    final p = context.pal;
+
+    final title = (roomData?['title'] ?? widget.roomTitle).toString();
+    final description = (roomData?['description'] ?? '').toString().trim();
+    final isPublic = roomData?['isPublic'] ?? true;
+    final createdAt = roomData?['createdAt'];
+
+    Widget infoLine(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 72,
+              child: Text(
+                label,
+                style: TextStyle(color: p.secondary, fontSize: 13),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: TextStyle(color: p.text, fontSize: 13, height: 1.5),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text("ルームを退出"),
-          content: const Text("このルームから退出しますか？"),
+          backgroundColor: p.card,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: p.text,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              infoLine("説明", description.isEmpty ? "なし" : description),
+              infoLine("公開", isPublic ? "公開ルーム" : "非公開ルーム"),
+              infoLine("メンバー", "$memberCount人"),
+              if (createdAt is Timestamp)
+                infoLine("作成日", _dateLabel(createdAt.toDate())),
+            ],
+          ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text("キャンセル"),
-            ),
-
-            ElevatedButton(
-              onPressed: () async {
-                // ダイアログを閉じる
-                Navigator.pop(dialogContext);
-
-                try {
-                  // 現在ログインしているユーザー
-                  final user = FirebaseAuth.instance.currentUser;
-
-                  if (user == null) {
-                    throw Exception("ログインユーザーが見つかりません");
-                  }
-
-                  // ==========================================
-                  // membersから自分を削除
-                  // ==========================================
-
-                  await FirebaseFirestore.instance
-                      .collection("rooms")
-                      .doc(widget.roomId)
-                      .collection("members")
-                      .doc(user.uid)
-                      .delete();
-
-                  // ==========================================
-                  // ルーム画面を閉じる
-                  // ==========================================
-
-                  if (!mounted) return;
-
-                  Navigator.pop(context);
-                } catch (e) {
-                  if (!mounted) return;
-
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text("ルームの退出に失敗しました\n$e")));
-                }
-              },
-              child: const Text("退出"),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                "閉じる",
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -966,71 +1029,173 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
     );
   }
 
-  void _start() {
-    if (_stopwatch.isRunning) return;
-
-    _stopwatch.start();
-    setState(() {});
-
-    _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+  String _dateLabel(DateTime date) {
+    return "${date.year}年${date.month}月${date.day}日";
   }
 
-  void _stop() {
-    _stopwatch.stop();
-    _timer?.cancel();
-    setState(() {});
-  }
+  // ============================================================
+  // ルームから退出
+  // ============================================================
 
-  void _reset() {
-    _stop();
-    _stopwatch.reset();
-    setState(() {});
-  }
+  void _showExitDialog() {
+    final p = context.pal;
 
-  String _formatTime() {
-    final elapsed = _stopwatch.elapsed;
-
-    final hours = elapsed.inHours.toString().padLeft(2, '0');
-    final minutes = (elapsed.inMinutes % 60).toString().padLeft(2, '0');
-    final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
-
-    return "$hours:$minutes:$seconds";
-  }
-
-  void _showMenu() {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: p.card,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            "ルームから退出",
+            style: TextStyle(
+              color: p.text,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            "このルームから退出しますか？",
+            style: TextStyle(color: p.text, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text("キャンセル", style: TextStyle(color: p.secondary)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _leaveRoom();
+              },
+              child: const Text(
+                "退出する",
+                style: TextStyle(
+                  color: AppColors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _leaveRoom() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await _roomRef.collection('members').doc(user.uid).delete();
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      debugPrint("ルームの退出に失敗しました: $e");
+
+      if (!mounted) return;
+
+      final p = context.pal;
+
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: p.card,
+          surfaceTintColor: Colors.transparent,
+          content: Text(
+            "ルームから退出できませんでした。\n通信の状態を確かめて、もう一度お試しください。",
+            style: TextStyle(color: p.text, fontSize: 14, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                "閉じる",
+                style: TextStyle(color: AppColors.primary),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+}
+
+// ======================================================================
+// メンバー1人分（アイコン・名前・オーナーの札）
+// ======================================================================
+
+class _MemberSummaryUser extends StatefulWidget {
+  final String uid;
+  final bool isOwner;
+
+  const _MemberSummaryUser({
+    super.key,
+    required this.uid,
+    required this.isOwner,
+  });
+
+  @override
+  State<_MemberSummaryUser> createState() => _MemberSummaryUserState();
+}
+
+class _MemberSummaryUserState extends State<_MemberSummaryUser> {
+  // 描き直すたびに読み直さないよう、最初に1回だけ読む
+  late final Future<DocumentSnapshot<Map<String, dynamic>>> _user =
+      FirebaseFirestore.instance.collection('users').doc(widget.uid).get();
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: _user,
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data();
+        final name = (data?['name'] ?? '').toString();
+        final icon = (data?['icon'] ?? '').toString();
+
+        return SizedBox(
+          width: 64,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text("ルーム情報を編集"),
-                onTap: () {
-                  Navigator.pop(context);
-                },
+              PartnerAvatar(icon: icon, radius: 24),
+              const SizedBox(height: 5),
+              Text(
+                name.isEmpty ? "…" : name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: p.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              ListTile(
-                leading: const Icon(Icons.notifications),
-                title: const Text("通知設定"),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text("ルーム情報"),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
+              if (widget.isOwner) ...[
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: p.primarySoft,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    "オーナー",
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -1039,110 +1204,146 @@ class _RoomSpaceScreenState extends State<RoomSpaceScreen> {
   }
 }
 
-class _MemberSummaryUser extends StatelessWidget {
-  final String uid;
-  final bool isOwner;
+// ======================================================================
+// アクティビティ1行分
+// ======================================================================
 
-  const _MemberSummaryUser({required this.uid, required this.isOwner});
+class _Activity {
+  final String uid;
+  final String name;
+  final DateTime time;
+  final IconData icon;
+  // アイコンの色（参加は青、メッセージは緑）
+  final Color iconColor;
+  // 名前の下に出す文（「ルームに参加しました」か、メッセージの中身）
+  final String text;
+  final VoidCallback? onTap;
+
+  const _Activity({
+    required this.uid,
+    this.name = '',
+    required this.time,
+    required this.icon,
+    required this.iconColor,
+    required this.text,
+    this.onTap,
+  });
+}
+
+class _ActivityRow extends StatefulWidget {
+  final _Activity activity;
+
+  const _ActivityRow({super.key, required this.activity});
+
+  @override
+  State<_ActivityRow> createState() => _ActivityRowState();
+}
+
+class _ActivityRowState extends State<_ActivityRow> {
+  // 名前が分からないとき（参加のできごと）だけ、users から読む
+  Future<DocumentSnapshot<Map<String, dynamic>>>? _user;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.activity.name.isEmpty && widget.activity.uid.isNotEmpty) {
+      _user = FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.activity.uid)
+          .get();
+    }
+  }
+
+  // 今日なら「10:32」、それより前なら「11/18」
+  String _timeLabel(DateTime time) {
+    final now = DateTime.now();
+    final isToday =
+        time.year == now.year && time.month == now.month && time.day == now.day;
+
+    if (isToday) {
+      return "${time.hour}:${time.minute.toString().padLeft(2, '0')}";
+    }
+    return "${time.month}/${time.day}";
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+    final p = context.pal;
+    final activity = widget.activity;
+
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: _user,
       builder: (context, snapshot) {
-        if (!snapshot.hasData || !snapshot.data!.exists) {
-          return const SizedBox(width: 70);
-        }
+        final name = activity.name.isNotEmpty
+            ? activity.name
+            : (snapshot.data?.data()?['name'] ?? '').toString();
 
-        final data = snapshot.data!.data() as Map<String, dynamic>;
-
-        final name = data['name']?.toString() ?? '名前未設定';
-
-        return _buildItem(context, name);
-      },
-    );
-  }
-
-  Widget _buildItem(BuildContext context, String name) {
-    return SizedBox(
-      width: 70,
-      child: Column(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: context.pal.primarySoft,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF64A9ED),
-                  size: 34,
-                ),
-              ),
-
-              // オーナー
-              if (isOwner)
-                const Positioned(
-                  left: -4,
-                  top: -5,
+        return InkWell(
+          onTap: activity.onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    // アイコンの色をうすくした丸（暗い画面では少し濃いめ）
+                    color: activity.iconColor.withValues(
+                      alpha: p.isDark ? 0.22 : 0.12,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
                   child: Icon(
-                    Icons.workspace_premium_rounded,
-                    color: Color(0xFFFFC107),
-                    size: 20,
+                    activity.icon,
+                    color: activity.iconColor,
+                    size: 18,
                   ),
                 ),
-            ],
-          ),
-
-          const SizedBox(height: 5),
-
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: context.pal.text,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          const SizedBox(height: 3),
-
-          if (isOwner)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: context.pal.primarySoft,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                "オーナー",
-                style: TextStyle(
-                  fontSize: 9,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.circle, size: 7, color: Color(0xFF22C55E)),
-                SizedBox(width: 3),
-                Text(
-                  "オンライン",
-                  style: TextStyle(fontSize: 9, color: context.pal.secondary),
+                const SizedBox(width: 10),
+                // 上：名前（太字）と時刻／下：できごと（「ルームに参加しました」「メッセージを送りました」）
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name.isEmpty ? "だれか" : name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: p.text,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _timeLabel(activity.time),
+                            style: TextStyle(color: p.muted, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        activity.text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.secondary, fontSize: 13),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -3,7 +3,7 @@
 //
 // 主なクラス: OnboardingScreen
 // 開き方: 起動画面（splash_screen.dart）／設定画面（settings_screen.dart）
-// ・入力内容を Firestore の users に保存し、メイン画面へ進む
+// ・入力内容を Firestore の users に保存し、使い方の画面（tutorial_screen.dart）へ進む
 // ・旧ファイル名: data_screen.dart
 // ======================================================================
 
@@ -11,7 +11,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/theme/app_palette.dart';
-import 'package:study_support_app/main.dart';
+import 'package:study_support_app/screens/start/tutorial_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -89,7 +89,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        MaterialPageRoute(builder: (_) => const TutorialScreen()),
       );
     } catch (e) {
       if (!mounted) return;

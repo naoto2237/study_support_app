@@ -401,6 +401,10 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
                         title: data["title"] ?? "",
 
                         roomId: doc.id,
+
+                        ownerId: (data["ownerId"] ?? "").toString(),
+
+                        description: (data["description"] ?? "").toString(),
                       ),
                     );
                   }).toList(),

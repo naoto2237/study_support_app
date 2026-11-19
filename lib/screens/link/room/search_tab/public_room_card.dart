@@ -3,13 +3,16 @@
 //
 // 主なクラス: PublicRoomCard
 // ・ルームへの参加、「入る」でルームの中（room_space_screen.dart）へ
+// ・見た目は room_card_body.dart（「作成」タブのカードと同じ形）
 // ======================================================================
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/screens/link/room/space/room_space_screen.dart';
+import 'package:study_support_app/screens/link/room/room_card_body.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/app_palette.dart';
 
 // =============================================================
 // 公開ルームカード
@@ -18,8 +21,16 @@ import 'package:study_support_app/theme/app_colors.dart';
 class PublicRoomCard extends StatelessWidget {
   final String title;
   final String roomId;
+  final String ownerId;
+  final String description;
 
-  const PublicRoomCard({super.key, required this.title, required this.roomId});
+  const PublicRoomCard({
+    super.key,
+    required this.title,
+    required this.roomId,
+    this.ownerId = "",
+    this.description = "",
+  });
 
   // ===========================================================
   // ルーム参加
@@ -74,9 +85,15 @@ class PublicRoomCard extends StatelessWidget {
       // membersにユーザー追加
       // -------------------------------------------------------
 
-      await roomRef.collection("members").doc(user.uid).set({
-        "joinedAt": FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      // まだメンバーでないときだけ、参加した時刻を入れる
+      // （入るたびに入れると、参加した時刻が今に変わり、
+      //   ルームの「最近のできごと」に「参加しました」が何度も出てしまう）
+      final memberRef = roomRef.collection("members").doc(user.uid);
+      final memberSnapshot = await memberRef.get();
+
+      if (!memberSnapshot.exists) {
+        await memberRef.set({"joinedAt": FieldValue.serverTimestamp()});
+      }
 
       // -------------------------------------------------------
       // RoomSpaceScreenへ
@@ -105,205 +122,92 @@ class PublicRoomCard extends StatelessWidget {
   }
 
   // ===========================================================
-  // Build
+  // Build（見た目は room_card_body.dart。「作成」タブのカードと同じ形）
   // ===========================================================
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return RoomCardBody(
+      roomId: roomId,
+      title: title,
+      description: description,
+      isPublic: true,
+      ownerId: ownerId,
+      onTap: () => _confirmAndJoin(context),
 
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-
-    final textColor = isDark ? Colors.white70 : Colors.black87;
-
-    final subtitleColor = isDark ? Colors.white60 : Colors.grey;
-
-    final borderColor = isDark ? Colors.grey.shade800 : AppColors.border;
-
-    return Card(
-      elevation: 0,
-
-      color: cardColor,
-
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-
-        side: BorderSide(color: borderColor, width: 1),
-      ),
-
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-
-        child: Row(
-          children: [
-            // =================================================
-            // アイコン
-            // =================================================
-            CircleAvatar(
-              radius: 28,
-
-              backgroundColor: isDark
-                  ? Colors.green.withValues(alpha: 0.2)
-                  : Colors.green.shade100,
-
-              child: const Icon(Icons.groups, color: Colors.green),
-            ),
-
-            const SizedBox(width: 15),
-
-            // =================================================
-            // ルーム情報
-            // =================================================
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-
-                children: [
-                  Text(
-                    title,
-
-                    maxLines: 2,
-
-                    overflow: TextOverflow.ellipsis,
-
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-
-                      fontSize: 17,
-
-                      color: textColor,
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // ===========================================
-                  // 参加人数
-                  // ===========================================
-                  StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection("rooms")
-                        .doc(roomId)
-                        .collection("members")
-                        .snapshots(),
-
-                    builder: (context, snapshot) {
-                      final count = snapshot.data?.docs.length ?? 0;
-
-                      return Row(
-                        children: [
-                          Icon(Icons.people, size: 16, color: subtitleColor),
-
-                          const SizedBox(width: 5),
-
-                          Text(
-                            "$count人",
-
-                            style: TextStyle(color: subtitleColor),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
+      // 右の「参加」ボタン（青い丸みのあるボタン）
+      trailing: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: SizedBox(
+          height: 34,
+          child: ElevatedButton(
+            onPressed: () => _confirmAndJoin(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(17),
               ),
             ),
-
-            const SizedBox(width: 8),
-
-            // =================================================
-            // 参加ボタン
-            // =================================================
-            ElevatedButton(
-              onPressed: () async {
-                // =============================================
-                // 確認ダイアログ
-                // =============================================
-
-                final result = await showDialog<bool>(
-                  context: context,
-
-                  builder: (dialogContext) {
-                    return AlertDialog(
-                      backgroundColor: cardColor,
-
-                      title: Text(
-                        "ルームに入る",
-
-                        style: TextStyle(
-                          color: textColor,
-
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      content: Text(
-                        "「$title」に入りますか？",
-
-                        style: TextStyle(color: subtitleColor),
-                      ),
-
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(dialogContext, false);
-                          },
-
-                          child: Text(
-                            "キャンセル",
-
-                            style: TextStyle(color: subtitleColor),
-                          ),
-                        ),
-
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(dialogContext, true);
-                          },
-
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-
-                            foregroundColor: Colors.white,
-                          ),
-
-                          child: const Text("入る"),
-                        ),
-                      ],
-                    );
-                  },
-                );
-
-                // =============================================
-                // 参加
-                // =============================================
-
-                if (result == true) {
-                  if (!context.mounted) {
-                    return;
-                  }
-
-                  await _joinRoom(context);
-                }
-              },
-
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-
-                foregroundColor: Colors.white,
-
-                elevation: 0,
-
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-
-              child: const Text("参加"),
+            child: const Text(
+              "参加",
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  // 確かめてから参加する
+  Future<void> _confirmAndJoin(BuildContext context) async {
+    final p = context.pal;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: p.card,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            "ルームに入る",
+            style: TextStyle(
+              color: p.text,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            "「$title」に入りますか？",
+            style: TextStyle(color: p.text, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text("キャンセル", style: TextStyle(color: p.secondary)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text(
+                "入る",
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true && context.mounted) {
+      await _joinRoom(context);
+    }
   }
 }

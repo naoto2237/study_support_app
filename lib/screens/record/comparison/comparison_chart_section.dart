@@ -7,6 +7,8 @@
 // ・「<」「>」で前・次の週（月・年）へ動かせる（学習記録の推移と同じ。_offset）
 // ・全体平均 ＝ その日（週・月）の全員の学習時間の合計 ÷ 全体のユーザー数
 //   （勉強しなかった人も0時間として平均に入れる。上の「学習時間の比較」と同じ考え方）
+// ・特定のユーザーでは、全体平均の代わりに選んだ相手（partner）の棒を出す
+//   （相手の今日の分は、相手のアプリが保存した値）
 // ・あなたの今日の分は、タイマーの今の値（todayStudySeconds）を使う
 // ・見た目は「自分の記録」のグラフ（study_time_chart_section.dart）とそろえる
 // ・使うデータ: users, users/{uid}/studyRecords
@@ -21,10 +23,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:study_support_app/main.dart' show todayStudySeconds;
 import 'package:study_support_app/theme/app_colors.dart';
 import 'package:study_support_app/screens/record/chart_tooltip_layout.dart';
+import 'package:study_support_app/screens/record/comparison/compare_user_picker.dart';
 
 class ComparisonChartSection extends StatefulWidget {
   final int totalSeconds;
   final String comparisonTarget;
+
+  // 特定のユーザーで比べる相手（まだ選んでいないときは null）
+  final ComparePartner? partner;
 
   // 「比較する」を押したか（押すまでは、グラフの代わりに案内を出す）
   final bool isCompared;
@@ -34,6 +40,7 @@ class ComparisonChartSection extends StatefulWidget {
     required this.totalSeconds,
     required this.comparisonTarget,
     required this.isCompared,
+    this.partner,
   });
 
   @override
@@ -72,6 +79,9 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
   // 全員の記録の合計（"2026-11-12" → 全員ぶんの秒の合計）
   final Map<String, int> allUsersTotals = {};
 
+  // ユーザーごとの記録（uid → "2026-11-12" → 秒）。選んだ相手の棒に使う
+  final Map<String, Map<String, int>> recordsByUser = {};
+
   // 全体のユーザー数（平均の割る数）
   int userCount = 0;
 
@@ -81,6 +91,12 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
   static const _averageColor = Color(0xFFBDBDBD);
 
   bool get _showAverage => widget.comparisonTarget == "全体のユーザー";
+
+  // あなたの横に並べる相手（全体平均か、選んだ相手）がいるか
+  bool get _showOther => _showAverage || widget.partner != null;
+
+  // 相手の呼び名（凡例・吹き出しに出す）
+  String get _otherLabel => _showAverage ? "全体平均" : widget.partner!.name;
 
   @override
   void initState() {
@@ -113,6 +129,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
 
       myRecords.clear();
       allUsersTotals.clear();
+      recordsByUser.clear();
 
       for (int i = 0; i < usersSnapshot.docs.length; i++) {
         final uid = usersSnapshot.docs[i].id;
@@ -122,6 +139,8 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
 
           allUsersTotals[recordDoc.id] =
               (allUsersTotals[recordDoc.id] ?? 0) + seconds;
+
+          recordsByUser.putIfAbsent(uid, () => {})[recordDoc.id] = seconds;
 
           if (uid == myUid) {
             myRecords[recordDoc.id] = seconds;
@@ -322,6 +341,20 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
     return total ~/ userCount;
   }
 
+  // 相手の秒（全体平均か、選んだ相手の保存ずみの記録）
+  int _otherSeconds(List<DateTime> days) {
+    if (_showAverage) return _averageSeconds(days);
+
+    final records = recordsByUser[widget.partner?.uid] ?? const {};
+    int total = 0;
+
+    for (final day in days) {
+      total += records[_dateId(day)] ?? 0;
+    }
+
+    return total;
+  }
+
   // 吹き出し用：1時間未満は秒まで（「15分27秒」）、1時間以上は分まで（「1時間5分」）
   String _formatTooltipTime(int seconds) {
     final hours = seconds ~/ 3600;
@@ -339,15 +372,16 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
     return "$remainingSeconds秒";
   }
 
-  // 吹き出し用：全体平均との差（「平均より 10分12秒 多い」など）
+  // 吹き出し用：相手との差（「平均より 10分12秒 多い」「相手より 5分 少ない」など）
   String _differenceText(int mine, int average) {
     final diff = mine - average;
+    final who = _showAverage ? "平均" : "相手";
 
-    if (diff == 0) return "平均と同じ";
+    if (diff == 0) return "$whoと同じ";
 
     final text = _formatTooltipTime(diff.abs());
 
-    return diff > 0 ? "平均より $text 多い" : "平均より $text 少ない";
+    return diff > 0 ? "$whoより $text 多い" : "$whoより $text 少ない";
   }
 
   // 期間の合計：上の「学習時間の比較」や学習記録のサマリーと同じ書き方
@@ -549,7 +583,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
         .map((b) => _mySeconds(b.days, todaySeconds))
         .toList();
 
-    final averageSeconds = buckets.map((b) => _averageSeconds(b.days)).toList();
+    final averageSeconds = buckets.map((b) => _otherSeconds(b.days)).toList();
 
     final myTotal = mySeconds.fold<int>(0, (total, s) => total + s);
     final averageTotal = averageSeconds.fold<int>(0, (total, s) => total + s);
@@ -573,14 +607,17 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
                 numberSize: 25,
               ),
             ),
-            if (_showAverage)
-              _summaryItem(
-                "全体平均（$userCount人）",
-                _formatSeconds(averageTotal),
-                textColor,
-                secondaryColor,
-                numberSize: 18,
-                alignEnd: true,
+            // 右半分をいっぱいに使って、右はしにそろえる（名前が長いときは「…」）
+            if (_showOther)
+              Expanded(
+                child: _summaryItem(
+                  _showAverage ? "全体平均（$userCount人）" : _otherLabel,
+                  _formatSeconds(averageTotal),
+                  textColor,
+                  secondaryColor,
+                  numberSize: 18,
+                  alignEnd: true,
+                ),
               ),
           ],
         ),
@@ -594,12 +631,14 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             _legend(AppColors.primary, "あなた", secondaryColor),
-            if (_showAverage) ...[
+            if (_showOther) ...[
               const SizedBox(width: 14),
-              _legend(
-                isDark ? Colors.white38 : _averageColor,
-                "全体平均",
-                secondaryColor,
+              Flexible(
+                child: _legend(
+                  isDark ? Colors.white38 : _averageColor,
+                  _otherLabel,
+                  secondaryColor,
+                ),
               ),
             ],
           ],
@@ -640,10 +679,10 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
           ),
         ),
 
-        if (!_showAverage) ...[
+        if (!_showOther) ...[
           const SizedBox(height: 10),
           Text(
-            "特定のユーザーとの比較は準備中です。いまは自分の記録だけを表示しています",
+            "上の「相手を選ぶ」から相手を選ぶと、その人の棒も並びます",
             style: TextStyle(color: secondaryColor, fontSize: 11.5),
           ),
         ],
@@ -751,9 +790,9 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
                 height: 1.5,
               ),
             ),
-            if (_showAverage) ...[
+            if (_showOther) ...[
               TextSpan(
-                text: "\n全体平均  ${_formatTooltipTime(average)}",
+                text: "\n$_otherLabel  ${_formatTooltipTime(average)}",
                 style: TextStyle(color: subColor, fontSize: 12, height: 1.5),
               ),
               TextSpan(
@@ -784,7 +823,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
     List<int> averageSeconds,
     bool isDark,
   ) {
-    final allSeconds = [...mySeconds, if (_showAverage) ...averageSeconds];
+    final allSeconds = [...mySeconds, if (_showOther) ...averageSeconds];
 
     final maxSeconds = allSeconds.isEmpty
         ? 0
@@ -818,7 +857,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
     final secondaryColor = isDark ? Colors.white70 : const Color(0xFF666666);
 
     // 年は棒が12組あるので細くする
-    final rodWidth = selectedPeriod == 2 ? 7.0 : (_showAverage ? 11.0 : 18.0);
+    final rodWidth = selectedPeriod == 2 ? 7.0 : (_showOther ? 11.0 : 18.0);
 
     return BarChartData(
       maxY: maxY,
@@ -947,7 +986,7 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
                 top: Radius.circular(4),
               ),
             ),
-            if (_showAverage)
+            if (_showOther)
               BarChartRodData(
                 toY: averageSeconds[index] / secondsPerUnit,
                 width: rodWidth,
@@ -979,7 +1018,12 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
           ? CrossAxisAlignment.end
           : CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(color: secondaryColor, fontSize: 12)),
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: secondaryColor, fontSize: 12),
+        ),
         const SizedBox(height: 2),
         _timeText(value, valueColor, numberSize),
       ],
@@ -1038,7 +1082,14 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 5),
-        Text(text, style: TextStyle(fontSize: 12, color: textColor)),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: textColor),
+          ),
+        ),
       ],
     );
   }

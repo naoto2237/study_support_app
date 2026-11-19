@@ -6,7 +6,7 @@
 // ・「友達」タブ: 友達を、最近話した順に白いカードで並べる
 //     アイコン・今の名前・最後のメッセージ・時刻を出す。押すと1対1のチャット（chat_room_screen.dart）へ
 //     その下に、友達以外の人との会話（users/{自分}/chats）を別のカードで出す
-// ・「探す」タブ: 友達でないユーザーを名前で探す。押すとその人のページへ
+// ・「探す」タブ: 友達でないユーザーを、名前かユーザーIDの最初の文字で探す。押すとその人のページへ
 //     （友達申請やメッセージは、相手のページから行う）
 // ・最後のメッセージと時刻は users/{自分}/chats/{相手} の lastMessage・updatedAt
 //   （chat_room_screen.dart で送ったときに書く）
@@ -34,6 +34,9 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   String _searchText = "";
 
+  // 探した結果（入力が変わるたびに作りなおす）
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>? _searchFuture;
+
   late TabController _tabController;
 
   final String? _uid = FirebaseAuth.instance.currentUser?.uid;
@@ -52,10 +55,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging && _tabController.index == 0) {
         _searchController.clear();
-
-        setState(() {
-          _searchText = "";
-        });
+        _setSearchText("");
       }
     });
 
@@ -66,6 +66,54 @@ class _ChatListScreenState extends State<ChatListScreen>
       _friends = me.collection('friends').snapshots();
       _chats = me.collection('chats').snapshots();
     }
+  }
+
+  // 入力が変わったら、探しなおす
+  void _setSearchText(String value) {
+    final text = value.trim();
+
+    setState(() {
+      _searchText = text;
+      _searchFuture = text.isEmpty ? null : _searchUsers(text);
+    });
+  }
+
+  // 名前・ユーザーIDが、入れた文字で始まる人を探す
+  // （ユーザーIDは「@」つきで保存されている人と、つかずに保存されている人がいるので両方で探す。
+  //   Firestore の仕組みで、言葉の途中の部分からは探せない）
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _searchUsers(
+    String text,
+  ) async {
+    final users = FirebaseFirestore.instance.collection('users');
+
+    Future<QuerySnapshot<Map<String, dynamic>>> startsWith(
+      String field,
+      String value,
+    ) {
+      return users
+          .where(field, isGreaterThanOrEqualTo: value)
+          .where(field, isLessThan: '$value')
+          .limit(20)
+          .get();
+    }
+
+    final withoutAt = text.startsWith('@') ? text.substring(1) : text;
+
+    final snapshots = await Future.wait([
+      startsWith('name', text),
+      if (withoutAt.isNotEmpty) startsWith('userId', '@$withoutAt'),
+      if (withoutAt.isNotEmpty) startsWith('userId', withoutAt),
+    ]);
+
+    // 同じ人が何度も出ないようにまとめる
+    final found = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+    for (final snapshot in snapshots) {
+      for (final doc in snapshot.docs) {
+        found[doc.id] = doc;
+      }
+    }
+
+    return found.values.toList();
   }
 
   @override
@@ -157,7 +205,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       child: _searchText.isEmpty
                           ? const EmptyMessage(
                               icon: Icons.person_search_outlined,
-                              text: 'ユーザー名を入力して\nチャットする相手を探しましょう',
+                              text: '名前かユーザーIDを入力して\nチャットする相手を探しましょう',
                             )
                           : _buildSearchResults(uid, _searchText),
                     ),
@@ -192,13 +240,9 @@ class _ChatListScreenState extends State<ChatListScreen>
         style: TextStyle(color: p.text, fontSize: 15),
         cursorColor: AppColors.primary,
         textInputAction: TextInputAction.search,
-        onChanged: (value) {
-          setState(() {
-            _searchText = value.trim();
-          });
-        },
+        onChanged: _setSearchText,
         decoration: InputDecoration(
-          hintText: 'ユーザー名で検索',
+          hintText: '名前かユーザーIDで検索',
           hintStyle: TextStyle(color: p.muted, fontSize: 15),
           filled: true,
           fillColor: p.card,
@@ -218,9 +262,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                   icon: Icon(Icons.cancel_rounded, size: 20, color: p.muted),
                   onPressed: () {
                     _searchController.clear();
-                    setState(() {
-                      _searchText = "";
-                    });
+                    _setSearchText("");
                   },
                 )
               : null,
@@ -329,7 +371,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   // =====================================================
-  // 右タブ：友達ではないユーザーを検索
+  // 右タブ：友達ではないユーザーを検索（名前かユーザーIDの最初の文字で探す）
   // =====================================================
   Widget _buildSearchResults(String uid, String searchText) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -339,12 +381,8 @@ class _ChatListScreenState extends State<ChatListScreen>
             .map((doc) => (doc.data()['userId'] ?? doc.id).toString())
             .toSet();
 
-        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .where('name', isGreaterThanOrEqualTo: searchText)
-              .where('name', isLessThan: '$searchText')
-              .snapshots(),
+        return FutureBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+          future: _searchFuture,
           builder: (context, userSnapshot) {
             if (userSnapshot.hasError) {
               return const EmptyMessage(
@@ -360,7 +398,7 @@ class _ChatListScreenState extends State<ChatListScreen>
             }
 
             // 自分と友達を除く
-            final users = userSnapshot.data!.docs
+            final users = userSnapshot.data!
                 .where((doc) => doc.id != uid && !friendIds.contains(doc.id))
                 .toList();
 
