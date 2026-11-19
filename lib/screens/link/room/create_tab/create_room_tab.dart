@@ -320,6 +320,7 @@ class _MyRoomList extends StatelessWidget {
                 ownerId: (data["ownerId"] ?? "").toString(),
 
                 description: (data["description"] ?? "").toString(),
+                goal: (data["goal"] ?? "").toString(),
               ),
             );
           }).toList(),

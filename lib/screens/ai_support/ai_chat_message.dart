@@ -9,5 +9,13 @@ class AiChatMessage {
   final bool isUser;
   final String text;
 
-  AiChatMessage({required this.isUser, required this.text});
+  // うまくいかなかったことを知らせる文（「AIにつながりませんでした」など）。
+  // AIの答えではないので、会話の続きとして AI には送らない
+  final bool isError;
+
+  AiChatMessage({
+    required this.isUser,
+    required this.text,
+    this.isError = false,
+  });
 }

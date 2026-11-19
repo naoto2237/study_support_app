@@ -109,6 +109,10 @@ class AllFriendsScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: p.card,
                   borderRadius: BorderRadius.circular(16),
+                ),
+                // 枠線は中身の上に描く（中の行の色で、角の枠線が隠れないように）
+                foregroundDecoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: p.border),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -187,7 +191,7 @@ class _FriendRow extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: p.primarySoft,
+                  backgroundColor: AppColors.primarySoft,
                   backgroundImage: icon.isNotEmpty ? NetworkImage(icon) : null,
                   child: icon.isEmpty
                       ? const Icon(

@@ -17,6 +17,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/services/achievement_counter.dart';
 
 class MyRecordScreen extends StatefulWidget {
   final String userId;
@@ -273,6 +274,9 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
 
       date = date.add(const Duration(days: 1));
     }
+
+    // 目標達成の数を、ほかの人にも見えるように保存しなおす（achievement_counter.dart）
+    await AchievementCounter.sync();
 
     // 最後に確認した日を今日に更新
     await prefs.setString('lastStudyDate', _dateId(today));

@@ -234,7 +234,13 @@ class _AiChatInputBarState extends State<AiChatInputBar>
                           shape: const CircleBorder(),
                           child: InkWell(
                             customBorder: const CircleBorder(),
-                            onTap: sendEnabled ? widget.onSend : null,
+                            onTap: sendEnabled
+                                ? () {
+                                    widget.onSend();
+                                    // 送った画像は、入力欄から消す
+                                    if (_image != null) _removeImage();
+                                  }
+                                : null,
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 160),
                               width: 40,

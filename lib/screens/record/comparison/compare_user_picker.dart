@@ -16,6 +16,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/data/profile_options.dart';
+import 'package:study_support_app/theme/filter_button.dart';
 import 'package:study_support_app/theme/app_palette.dart';
 
 // 比較する相手
@@ -30,11 +32,16 @@ class ComparePartner {
   // アイコンの画像のURL（ないときは空）
   final String icon;
 
+  // 学習記録を公開しているか（設定の「学習記録を公開する」。決めていない人は公開）
+  // 非公開の人は、比べる相手に選べない
+  final bool isPublic;
+
   const ComparePartner({
     required this.uid,
     required this.name,
     required this.userId,
     required this.icon,
+    this.isPublic = true,
   });
 
   factory ComparePartner.fromUserData(
@@ -47,6 +54,7 @@ class ComparePartner {
       name: (data?["name"] ?? data?["username"] ?? fallbackName).toString(),
       userId: (data?["userId"] ?? "").toString(),
       icon: (data?["icon"] ?? "").toString(),
+      isPublic: data?["isPublic"] != false,
     );
   }
 }
@@ -113,13 +121,37 @@ class _CompareUserPickerState extends State<_CompareUserPicker> {
         .get();
   }
 
+  // 絞り込み（指定しないときは null）
+  String? _grade;
+  String? _goal;
+
+  bool get _hasFilter => _grade != null || _goal != null;
+
+  // 絞り込みに合う人か
+  bool _matches(Map<String, dynamic> data) {
+    if (_grade != null && data["grade"] != _grade) return false;
+    if (_goal != null && data["goal"] != _goal) return false;
+    return true;
+  }
+
+  // 文字を入れずに、絞り込みだけで探す（学年・目標が同じ人）
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _byFilter() async {
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection(
+      "users",
+    );
+    if (_grade != null) query = query.where("grade", isEqualTo: _grade);
+    if (_goal != null) query = query.where("goal", isEqualTo: _goal);
+    final snapshot = await query.limit(30).get();
+    return snapshot.docs;
+  }
+
   Future<void> _search() async {
     _debounce?.cancel();
 
     final text = _searchController.text.trim();
     final number = ++_searchNumber;
 
-    if (text.isEmpty) {
+    if (text.isEmpty && !_hasFilter) {
       setState(() {
         _results = null;
         _isSearching = false;
@@ -137,22 +169,28 @@ class _CompareUserPickerState extends State<_CompareUserPicker> {
       // ユーザーIDは「@」つきで保存されている人と、つかずに保存されている人がいるので両方で探す
       final withoutAt = text.startsWith("@") ? text.substring(1) : text;
 
-      final snapshots = await Future.wait([
-        _startsWith("name", text),
-        if (withoutAt.isNotEmpty) _startsWith("userId", "@$withoutAt"),
-        if (withoutAt.isNotEmpty) _startsWith("userId", withoutAt),
-      ]);
+      // 文字があれば名前・IDで探す。なければ絞り込みだけで探す
+      final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
+      if (text.isEmpty) {
+        docs = await _byFilter();
+      } else {
+        final snapshots = await Future.wait([
+          _startsWith("name", text),
+          if (withoutAt.isNotEmpty) _startsWith("userId", "@$withoutAt"),
+          if (withoutAt.isNotEmpty) _startsWith("userId", withoutAt),
+        ]);
+        docs = [for (final s in snapshots) ...s.docs];
+      }
 
       if (!mounted || number != _searchNumber) return;
 
-      // 同じ人が何度も出ないようにまとめる（自分は出さない）
+      // 同じ人が何度も出ないようにまとめる（自分と、絞り込みに合わない人は出さない）
       final found = <String, ComparePartner>{};
 
-      for (final snapshot in snapshots) {
-        for (final doc in snapshot.docs) {
-          if (doc.id == _myUid) continue;
-          found[doc.id] = ComparePartner.fromUserData(doc.id, doc.data());
-        }
+      for (final doc in docs) {
+        if (doc.id == _myUid) continue;
+        if (!_matches(doc.data())) continue;
+        found[doc.id] = ComparePartner.fromUserData(doc.id, doc.data());
       }
 
       setState(() {
@@ -216,7 +254,7 @@ class _CompareUserPickerState extends State<_CompareUserPicker> {
             // ------------------------------------------------------
             // 名前かユーザーIDで探す
             // ------------------------------------------------------
-            _sectionTitle("名前かユーザーIDで探す", p),
+            _sectionTitle("名前・ユーザーID・学年や目標で探す", p),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -275,6 +313,35 @@ class _CompareUserPickerState extends State<_CompareUserPicker> {
               ),
             ),
 
+            // 絞り込み（学年・職種／学習目標）。変えたら、すぐ探しなおす
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilterButton(
+                    title: "学年・職種",
+                    options: ProfileOptions.grades,
+                    value: _grade,
+                    onChanged: (v) {
+                      setState(() => _grade = v);
+                      _search();
+                    },
+                  ),
+                  FilterButton(
+                    title: "学習目標",
+                    options: ProfileOptions.goals,
+                    value: _goal,
+                    onChanged: (v) {
+                      setState(() => _goal = v);
+                      _search();
+                    },
+                  ),
+                ],
+              ),
+            ),
+
             if (_isSearching)
               const Padding(
                 padding: EdgeInsets.only(top: 14),
@@ -316,6 +383,10 @@ class _CompareUserPickerState extends State<_CompareUserPicker> {
                   constraints: const BoxConstraints(maxHeight: 200),
                   decoration: BoxDecoration(
                     color: p.card,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  // 枠線は中身の上に描く（中の行の色で、角の枠線が隠れないように）
+                  foregroundDecoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: p.border),
                   ),
@@ -398,6 +469,10 @@ class _CompareUserPickerState extends State<_CompareUserPicker> {
             Container(
               decoration: BoxDecoration(
                 color: p.card,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              // 枠線は中身の上に描く（中の行の色で、角の枠線が隠れないように）
+              foregroundDecoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: p.border),
               ),
@@ -496,8 +571,11 @@ class _PartnerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
 
+    // 学習記録を非公開にしている人は、押せない（右に「非公開」と出す）
+    final canSelect = partner.isPublic;
+
     return InkWell(
-      onTap: onTap,
+      onTap: canSelect ? onTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: showDivider
@@ -536,14 +614,24 @@ class _PartnerRow extends StatelessWidget {
               ),
             ),
 
-            const Text(
-              "選ぶ",
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
+            if (canSelect)
+              const Text(
+                "選ぶ",
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            else
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline_rounded, size: 14, color: p.muted),
+                  const SizedBox(width: 3),
+                  Text("非公開", style: TextStyle(color: p.muted, fontSize: 12)),
+                ],
               ),
-            ),
           ],
         ),
       ),
@@ -570,7 +658,7 @@ class PartnerAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: radius,
-      backgroundColor: backgroundColor ?? context.pal.primarySoft,
+      backgroundColor: backgroundColor ?? AppColors.primarySoft,
       backgroundImage: icon.isNotEmpty ? NetworkImage(icon) : null,
       child: icon.isEmpty
           ? Icon(Icons.person, color: AppColors.primary, size: radius * 1.1)

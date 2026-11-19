@@ -14,6 +14,7 @@ import 'package:study_support_app/theme/app_palette.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/theme/error_dialog.dart';
 
 class ProfileIconAdjustScreen extends StatefulWidget {
   final File image;
@@ -143,9 +144,7 @@ class _ProfileIconAdjustScreenState extends State<ProfileIconAdjustScreen> {
     if (!mounted) return;
 
     if (file == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('画像の保存に失敗しました')));
+      showErrorDialog(context, '画像を保存できませんでした。\nもう一度お試しください。');
 
       return;
     }

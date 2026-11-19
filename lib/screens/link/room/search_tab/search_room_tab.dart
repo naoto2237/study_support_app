@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 
 import 'package:study_support_app/screens/link/room/search_tab/public_room_card.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/data/profile_options.dart';
+import 'package:study_support_app/theme/option_picker.dart';
 
 class SearchRoomTab extends StatefulWidget {
   const SearchRoomTab({super.key});
@@ -25,6 +27,9 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
   // =========================================================
 
   String _searchText = "";
+
+  // 絞り込み：ルームの学習目標（指定しないときは null）
+  String? _goal;
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -137,28 +142,39 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
 
                 const SizedBox(width: 10),
 
-                // 絞り込み（まだ作りかけ。押しても今は何もしない）
+                // 絞り込み（ルームの学習目標）。えらんでいるときは青くぬる
                 Material(
-                  color: cardColor,
+                  color: _goal != null ? AppColors.primary : cardColor,
                   shape: CircleBorder(
                     side: BorderSide(
-                      color: isDark ? Colors.grey.shade800 : AppColors.border,
+                      color: _goal != null
+                          ? AppColors.primary
+                          : (isDark ? Colors.grey.shade800 : AppColors.border),
                     ),
                   ),
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: () {
-                      // TODO:
-                      // 絞り込み機能
+                    onTap: () async {
+                      final picked = await showOptionPicker(
+                        context,
+                        title: "学習目標で絞り込む",
+                        options: ProfileOptions.goals,
+                        selected: _goal ?? '',
+                        allowClear: true,
+                      );
+                      if (picked == null) return;
+                      setState(() => _goal = picked.isEmpty ? null : picked);
                     },
-                    child: const SizedBox(
+                    child: SizedBox(
                       width: 50,
                       height: 50,
                       child: Tooltip(
                         message: "絞り込み",
                         child: Icon(
                           Icons.tune_rounded,
-                          color: AppColors.primary,
+                          color: _goal != null
+                              ? Colors.white
+                              : AppColors.primary,
                         ),
                       ),
                     ),
@@ -172,14 +188,37 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
             // =================================================
             // 公開ルーム
             // =================================================
-            Text(
-              "公開ルーム",
+            Row(
+              children: [
+                Text(
+                  "公開ルーム",
 
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: textColor,
-              ),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+
+                // 絞り込み中は、何で絞っているかを出す（×で外せる）
+                if (_goal != null) ...[
+                  const SizedBox(width: 10),
+                  InputChip(
+                    label: Text("目標：$_goal"),
+                    labelStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                    backgroundColor: AppColors.primarySoft,
+                    side: BorderSide.none,
+                    shape: const StadiumBorder(),
+                    visualDensity: VisualDensity.compact,
+                    deleteIconColor: AppColors.primary,
+                    onDeleted: () => setState(() => _goal = null),
+                  ),
+                ],
+              ],
             ),
 
             const SizedBox(height: 10),
@@ -295,6 +334,11 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
                       .toString()
                       .toLowerCase();
 
+                  // 学習目標で絞り込んでいるときは、同じ目標のルームだけ
+                  if (_goal != null && data["goal"] != _goal) {
+                    return false;
+                  }
+
                   // 検索文字がなければ全部表示
                   if (_searchText.isEmpty) {
                     return true;
@@ -347,7 +391,9 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
                         const SizedBox(height: 12),
 
                         Text(
-                          "「$_searchText」に一致するルームはありません",
+                          _searchText.isEmpty
+                              ? "この目標のルームはありません"
+                              : "「$_searchText」に一致するルームはありません",
 
                           textAlign: TextAlign.center,
 
@@ -405,6 +451,8 @@ class _SearchRoomTabState extends State<SearchRoomTab> {
                         ownerId: (data["ownerId"] ?? "").toString(),
 
                         description: (data["description"] ?? "").toString(),
+
+                        goal: (data["goal"] ?? "").toString(),
                       ),
                     );
                   }).toList(),

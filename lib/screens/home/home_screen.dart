@@ -21,6 +21,8 @@ import 'package:study_support_app/screens/home/weekday_goal_button.dart';
 import 'package:study_support_app/screens/notification/notification_bell.dart';
 import 'package:study_support_app/screens/home/stopwatch_widget.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/screens/home/subject_picker.dart';
+import 'package:study_support_app/services/current_subject.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -311,6 +313,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
+
+                    const Spacer(),
+
+                    // 今から勉強する教科（タイマーの時間を、この教科の時間としても記録する）
+                    const SubjectPicker(),
                   ],
                 ),
               ),
@@ -821,11 +828,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final batch = FirebaseFirestore.instance.batch();
 
+    // えらんでいる教科（タイマーの上でえらぶ。えらんでいなければ、合計だけ足す）
+    final subject = CurrentSubject.value.value;
+
     parts.forEach((dateId, partSeconds) {
       batch.set(records.doc(dateId), {
         "studyTime": FieldValue.increment(partSeconds),
         "date": dateId,
         "updatedAt": FieldValue.serverTimestamp(),
+        // 教科ごとの時間（例：subjects.数学 に足す）
+        if (subject != null)
+          "subjects": {subject: FieldValue.increment(partSeconds)},
       }, SetOptions(merge: true));
     });
 

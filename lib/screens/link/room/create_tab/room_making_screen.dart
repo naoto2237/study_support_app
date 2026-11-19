@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 
 import 'package:study_support_app/screens/link/room/space/room_space_screen.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/data/profile_options.dart';
+import 'package:study_support_app/theme/option_picker.dart';
 
 class RoomMakingScreen extends StatefulWidget {
   const RoomMakingScreen({super.key});
@@ -34,6 +36,12 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
   final TextEditingController _descriptionController = TextEditingController();
 
   bool _isCreating = false;
+
+  // ルームの学習目標（えらばなくてもよい）
+  String? _goal;
+
+  // 作れなかったときに、作成ボタンの上に出す文（なければ出さない）
+  String? _errorText;
 
   @override
   void initState() {
@@ -65,17 +73,13 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
 
     final description = _descriptionController.text.trim();
 
-    if (title.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("ルームタイトルを入力してください")));
-
-      return;
-    }
+    // タイトルが空のときは、ボタンが押せないようになっている
+    if (title.isEmpty) return;
 
     try {
       setState(() {
         _isCreating = true;
+        _errorText = null;
       });
 
       // -----------------------------------------------------
@@ -108,6 +112,9 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
         // 1 = 非公開
         "isPublic": _selectedVisibility == 0,
 
+        // 学習目標（えらんだときだけ。ルームを探すときの絞り込みに使う）
+        if (_goal != null) "goal": _goal,
+
         // ルームを作ったユーザー
         "ownerId": user.uid,
 
@@ -127,7 +134,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
       // 画面遷移
       // -----------------------------------------------------
 
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
@@ -136,11 +143,14 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
         ),
       );
     } catch (e) {
-      if (!context.mounted) return;
+      debugPrint("ルームの作成に失敗しました: $e");
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("ルームの作成に失敗しました\n$e")));
+      if (!mounted) return;
+
+      // 作成ボタンの上に、赤い文字で出す
+      setState(() {
+        _errorText = "ルームを作成できませんでした。もう一度お試しください。";
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -379,6 +389,21 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
                       decoration: fieldDecoration("このルームの目的や活動内容を書いてください"),
                     ),
 
+                    const SizedBox(height: 20),
+
+                    // ==========================================
+                    // 学習目標（ルームを探すときの絞り込みに使う）
+                    // ==========================================
+                    label("学習目標（なくても作れます）"),
+
+                    OptionField(
+                      title: "ルームの学習目標",
+                      options: ProfileOptions.goals,
+                      value: _goal,
+                      hint: "えらぶと、ルームを探す人が絞り込めます",
+                      onChanged: (v) => setState(() => _goal = v),
+                    ),
+
                     const SizedBox(height: 24),
 
                     // ==========================================
@@ -424,48 +449,66 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
                   color: cardColor,
                   border: Border(top: BorderSide(color: borderColor)),
                 ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-
-                  child: ElevatedButton(
-                    onPressed: canCreate ? _createRoom : null,
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _blue,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: _isCreating
-                          ? _blue
-                          : (isDark
-                                ? Colors.grey.shade800
-                                : const Color(0xFFE3E7EC)),
-                      disabledForegroundColor: isDark
-                          ? Colors.white38
-                          : Colors.black38,
-                      elevation: 0,
-                      // 両端が丸いボタン
-                      shape: const StadiumBorder(),
-                    ),
-
-                    child: _isCreating
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : const Text(
-                            "ルームを作成する",
-
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_errorText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          _errorText!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.red,
+                            fontWeight: FontWeight.w600,
                           ),
-                  ),
+                        ),
+                      ),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+
+                      child: ElevatedButton(
+                        onPressed: canCreate ? _createRoom : null,
+
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _blue,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: _isCreating
+                              ? _blue
+                              : (isDark
+                                    ? Colors.grey.shade800
+                                    : const Color(0xFFE3E7EC)),
+                          disabledForegroundColor: isDark
+                              ? Colors.white38
+                              : Colors.black38,
+                          elevation: 0,
+                          // 両端が丸いボタン
+                          shape: const StadiumBorder(),
+                        ),
+
+                        child: _isCreating
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Text(
+                                "ルームを作成する",
+
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

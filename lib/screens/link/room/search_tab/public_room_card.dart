@@ -13,6 +13,7 @@ import 'package:study_support_app/screens/link/room/space/room_space_screen.dart
 import 'package:study_support_app/screens/link/room/room_card_body.dart';
 import 'package:study_support_app/theme/app_colors.dart';
 import 'package:study_support_app/theme/app_palette.dart';
+import 'package:study_support_app/theme/error_dialog.dart';
 
 // =============================================================
 // 公開ルームカード
@@ -23,6 +24,7 @@ class PublicRoomCard extends StatelessWidget {
   final String roomId;
   final String ownerId;
   final String description;
+  final String goal;
 
   const PublicRoomCard({
     super.key,
@@ -30,6 +32,7 @@ class PublicRoomCard extends StatelessWidget {
     required this.roomId,
     this.ownerId = "",
     this.description = "",
+    this.goal = "",
   });
 
   // ===========================================================
@@ -113,11 +116,11 @@ class PublicRoomCard extends StatelessWidget {
         ),
       );
     } catch (e) {
+      debugPrint("ルームへの参加に失敗しました: $e");
+
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("ルームへの参加に失敗しました\n$e")));
+      showErrorDialog(context, "ルームに参加できませんでした。\n通信の状態を確かめて、もう一度お試しください。");
     }
   }
 
@@ -131,6 +134,7 @@ class PublicRoomCard extends StatelessWidget {
       roomId: roomId,
       title: title,
       description: description,
+      goal: goal,
       isPublic: true,
       ownerId: ownerId,
       onTap: () => _confirmAndJoin(context),

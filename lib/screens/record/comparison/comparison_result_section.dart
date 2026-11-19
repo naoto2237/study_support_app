@@ -30,6 +30,10 @@ class ComparisonResultSection extends StatefulWidget {
   // 比較条件
   final bool isCompared;
 
+  // 全体のユーザーの絞り込み（学年・職種／学習目標。指定しないときは null）
+  final String? grade;
+  final String? goal;
+
   const ComparisonResultSection({
     super.key,
     required this.totalSeconds,
@@ -37,7 +41,16 @@ class ComparisonResultSection extends StatefulWidget {
     required this.onComparisonTargetChanged,
     required this.isCompared,
     this.partner,
+    this.grade,
+    this.goal,
   });
+
+  // 絞り込みに合う人か（自分も、合うときだけ平均に入る）
+  bool matchesFilter(Map<String, dynamic> data) {
+    if (grade != null && data["grade"] != grade) return false;
+    if (goal != null && data["goal"] != goal) return false;
+    return true;
+  }
 
   @override
   State<ComparisonResultSection> createState() =>
@@ -89,6 +102,9 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
   // 選んだ相手の学習時間（読めなかったときは null）
   int? partnerStudySeconds;
   bool isLoadingPartner = false;
+
+  // 選んだ相手が学習記録を非公開にしているか（選んだあとで非公開にした人など）
+  bool isPartnerPrivate = false;
 
   // ==============================================================
   // 日付表示
@@ -150,6 +166,11 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
     if (oldWidget.partner?.uid != widget.partner?.uid) {
       _loadPartnerStudySeconds();
     }
+
+    // 全体のユーザーの絞り込みを変えたら、平均を出しなおす
+    if (oldWidget.grade != widget.grade || oldWidget.goal != widget.goal) {
+      _loadAverageStudyHours();
+    }
   }
 
   // =============================================================
@@ -162,6 +183,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
     if (partner == null) {
       if (mounted) {
         setState(() {
+          isPartnerPrivate = false;
           partnerStudySeconds = null;
           isLoadingPartner = false;
         });
@@ -197,6 +219,27 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
         endDate = DateTime(now.year + 1, 1, 1);
       }
 
+      // 相手の今の公開設定を確かめる（非公開なら、記録は読まない）
+      final partnerDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(partner.uid)
+          .get();
+
+      if (partnerDoc.data()?["isPublic"] == false) {
+        if (!mounted ||
+            period != selectedPeriod ||
+            partner.uid != widget.partner?.uid) {
+          return;
+        }
+
+        setState(() {
+          isPartnerPrivate = true;
+          partnerStudySeconds = null;
+          isLoadingPartner = false;
+        });
+        return;
+      }
+
       final snapshot = await FirebaseFirestore.instance
           .collection("users")
           .doc(partner.uid)
@@ -223,6 +266,7 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
       }
 
       setState(() {
+        isPartnerPrivate = false;
         partnerStudySeconds = totalSeconds;
         isLoadingPartner = false;
       });
@@ -420,6 +464,15 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
       // ==========================================================
 
       for (final userDoc in usersSnapshot.docs) {
+        // 学習記録を非公開にしている人（自分はのぞく）は、読めないので平均に入れない
+        if (userDoc.id != FirebaseAuth.instance.currentUser?.uid &&
+            userDoc.data()["isPublic"] == false) {
+          continue;
+        }
+
+        // 学年・目標で絞り込んでいるときは、合う人だけを平均に入れる
+        if (!widget.matchesFilter(userDoc.data())) continue;
+
         final studySnapshot = await FirebaseFirestore.instance
             .collection("users")
             .doc(userDoc.id)
@@ -503,6 +556,8 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
           comparisonTarget: widget.comparisonTarget,
           partner: widget.partner,
           isCompared: widget.isCompared,
+          grade: widget.grade,
+          goal: widget.goal,
         ),
       ],
     );
@@ -660,13 +715,19 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
   // 全体のユーザーとの比較
   // ==============================================================
 
+  // 「全体平均」の見出し（絞り込んでいるときは「高校2年・大学受験の平均」）
+  String get _averageTitle {
+    final filters = [?widget.grade, ?widget.goal];
+    return filters.isEmpty ? "全体平均" : "${filters.join("・")}の平均";
+  }
+
   Widget _buildAllUsersComparison(
     Color textColor,
     Color secondaryColor,
     bool isDark,
   ) {
     return _buildVersus(
-      otherTitle: "全体平均",
+      otherTitle: _averageTitle,
       // 秒の端数は切り捨て（下の比較グラフと同じ。四捨五入だと1秒ずれることがある）
       otherSeconds: ((averageStudyHours ?? 0) * 3600).floor(),
       differencePrefix: "平均より",
@@ -691,6 +752,13 @@ class _ComparisonResultSectionState extends State<ComparisonResultSection> {
     if (partner == null) {
       return Text(
         "上の「相手を選ぶ」から、比べる相手を選んでください",
+        style: TextStyle(color: secondaryColor, fontSize: 13),
+      );
+    }
+
+    if (!isLoadingPartner && isPartnerPrivate) {
+      return Text(
+        "${partner.name}さんは学習記録を非公開にしています",
         style: TextStyle(color: secondaryColor, fontSize: 13),
       );
     }

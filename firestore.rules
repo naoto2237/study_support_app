@@ -1,0 +1,171 @@
+// ======================================================================
+// Firestore のルール（だれが、どのデータを読めて、書けるか）
+//
+// 反映のしかた: firebase deploy --only firestore:rules
+// （Firebase のコンソールの「Firestore Database → ルール」に貼りつけてもよい）
+//
+// 考え方:
+// ・ログインしていない人は、何もできない
+// ・自分のデータは、自分だけが書ける
+// ・相手のデータに書けるのは、アプリが必要とするところだけ
+//   （友達・友達申請・チャット・通知・見た人・応援）で、しかも「自分の分」だけ
+// ・チャット・AIの履歴・通知・友達申請は、本人（と申請した人）しか読めない
+// ・学習記録は、公開している人の分だけ読める（非公開の人の分は、本人だけ）
+//   目標達成の数は、非公開でも users/{uid}.goalAchievedDays で見せる
+// ======================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMe(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // ------------------------------------------------------------
+    // ユーザー
+    // ------------------------------------------------------------
+    match /users/{uid} {
+      // 名前・アイコン・設定などは、検索やプロフィールで使うので、ログインしていれば読める
+      allow read: if signedIn();
+      allow write: if isMe(uid);
+
+      // 学習記録（「学習記録を公開する」をオフにした人の記録は、本人しか読めない）
+      // 公開の設定を決めていない人は、公開としてあつかう
+      match /studyRecords/{date} {
+        allow read: if isMe(uid)
+          || (signedIn()
+            && get(/databases/$(database)/documents/users/$(uid)).data.get('isPublic', true) != false);
+        allow write: if isMe(uid);
+      }
+
+      // AIの履歴（本人だけ）
+      match /ai_history/{chatId} {
+        allow read, write: if isMe(uid);
+
+        match /messages/{messageId} {
+          allow read, write: if isMe(uid);
+        }
+      }
+
+      // 友達（友達になるとき・やめるときは、相手の一覧の「自分の行」も書く）
+      match /friends/{friendId} {
+        allow read: if signedIn();
+        allow write: if isMe(uid) || isMe(friendId);
+      }
+
+      // 友達申請（users/{受ける人}/friend_requests/{申請した人}）
+      match /friend_requests/{senderId} {
+        allow read: if isMe(uid) || isMe(senderId);
+        allow create, update: if isMe(senderId)
+          && request.resource.data.senderId == senderId;
+        allow delete: if isMe(uid) || isMe(senderId);
+      }
+
+      // チャット（users/{自分}/chats/{相手}。送る人は、相手側にも書く）
+      match /chats/{otherId} {
+        allow read: if isMe(uid);
+        allow write: if isMe(uid) || isMe(otherId);
+
+        match /messages/{messageId} {
+          allow read: if isMe(uid);
+          // 送った人の名前で、ほかの人のふりはできない
+          allow create: if (isMe(uid) || isMe(otherId))
+            && request.resource.data.senderId == request.auth.uid;
+          allow update: if false;
+          allow delete: if isMe(uid);
+        }
+      }
+
+      // 通知（友達申請を承認したとき、相手にも届ける）
+      match /notifications/{notificationId} {
+        allow read, update, delete: if isMe(uid);
+        allow create: if isMe(uid)
+          || (signedIn() && request.resource.data.userId == request.auth.uid);
+      }
+
+      // プロフィールを見た人（users/{見られた人}/profileViews/{見た人}）
+      match /profileViews/{viewerId} {
+        allow read: if isMe(uid) || isMe(viewerId);
+        allow create, update: if isMe(viewerId) && viewerId != uid;
+        allow delete: if isMe(uid) || isMe(viewerId);
+      }
+
+      // 応援（users/{応援された人}/cheers/{応援した人}_{日付}）
+      match /cheers/{cheerId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.fromUserId == request.auth.uid
+          && cheerId.matches(request.auth.uid + '_.*')
+          && request.auth.uid != uid;
+        allow update: if false;
+        allow delete: if isMe(uid);
+      }
+    }
+
+    // ------------------------------------------------------------
+    // 自分が送った友達申請を、ぜんぶの人の分から探す（アカウントを消すとき）
+    // 読めるのは、送った人が自分のものだけ
+    // ------------------------------------------------------------
+    match /{path=**}/friend_requests/{senderId} {
+      allow read: if signedIn() && resource.data.senderId == request.auth.uid;
+    }
+
+    // ------------------------------------------------------------
+    // Q&A の質問
+    // ------------------------------------------------------------
+    match /questions/{questionId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      // 書いた人は、なんでも直せる。ほかの人は、回答（answers）だけ書ける
+      allow update: if isMe(resource.data.userId)
+        || (signedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answers']));
+      allow delete: if isMe(resource.data.userId);
+    }
+
+    // ------------------------------------------------------------
+    // ルーム
+    // ------------------------------------------------------------
+    match /rooms/{roomId} {
+      function isOwner() {
+        return isMe(get(/databases/$(database)/documents/rooms/$(roomId)).data.ownerId);
+      }
+
+      function isMember() {
+        return signedIn() && exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid));
+      }
+
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isMe(resource.data.ownerId);
+
+      // メンバー（参加・退出は本人。ルームを消すときは、作った人も消せる）
+      match /members/{memberId} {
+        allow read: if signedIn();
+        allow create, update: if isMe(memberId);
+        allow delete: if isMe(memberId) || isOwner();
+      }
+
+      // ルームのチャット（メンバーだけ）
+      match /messages/{messageId} {
+        allow read: if isMember() || isOwner();
+        allow create: if isMember() && request.resource.data.uid == request.auth.uid;
+        allow update: if false;
+        allow delete: if isOwner() || isMe(resource.data.uid);
+      }
+
+      // 共有ノート（メンバーなら書ける。消せるのは作った人と、ルームを作った人）
+      match /notes/{noteId} {
+        allow read: if isMember() || isOwner();
+        allow create: if isMember() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isMember();
+        allow delete: if isOwner() || isMe(resource.data.createdBy);
+      }
+    }
+  }
+}

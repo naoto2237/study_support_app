@@ -35,12 +35,18 @@ class ComparisonChartSection extends StatefulWidget {
   // 「比較する」を押したか（押すまでは、グラフの代わりに案内を出す）
   final bool isCompared;
 
+  // 全体のユーザーの絞り込み（学年・職種／学習目標。指定しないときは null）
+  final String? grade;
+  final String? goal;
+
   const ComparisonChartSection({
     super.key,
     required this.totalSeconds,
     required this.comparisonTarget,
     required this.isCompared,
     this.partner,
+    this.grade,
+    this.goal,
   });
 
   @override
@@ -96,12 +102,28 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
   bool get _showOther => _showAverage || widget.partner != null;
 
   // 相手の呼び名（凡例・吹き出しに出す）
-  String get _otherLabel => _showAverage ? "全体平均" : widget.partner!.name;
+  String get _otherLabel {
+    if (!_showAverage) return widget.partner!.name;
+    // 絞り込んでいるときは「高校2年・大学受験の平均」
+    final filters = [?widget.grade, ?widget.goal];
+    return filters.isEmpty ? "全体平均" : "${filters.join("・")}の平均";
+  }
 
   @override
   void initState() {
     super.initState();
     _loadRecords();
+  }
+
+  @override
+  void didUpdateWidget(covariant ComparisonChartSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // 全体のユーザーの絞り込みを変えたら、読みなおす
+    if (oldWidget.grade != widget.grade || oldWidget.goal != widget.goal) {
+      setState(() => isLoading = true);
+      _loadRecords();
+    }
   }
 
   // ==============================================================
@@ -116,9 +138,18 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
           .collection("users")
           .get();
 
+      // 学習記録を非公開にしている人（自分はのぞく）の記録は、ルールで読めないので読まない
+      // （1人分の棒にも、全体平均にも入れない）
+      final readableUsers = usersSnapshot.docs
+          .where(
+            (userDoc) =>
+                userDoc.id == myUid || userDoc.data()["isPublic"] != false,
+          )
+          .toList();
+
       // ユーザーごとの記録を、まとめて読み込む
       final recordSnapshots = await Future.wait(
-        usersSnapshot.docs.map((userDoc) {
+        readableUsers.map((userDoc) {
           return FirebaseFirestore.instance
               .collection("users")
               .doc(userDoc.id)
@@ -131,14 +162,27 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
       allUsersTotals.clear();
       recordsByUser.clear();
 
-      for (int i = 0; i < usersSnapshot.docs.length; i++) {
-        final uid = usersSnapshot.docs[i].id;
+      // 学年・目標で絞り込んでいるときは、合う人だけを全体平均に入れる
+      bool matches(Map<String, dynamic> data) {
+        if (widget.grade != null && data["grade"] != widget.grade) return false;
+        if (widget.goal != null && data["goal"] != widget.goal) return false;
+        return true;
+      }
+
+      int averageCount = 0;
+
+      for (int i = 0; i < readableUsers.length; i++) {
+        final uid = readableUsers[i].id;
+        final inAverage = matches(readableUsers[i].data());
+        if (inAverage) averageCount++;
 
         for (final recordDoc in recordSnapshots[i].docs) {
           final seconds = (recordDoc.data()["studyTime"] as num?)?.toInt() ?? 0;
 
-          allUsersTotals[recordDoc.id] =
-              (allUsersTotals[recordDoc.id] ?? 0) + seconds;
+          if (inAverage) {
+            allUsersTotals[recordDoc.id] =
+                (allUsersTotals[recordDoc.id] ?? 0) + seconds;
+          }
 
           recordsByUser.putIfAbsent(uid, () => {})[recordDoc.id] = seconds;
 
@@ -151,7 +195,8 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
       if (!mounted) return;
 
       setState(() {
-        userCount = usersSnapshot.docs.length;
+        // 平均に入れた人数（非公開の人と、絞り込みに合わない人はのぞく）
+        userCount = averageCount;
         isLoading = false;
         hasError = false;
       });
@@ -611,7 +656,10 @@ class _ComparisonChartSectionState extends State<ComparisonChartSection> {
             if (_showOther)
               Expanded(
                 child: _summaryItem(
-                  _showAverage ? "全体平均（$userCount人）" : _otherLabel,
+                  // 読み込み中は人数を出さない（「0人」と出ないように）
+                  _showAverage
+                      ? (isLoading ? _otherLabel : "$_otherLabel（$userCount人）")
+                      : _otherLabel,
                   _formatSeconds(averageTotal),
                   textColor,
                   secondaryColor,

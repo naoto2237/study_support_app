@@ -175,7 +175,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
                 if (docs.isEmpty) {
                   return const EmptyMessage(
-                    icon: Icons.chat_bubble_outline_rounded,
+                    icon: Icons.chat_outlined,
                     text: 'まだメッセージはありません',
                     subText: '最初のメッセージを送ってみましょう',
                   );
@@ -263,7 +263,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: p.primarySoft,
+              backgroundColor: AppColors.primarySoft,
               backgroundImage: icon.isNotEmpty ? NetworkImage(icon) : null,
               child: icon.isEmpty
                   ? const Icon(Icons.person, color: AppColors.primary, size: 21)
@@ -440,8 +440,14 @@ class _MessageBubble extends StatelessWidget {
           decoration: BoxDecoration(
             color: isMe ? AppColors.primary : p.card,
             border: isMe ? null : Border.all(color: p.border),
-            // 4つの角を同じ丸さにする（しっぽの角はつけない）
-            borderRadius: BorderRadius.circular(18),
+            // AIサポートと同じく、角を1つだけ小さく丸めて「とがり」をつける
+            // （自分は右上、相手は左上）
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(isMe ? 18 : 6),
+              topRight: Radius.circular(isMe ? 6 : 18),
+              bottomLeft: const Radius.circular(18),
+              bottomRight: const Radius.circular(18),
+            ),
           ),
           child: Text(
             text,

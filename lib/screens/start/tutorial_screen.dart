@@ -114,8 +114,10 @@ class _TutorialScreenState extends State<TutorialScreen> {
       return;
     }
 
-    Navigator.of(context).pushReplacement(
+    // それまでの画面は、すべて閉じてからホームへ（上の帯に「←」が出ないように）
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      (_) => false,
     );
   }
 

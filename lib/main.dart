@@ -2,7 +2,7 @@
 // アプリの入口
 //
 // 主なクラス: MyApp / AppStartScreen / MainNavigationScreen
-// ・main()：.env の読み込み、Firebase の初期化、ダークモードの読み込み、タイマー通知の準備
+// ・main()：Firebase の初期化、ダークモードの読み込み、タイマー通知の準備
 // ・MyApp：テーマ（ライト／ダーク）と日本語設定
 // ・AppStartScreen：ログインと登録の状態を見て、最初の画面を決める
 // ・MainNavigationScreen：下のタブ（ホーム／AIサポート／Link／学習記録／マイページ）
@@ -11,7 +11,6 @@
 // ======================================================================
 
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_support_app/screens/home/home_screen.dart';
@@ -21,6 +20,7 @@ import 'package:study_support_app/screens/record/record_screen.dart';
 import 'package:study_support_app/screens/mypage/mypage_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:study_support_app/firebase_options.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -29,6 +29,7 @@ import 'package:study_support_app/screens/start/splash_screen.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:study_support_app/theme/app_colors.dart';
+import 'package:study_support_app/services/current_subject.dart';
 
 // アプリ全体で共有するダークモードの状態変数（初期値: false = ライト）
 final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier<bool>(false);
@@ -60,11 +61,29 @@ void main() async {
     FlutterForegroundTask.initCommunicationPort();
   }
 
-  await dotenv.load(fileName: ".env");
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // App Check（本物のこのアプリからのアクセスかを、Firebase が確かめるしくみ）
+  // AI（firebase_ai）は、これがないと断られる。
+  // ・作っている途中（debug）：テスト用の確かめ方。起動するとログに
+  //   「debug secret」が出るので、Firebase のコンソールの App Check に登録する
+  // ・公開する版（release）：Google Play の確かめ方（Play Integrity）
+  // ・パソコン版（Web）では使わない（Web 用の設定（reCAPTCHA）がないと、起動で止まるため）
+  if (!kIsWeb) {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleDeviceCheckProvider(),
+    );
+  }
+
   await _restoreDarkMode();
+
+  // 前にえらんだ教科（タイマーの上の「教科をえらぶ」）を読みこむ
+  await CurrentSubject.load();
 
   if (!kIsWeb) {
     initForegroundService();
